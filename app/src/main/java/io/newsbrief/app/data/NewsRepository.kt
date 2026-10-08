@@ -24,17 +24,21 @@ class NewsRepository(
 
     fun observeSources(): Flow<List<SourceEntity>> = db.sourceDao().observe()
     fun observeLatest(): Flow<List<ArticleEntity>> = db.articleDao().observeRecent(0)
+    fun observeFeed(sourceIds: List<Long>?): Flow<List<ArticleEntity>> =
+        db.articleDao().observeFiltered(sourceIds.orEmpty(), sourceIds != null)
 
     suspend fun seedDefaults() {
         val v2Seeded = settings.isSourcesCatalogV2Seeded()
         val v3Seeded = settings.isSourcesCatalogV3Seeded()
         val v4Seeded = settings.isSourcesCatalogV4Seeded()
-        if (v2Seeded && v3Seeded && v4Seeded) return
-        SourceCatalog.defaultsToSeed(db.sourceDao().count(), v2Seeded, v3Seeded, v4Seeded)
+        val v5Seeded = settings.isSourcesCatalogV5Seeded()
+        if (v2Seeded && v3Seeded && v4Seeded && v5Seeded) return
+        SourceCatalog.defaultsToSeed(db.sourceDao().count(), v2Seeded, v3Seeded, v4Seeded, v5Seeded)
             .forEach { db.sourceDao().insert(it.asEntity()) }
         if (!v2Seeded) settings.markSourcesCatalogV2Seeded()
         if (!v3Seeded) settings.markSourcesCatalogV3Seeded()
         if (!v4Seeded) settings.markSourcesCatalogV4Seeded()
+        if (!v5Seeded) settings.markSourcesCatalogV5Seeded()
     }
 
     suspend fun addSource(name: String, kind: String, rawAddress: String): Boolean {

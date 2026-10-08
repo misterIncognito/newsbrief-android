@@ -2,6 +2,8 @@ package io.newsbrief.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -54,6 +58,8 @@ import io.newsbrief.app.data.DigestMode
 import io.newsbrief.app.data.SettingsStore
 import io.newsbrief.app.data.SourceCatalog
 import io.newsbrief.app.data.SourceKind
+import io.newsbrief.app.data.FeedCategory
+import io.newsbrief.app.data.FeedFilters
 import org.json.JSONArray
 import java.time.Instant
 import java.time.ZoneId
@@ -190,16 +196,58 @@ private fun DigestPage(vm: NewsViewModel) {
 
 @Composable
 private fun FeedPage(vm: NewsViewModel) {
-    val articles by vm.articles.collectAsStateWithLifecycle()
-    if (articles.isEmpty()) {
-        Box(Modifier.fillMaxSize().padding(22.dp), contentAlignment = Alignment.Center) {
-            Text("Новостей от выбранных источников пока нет. Обнови ленту на верхней панели.")
+    val articles by vm.feedArticles.collectAsStateWithLifecycle()
+    val sources by vm.sources.collectAsStateWithLifecycle()
+    val category by vm.feedCategory.collectAsStateWithLifecycle()
+    val selectedSource by vm.feedSource.collectAsStateWithLifecycle()
+    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
+    val options = remember(sources, category) { FeedFilters.options(sources, category) }
+    var sourceMenu by remember { mutableStateOf(false) }
+    val filtered = category != FeedCategory.ALL || selectedSource != null
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FeedCategory.entries.forEach { choice ->
+                FilterChip(selected = category == choice, onClick = { vm.filterCategory(choice) },
+                    label = { Text(choice.label) })
+            }
         }
-    } else {
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            item { Text("Выбранные источники · ${articles.size}", style = MaterialTheme.typography.titleMedium) }
-            items(articles, key = { it.id }) { article -> NewsCard(article, vm) }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.weight(1f)) {
+                OutlinedButton(onClick = { sourceMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (selectedSource == null) "Все источники ▾"
+                        else (options.firstOrNull { it.key == selectedSource }?.label ?: "Источник недоступен") + " ▾",
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                DropdownMenu(expanded = sourceMenu, onDismissRequest = { sourceMenu = false },
+                    modifier = Modifier.heightIn(max = 400.dp)) {
+                    DropdownMenuItem(text = { Text("Все источники") }, onClick = {
+                        vm.filterSource(null); sourceMenu = false
+                    })
+                    options.forEach { option ->
+                        DropdownMenuItem(text = { Text(option.label) }, onClick = {
+                            vm.filterSource(option.key); sourceMenu = false
+                        })
+                    }
+                }
+            }
+            if (filtered) TextButton(onClick = { vm.clearFeedFilter() }) { Text("Сбросить") }
+        }
+        Text("Публикаций: ${articles.size}", modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (articles.isEmpty()) {
+            Box(Modifier.weight(1f).fillMaxWidth().padding(22.dp), contentAlignment = Alignment.Center) {
+                Text(if (refreshing) "Загружаем новости…"
+                    else if (filtered) "В этом фильтре пока нет публикаций. Выбери другой источник или обнови ленту."
+                    else "Новостей от подключённых источников пока нет. Обнови ленту на верхней панели.")
+            }
+        } else {
+            LazyColumn(Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(articles, key = { it.id }) { article -> NewsCard(article, vm) }
+            }
         }
     }
 }
@@ -311,29 +359,31 @@ private fun SourceCatalogDialog(
     onClose: () -> Unit,
     onAdd: (String, String, String) -> Unit
 ) {
+    var search by rememberSaveable { mutableStateOf("") }
+    val entries = remember(search) { SourceCatalog.search(search) }
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text("Каталог новостей") },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item {
-                    Text("11 источников при новой установке. Остальные можно подключить здесь.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                items(SourceCatalog.presets, key = { it.address }) { preset ->
-                    val added = preset.address in existingAddresses
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            Text(preset.name, style = MaterialTheme.typography.bodyMedium)
-                            Text("${preset.category} · ${preset.kind}", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(value = search, onValueChange = { search = it }, singleLine = true,
+                    label = { Text("Поиск источника") }, placeholder = { Text("The Verge, Business Insider…") },
+                    modifier = Modifier.fillMaxWidth())
+                if (entries.isEmpty()) Text("Источники не найдены")
+                LazyColumn(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(entries, key = { it.address }) { preset ->
+                        val added = preset.address in existingAddresses
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Column(Modifier.weight(1f)) {
+                                Text(preset.name, style = MaterialTheme.typography.bodyMedium)
+                                Text("${preset.category} · ${preset.kind}", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            TextButton(enabled = !added, onClick = { onAdd(preset.name, preset.kind, preset.address) }) {
+                                Text(if (added) "Добавлен" else "+")
+                            }
                         }
-                        TextButton(
-                            enabled = !added,
-                            onClick = { onAdd(preset.name, preset.kind, preset.address) }
-                        ) { Text(if (added) "Добавлен" else "+") }
                     }
                 }
             }

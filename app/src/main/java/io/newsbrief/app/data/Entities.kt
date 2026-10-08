@@ -81,6 +81,11 @@ interface ArticleDao {
     fun observeRecent(from: Long): Flow<List<ArticleEntity>>
 
     @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
+        "WHERE s.enabled = 1 AND (:filtered = 0 OR a.sourceId IN (:sourceIds)) " +
+        "ORDER BY a.publishedAt DESC LIMIT 250")
+    fun observeFiltered(sourceIds: List<Long>, filtered: Boolean): Flow<List<ArticleEntity>>
+
+    @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
         "WHERE s.enabled = 1 AND a.publishedAt >= :from ORDER BY a.publishedAt DESC LIMIT :limit")
     suspend fun recent(from: Long, limit: Int): List<ArticleEntity>
 

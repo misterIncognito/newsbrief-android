@@ -37,7 +37,7 @@ object SourceCatalog {
         SourcePreset("Хабр — статьи", "https://habr.com/ru/rss/articles/?fl=ru", SourceKind.RSS,
             "Технологии · RU", enabledByDefault = true),
         SourcePreset("vc.ru — бизнес и технологии", "https://t.me/s/vcnews", SourceKind.TELEGRAM,
-            "Бизнес · RU", enabledByDefault = true),
+            "Бизнес · Технологии · RU", enabledByDefault = true),
         SourcePreset("The Warsaw — Варшава", "https://t.me/s/thewwarsaw", SourceKind.TELEGRAM,
             "Польша · RU", enabledByDefault = true),
 
@@ -61,14 +61,14 @@ object SourceCatalog {
         SourcePreset("Ars Technica", "https://arstechnica.com/feed/", SourceKind.RSS,
             "Технологии · EN"),
         SourcePreset("The Verge", "https://www.theverge.com/rss/index.xml", SourceKind.RSS,
-            "Технологии · EN"),
+            "Технологии · EN", enabledByDefault = true),
         SourcePreset("Business Insider Polska", "https://businessinsider.com.pl/.feed", SourceKind.RSS,
-            "Бизнес · PL"),
+            "Бизнес · Польша · PL", enabledByDefault = true),
         // Business Insider US does not offer an official RSS feed; this is a
         // Google News query, so some links resolve via news.google.com.
         SourcePreset("Business Insider (через Google News)",
             "https://news.google.com/rss/search?q=site%3Abusinessinsider.com&hl=en-US&gl=US&ceid=US%3Aen",
-            SourceKind.RSS, "Бизнес · EN"),
+            SourceKind.RSS, "Бизнес · EN", enabledByDefault = true),
         SourcePreset("DW Главное (Telegram)", "https://t.me/s/dwglavnoe", SourceKind.TELEGRAM,
             "На русском"),
         SourcePreset("Медуза LIVE (Telegram)", "https://t.me/s/meduzalive", SourceKind.TELEGRAM,
@@ -87,6 +87,12 @@ object SourceCatalog {
             "Мир · EN")
     )
 
+    fun search(query: String): List<SourcePreset> {
+        val needle = query.trim().lowercase(java.util.Locale.ROOT)
+        return presets.filter { needle.isEmpty() ||
+            "${it.name} ${it.category} ${it.address}".lowercase(java.util.Locale.ROOT).contains(needle) }
+    }
+
     private val legacyDefaults = setOf(
         "https://feeds.bbci.co.uk/russian/rss.xml",
         "https://news.zerkalo.io/rss/all.rss",
@@ -101,18 +107,23 @@ object SourceCatalog {
     private val v4Addresses = setOf("https://t.me/s/bbcrussian", "https://t.me/s/zerkalo_io")
     val newDefaultsV4 = presets.filter { it.address in v4Addresses }
 
+    private val v5Addresses = setOf("https://www.theverge.com/rss/index.xml", "https://businessinsider.com.pl/.feed",
+        "https://news.google.com/rss/search?q=site%3Abusinessinsider.com&hl=en-US&gl=US&ceid=US%3Aen")
+    val newDefaultsV5 = presets.filter { it.address in v5Addresses }
+
     // V0.2 additions only (needed when upgrading directly from v0.1).
     val newDefaults = presets.filter {
-        it.enabledByDefault && it.address !in legacyDefaults && it.address !in v3Addresses && it.address !in v4Addresses
+        it.enabledByDefault && it.address !in legacyDefaults && it.address !in v3Addresses && it.address !in v4Addresses && it.address !in v5Addresses
     }
     val newDefaultsV3 = presets.filter { it.enabledByDefault && it.address in v3Addresses }
 
     /** Prevent deleted presets from reappearing on app startup after migration. */
-    fun defaultsToSeed(sourceCount: Int, v2Seeded: Boolean, v3Seeded: Boolean, v4Seeded: Boolean = false): List<SourcePreset> {
-        if (v2Seeded && v3Seeded && v4Seeded) return emptyList()
+    fun defaultsToSeed(sourceCount: Int, v2Seeded: Boolean, v3Seeded: Boolean, v4Seeded: Boolean = false, v5Seeded: Boolean = false): List<SourcePreset> {
+        if (v2Seeded && v3Seeded && v4Seeded && v5Seeded) return emptyList()
         if (sourceCount == 0 && !v2Seeded) return presets.filter { it.enabledByDefault }
         return (if (v2Seeded) emptyList() else newDefaults) +
             (if (v3Seeded) emptyList() else newDefaultsV3) +
-            (if (v4Seeded) emptyList() else newDefaultsV4)
+            (if (v4Seeded) emptyList() else newDefaultsV4) +
+            (if (v5Seeded) emptyList() else newDefaultsV5)
     }
 }

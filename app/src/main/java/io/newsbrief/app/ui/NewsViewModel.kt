@@ -10,6 +10,11 @@ import io.newsbrief.app.data.DigestEntity
 import io.newsbrief.app.data.DigestMode
 import io.newsbrief.app.data.SettingsStore
 import io.newsbrief.app.data.SourceKind
+import io.newsbrief.app.data.FeedCategory
+import io.newsbrief.app.data.FeedFilters
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +31,24 @@ class NewsViewModel @JvmOverloads constructor(
 
     val sources = repo.observeSources().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val articles = repo.observeLatest().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _feedCategory = MutableStateFlow(FeedCategory.ALL)
+    val feedCategory = _feedCategory.asStateFlow()
+    private val _feedSource = MutableStateFlow<String?>(null)
+    val feedSource = _feedSource.asStateFlow()
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val feedArticles = combine(repo.observeSources(), _feedCategory, _feedSource) { sources, category, source ->
+        FeedFilters.sourceIds(sources, category, source)
+    }.distinctUntilChanged().flatMapLatest { repo.observeFeed(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun filterCategory(category: FeedCategory) {
+        _feedSource.value = null
+        _feedCategory.value = category
+    }
+    fun filterSource(key: String?) { _feedSource.value = key }
+    fun clearFeedFilter() { filterCategory(FeedCategory.ALL) }
 
     private val _mode = MutableStateFlow(DigestMode.SHORT)
     val mode = _mode.asStateFlow()

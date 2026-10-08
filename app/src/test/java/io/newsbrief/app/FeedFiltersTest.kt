@@ -1,0 +1,36 @@
+package io.newsbrief.app
+
+import io.newsbrief.app.data.*
+import org.junit.Assert.*
+import org.junit.Test
+
+class FeedFiltersTest {
+    private fun source(address: String, id: Long, enabled: Boolean = true) = SourceCatalog.presets
+        .first { it.address == address }.asEntity().copy(id = id, enabled = enabled)
+
+    @Test fun technologyIncludesRelevantSourcesAndExcludesGeneralAndDisabledSources() {
+        val sources = listOf(source("https://www.theverge.com/rss/index.xml", 1),
+            source("https://habr.com/ru/rss/articles/?fl=ru", 2), source("https://t.me/s/vcnews", 3),
+            source("https://news.zerkalo.io/rss/all.rss", 4), source("https://t.me/s/devby", 5, enabled = false))
+        assertEquals(listOf(1L, 2L, 3L), FeedFilters.sourceIds(sources, FeedCategory.TECH, null))
+        assertNull(FeedFilters.sourceIds(sources, FeedCategory.ALL, null))
+    }
+    @Test fun publisherFilterCombinesZerkaloRssAndTelegram() {
+        val sources = listOf(source("https://news.zerkalo.io/rss/all.rss", 1),
+            source("https://t.me/s/zerkalo_io", 2), source("https://t.me/s/bbcrussian", 3))
+        assertEquals(listOf(1L, 2L), FeedFilters.sourceIds(sources, FeedCategory.ALL, "zerkalo"))
+        assertEquals(1, FeedFilters.options(sources, FeedCategory.ALL).count { it.key == "zerkalo" })
+        assertTrue(FeedFilters.sourceIds(sources, FeedCategory.TECH, "zerkalo")!!.isEmpty())
+    }
+    @Test fun customSourcesRemainIndividuallySelectableAndHaveOtherCategory() {
+        val source = SourceEntity(id = 42, name = "My news", address = "https://custom.example/rss", kind = SourceKind.RSS)
+        assertEquals(setOf(FeedCategory.OTHER), FeedFilters.categories(source))
+        assertEquals(listOf(42L), FeedFilters.sourceIds(listOf(source), FeedCategory.OTHER, "source:42"))
+        assertTrue(FeedFilters.sourceIds(listOf(source), FeedCategory.ALL, "deleted-source")!!.isEmpty())
+    }
+    @Test fun businessInsiderCanBeFilteredTogetherAcrossEditions() {
+        val sources = SourceCatalog.newDefaultsV5.mapIndexed { i, source -> source.asEntity().copy(id = i + 1L) }
+        assertEquals(2, FeedFilters.sourceIds(sources, FeedCategory.BUSINESS, "business-insider")!!.size)
+        assertEquals(1, FeedFilters.sourceIds(sources, FeedCategory.TECH, null)!!.size)
+    }
+}

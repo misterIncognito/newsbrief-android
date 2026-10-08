@@ -27,6 +27,7 @@ class SourceRefreshTest {
         markSourcesCatalogV2Seeded()
         markSourcesCatalogV3Seeded()
         markSourcesCatalogV4Seeded()
+        markSourcesCatalogV5Seeded()
     }
     private fun article(source: SourceEntity, content: String = "") = ArticleEntity(
         sourceId = source.id, sourceName = source.name, title = source.name, excerpt = "Preview",

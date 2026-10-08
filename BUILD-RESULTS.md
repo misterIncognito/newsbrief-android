@@ -1,7 +1,7 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.2**, 35 passing tests, installed on the connected phone.
-See [TELEGRAM-SOURCES.md](TELEGRAM-SOURCES.md) for the latest build;
+Latest build: **0.4.3**, 42 passing tests; device installation pending reconnection.
+See [FEED-FILTERS.md](FEED-FILTERS.md) for the latest build;
 [SOURCE-REFRESH-FIX.md](SOURCE-REFRESH-FIX.md) records the previous source-selection fix. The results below record the original 0.4.0 build.
 
 Verified on Mac mini (Apple Silicon), 9 October 2026, Europe/Warsaw.

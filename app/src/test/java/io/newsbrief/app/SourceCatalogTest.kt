@@ -28,20 +28,32 @@ class SourceCatalogTest {
 
     @Test fun upgradeAddsOnlyNewDefaultsWithoutRestoringDeletedSources() {
         val freshInstall = SourceCatalog.defaultsToSeed(0, v2Seeded = false, v3Seeded = false)
-        assertEquals(11, freshInstall.size)
+        assertEquals(14, freshInstall.size)
         assertEquals(1, freshInstall.count { it.name == "Медуза" })
         val fromV1 = SourceCatalog.defaultsToSeed(3, v2Seeded = false, v3Seeded = false)
-        assertEquals(8, fromV1.size)
-        val fromV2 = SourceCatalog.defaultsToSeed(6, v2Seeded = true, v3Seeded = false, v4Seeded = true)
+        assertEquals(11, fromV1.size)
+        val fromV2 = SourceCatalog.defaultsToSeed(6, v2Seeded = true, v3Seeded = false, v4Seeded = true, v5Seeded = true)
         assertEquals(setOf("Хабр — статьи", "vc.ru — бизнес и технологии", "The Warsaw — Варшава"),
             fromV2.map { it.name }.toSet())
-        assertTrue(SourceCatalog.defaultsToSeed(3, v2Seeded = true, v3Seeded = true, v4Seeded = true).isEmpty())
-        assertTrue(SourceCatalog.defaultsToSeed(0, v2Seeded = true, v3Seeded = true, v4Seeded = true).isEmpty())
+        assertTrue(SourceCatalog.defaultsToSeed(3, v2Seeded = true, v3Seeded = true, v4Seeded = true, v5Seeded = true).isEmpty())
+        assertTrue(SourceCatalog.defaultsToSeed(0, v2Seeded = true, v3Seeded = true, v4Seeded = true, v5Seeded = true).isEmpty())
     }
     @Test fun upgradeFromV3AddsOfficialTelegramChannelsOnce() {
-        val additions = SourceCatalog.defaultsToSeed(9, v2Seeded = true, v3Seeded = true, v4Seeded = false)
+        val additions = SourceCatalog.defaultsToSeed(9, v2Seeded = true, v3Seeded = true, v4Seeded = false, v5Seeded = true)
         assertEquals(setOf("https://t.me/s/bbcrussian", "https://t.me/s/zerkalo_io"), additions.map { it.address }.toSet())
         assertTrue(additions.all { it.kind == SourceKind.TELEGRAM && it.enabledByDefault })
-        assertTrue(SourceCatalog.defaultsToSeed(0, true, true, true).isEmpty())
+        assertTrue(SourceCatalog.defaultsToSeed(0, true, true, true, true).isEmpty())
+    }
+    @Test fun upgradeAddsVergeAndBusinessInsiderWithoutReseedingOtherSources() {
+        val added = SourceCatalog.defaultsToSeed(11, true, true, true, false)
+        assertEquals(setOf("The Verge", "Business Insider Polska", "Business Insider (через Google News)"), added.map { it.name }.toSet())
+        assertTrue(added.all { it.enabledByDefault })
+        assertTrue(SourceCatalog.defaultsToSeed(0, true, true, true, true).isEmpty())
+    }
+    @Test fun catalogSearchFindsMissingSourcesIgnoringCaseAndWhitespace() {
+        assertEquals("The Verge", SourceCatalog.search("  VERGE ").single().name)
+        assertEquals(2, SourceCatalog.search("Business Insider").size)
+        assertEquals(SourceCatalog.presets.size, SourceCatalog.search("").size)
+        assertTrue(SourceCatalog.search("no such publisher").isEmpty())
     }
 }
