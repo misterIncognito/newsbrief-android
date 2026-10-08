@@ -7,6 +7,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+@org.junit.runner.RunWith(org.robolectric.RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35], application = android.app.Application::class)
 class CollectorsTest {
     private val parser = WebCollectors()
 
@@ -75,5 +77,26 @@ class CollectorsTest {
         assertEquals(1, items.size)
         assertEquals("Новость", items[0].title)
         assertEquals("Подробности", items[0].excerpt)
+    }
+    @Test fun preservesRssEncodedContentAndRelativeImages() {
+        val feed = """<rss xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><item>
+            <title>Story</title><link>https://example.com/story</link><description>Short</description>
+            <content:encoded><![CDATA[<p>First.</p><p>Second.</p><img src="/photo.jpg"/>]]></content:encoded>
+            </item></channel></rss>"""
+        val item = parser.parseFeed(feed, SourceEntity(1, "RSS", "https://example.com/rss", SourceKind.RSS)).single()
+        assertEquals("First.\n\nSecond.", item.content)
+        assertEquals("https://example.com/photo.jpg", item.imageUrl)
+    }
+    @Test fun preservesAtomXhtmlContent() {
+        val feed = """<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>XHTML</title>
+            <link href="https://example.com/story"/><content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">
+            <p>First.</p><p>Second.</p><img src="/photo.jpg"/></div></content></entry></feed>"""
+        val item = parser.parseFeed(feed, SourceEntity(1, "Atom", "https://example.com/rss", SourceKind.RSS)).single()
+        assertEquals("First.\n\nSecond.", item.content)
+        assertEquals("https://example.com/photo.jpg", item.imageUrl)
+    }
+    @Test(expected = IllegalArgumentException::class) fun rejectsExternalEntityDocuments() {
+        parser.parseFeed("<!DOCTYPE rss [<!ENTITY x SYSTEM 'file:///etc/passwd'>]><rss/>",
+            SourceEntity(1, "RSS", "https://example.com/rss", SourceKind.RSS))
     }
 }

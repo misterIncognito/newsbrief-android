@@ -38,7 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -227,16 +227,17 @@ private fun ReaderPage(vm: NewsViewModel) {
     val reader by vm.reader.collectAsStateWithLifecycle()
     val busy by vm.readerBusy.collectAsStateWithLifecycle()
     val worker by vm.workerUrl.collectAsStateWithLifecycle()
-    val uriHandler = LocalUriHandler.current
     val item = source ?: return
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(item.sourceName + " · " + formatDate(item.publishedAt),
+        Text(item.sourceName + " · " + formatDate(reader?.publishedAt ?: item.publishedAt),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(reader?.title?.ifBlank { item.title } ?: item.title,
             style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         val image = reader?.imageUrl?.ifBlank { item.imageUrl } ?: item.imageUrl
-        if (image.isNotBlank()) NewsImage(image, item.link, worker, 220)
+        val images = reader?.images.orEmpty().ifEmpty { listOf(image).filter { it.isNotBlank() } }
+        images.forEach { NewsImage(it, item.link, worker, 220) }
+        reader?.author?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
         if (busy) CircularProgressIndicator()
         val content = reader?.text?.ifBlank { item.content.ifBlank { item.excerpt } }
             ?: item.content.ifBlank { item.excerpt }
@@ -246,11 +247,10 @@ private fun ReaderPage(vm: NewsViewModel) {
         }
         reader?.notice?.let { Text(it, color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodySmall) }
-        OutlinedButton(onClick = { vm.openReader(item) }, enabled = !busy) {
+        OutlinedButton(onClick = { vm.openReader(item, refresh = true) }, enabled = !busy) {
             Text("Обновить статью")
         }
-        // Explicit action only; the feed/digest never opens a browser automatically.
-        TextButton(onClick = { uriHandler.openUri(item.link) }) { Text("Открыть оригинал ↗") }
+        Text(item.link, style = MaterialTheme.typography.bodySmall)
     }
 }
 

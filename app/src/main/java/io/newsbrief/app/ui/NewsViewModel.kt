@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 
 class NewsViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as NewsBriefApp
@@ -107,14 +109,18 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
         report("Источник удалён")
     }
 
-    fun openReader(article: ArticleEntity) {
+    private var readerJob: Job? = null
+
+    fun openReader(article: ArticleEntity, refresh: Boolean = false) {
+        readerJob?.cancel()
         _readerSource.value = article
         _reader.value = null
-        viewModelScope.launch {
+        readerJob = viewModelScope.launch {
             _readerBusy.value = true
             try {
-                val result = repo.readArticle(article)
+                val result = repo.readArticle(article, refresh)
                 if (_readerSource.value?.link == article.link) _reader.value = result
+            } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 report("Ошибка чтения: ${e.message}")
             } finally { _readerBusy.value = false }
@@ -128,6 +134,8 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun closeReader() {
+        readerJob?.cancel()
+        _readerBusy.value = false
         _readerSource.value = null
         _reader.value = null
     }

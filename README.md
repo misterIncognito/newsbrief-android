@@ -29,10 +29,10 @@
 ## Как открыть
 
 1. Открой папку `newsbrief-android` в Android Studio с JDK 17+ и Android SDK 36.
-2. Дай Android Studio выполнить Gradle Sync (Gradle 8.13, Android Gradle Plugin 8.13.2). Если IDE попросит создать Gradle Wrapper, используй Gradle 8.13: `gradle wrapper --gradle-version 8.13`.
+2. Дай Android Studio выполнить Gradle Sync (Gradle 8.13, Android Gradle Plugin 8.13.2). Gradle Wrapper включён в репозиторий.
 3. Запусти на Android 8.0+ (API 26). Интернет необходим для загрузки новостей и обращения к облачному ИИ.
 4. Нажми «Обновить». На вкладке «Настройки» выбери Qwen или OpenAI, введи **свой** API-ключ и создай сводку.
-5. Unit-тесты: `gradle :app:testDebugUnitTest` (после настройки Android SDK / Gradle).
+5. Unit-тесты: `./gradlew :app:testDebugUnitTest` (после настройки Android SDK / Gradle).
 
 ## Архитектура
 
@@ -49,9 +49,8 @@
 - ИИ получает до 40 последних уникальных по нормализованному заголовку публикаций и должен группировать одинаковые события. Это MVP: полноценный семантический дедуп, кластеризация и строгая проверка фактов ещё не реализованы.
 - Запуск генерации требует своего оплачиваемого аккаунта Alibaba Cloud Model Studio или OpenAI. Объём публикаций ограничен, но кнопка «Создать» выполняет новый платный запрос при каждом нажатии.
 - На Android нельзя гарантировать точное время WorkManager. Нет push-уведомлений и синхронизации между устройствами.
-- Текущий UI ленты и генератор дайджеста **ещё фильтруют последние 24 часа**. Данные за более ранние даты остаются в SQLite, но интерфейс выбора периода — отдельная следующая задача.
+- Лента показывает последние 250 сохранённых статей, включая предыдущие дни. Генератор дайджеста использует последние 24 часа. История в SQLite не удаляется.
 - Android Keystore улучшает защиту **личного** ключа на устройстве, но не делает мобильные секреты абсолютно недоступными на скомпрометированном телефоне.
-- В этой среде Android SDK, Gradle и сеть для загрузки Gradle-зависимостей отсутствуют, поэтому полноценная сборка APK и Android unit-тесты **не запускались**. Рекомендована проверка `gradle :app:assembleDebug :app:testDebugUnitTest` в Android Studio.
 
 ## Лицензии и источники
 
@@ -76,29 +75,39 @@ git push -u origin main
 для GitHub либо используйте HTTPS URL. Никогда не коммитьте личные API-ключи,
 `local.properties`, файлы подписи Android или локальные базы данных.
 
-## v0.4.0 — Cloudflare Worker + встроенное чтение (подготовлено к сборке)
+## v0.4.0 — Cloudflare Worker + встроенное чтение
 
 - Cloudflare Worker по умолчанию: `https://newsbrief-proxy.a0-07d.workers.dev`.
 - При обращении к `meduza.io`, `zerkalo.io` и их поддоменам для RSS/Atom используется `/fetch`; для статей — `/article`; изображения из статей этих источников — через `/image`.
 - Для остальных изданий стандартное HTTPS-подключение без прокси. Worker меняется в разделе **Настройки**.
 - Все ссылки ленты и сводок теперь открываются во **встроенном Compose Reader**. Внешний браузер запускается только по отдельной кнопке «Открыть оригинал».
 - Поддержаны Atom `<content>`, RSS `content:encoded`, RSS `<description>` и изображения из media/enclosure/CDATА.
-- Новая миграция Room **1 → 2** добавляет `content` и `imageUrl` без удаления локальной истории.
+- Миграции Room **1 → 2 → 3** сохраняют историю: полный текст, изображения, автора и состояние загрузки Reader. Проверены обновления с версий 1 и 2.
 - The Verge и Business Insider (польская RSS + международная поисковая лента Google News) добавлены в каталог **как опциональные источники**. Business Insider не предлагает официальный RSS; Google News может вести на промежуточную страницу.
 - Дополнительные файлы `NewsRoutingTest.kt` и Atom unit test.
 
-### Что ещё нужно подтвердить на Mac
-
-Проверка `/article` JSON по живому Worker отсюда была невозможна. Reader понимает JSON с полями `text`, `content`, `body`, `articleBody`, `contentText` и `imageUrl`/`image` (включая объект `article`/`data`), а для прямых сайтов обрабатывает HTML. Если Worker возвращает другую структуру, измените `ArticleReader.parseArticle`.
-
-Сначала проверь Worker (подставь реальную ссылку статьи):
+### Сборка и проверка на Mac mini
 
 ```bash
-curl -fsS 'https://newsbrief-proxy.a0-07d.workers.dev/health'
-curl -G -fsS 'https://newsbrief-proxy.a0-07d.workers.dev/fetch' --data-urlencode 'url=https://news.zerkalo.io/rss/all.rss' | head -c 400
-curl -G -fsS 'https://newsbrief-proxy.a0-07d.workers.dev/article' --data-urlencode 'url=URL_РЕАЛЬНОЙ_СТАТЬИ' | head -c 1000
+bash scripts/build-on-mac.sh
 ```
 
-Открой проект в Android Studio на Mac mini и запусти `:app:testDebugUnitTest` и `:app:assembleDebug` (с Gradle 8.13 и JDK 17). APK после успешной сборки: `app/build/outputs/apk/debug/app-debug.apk`.
+Скрипт использует JDK/SDK из соседней папки `.toolchain`, если они установлены там,
+либо стандартное окружение JDK 17 и Android SDK 36. Wrapper закреплён на Gradle 8.13
+с проверкой SHA-256. Для Android Studio укажите JDK 17 и SDK в `local.properties`.
 
-**Статус:** форматирование Git и отдельные JVM-проверки маршрутизации выполнены. У данной сессии нет доступа к Android SDK твоего Mac, поэтому Android Gradle-сборка, тесты Room и живые сетевые тесты **ещё не подтверждены**. Работа TGStat API/рейтингов Telegram остаётся отдельной задачей.
+На 9 октября 2026 сборка `testDebugUnitTest assembleDebug` успешна: 29 тестов,
+0 ошибок. APK: `app/build/outputs/apk/debug/app-debug.apk`.
+Подробные результаты и ограничения: [BUILD-RESULTS.md](BUILD-RESULTS.md).
+
+Reader использует нативный Compose без браузера/WebView. OkHttp направляет
+Meduza и Zerkalo через Worker, включая переходы с других источников, и не делает
+прямых повторных запросов при сбое прокси. Остальные источники загружаются напрямую.
+Изображения идут через `/image`, сохраняются в приватных файлах приложения;
+метаданные изображений и статьи остаются в Room. Полный текст из RSS/Atom и уже
+загруженные статьи открываются без сети. Кнопка обновления явно повторяет загрузку.
+
+Живые проверки `/health`, Meduza/Zerkalo RSS, Meduza `/article` и Zerkalo `/image`
+успешны. Полные статьи Zerkalo пока блокируются самим сайтом (upstream HTTP 403,
+Worker HTTP 502). Приложение показывает имеющийся текст и сообщение об ошибке.
+На устройстве/эмуляторе APK ещё не проверен. TGStat API/рейтинги остаются отдельной задачей.

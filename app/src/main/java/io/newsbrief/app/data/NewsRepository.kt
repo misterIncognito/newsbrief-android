@@ -22,7 +22,7 @@ class NewsRepository(
     data class RefreshResult(val added: Int, val sources: Int, val errors: List<String>)
 
     fun observeSources(): Flow<List<SourceEntity>> = db.sourceDao().observe()
-    fun observeLatest(): Flow<List<ArticleEntity>> = db.articleDao().observeRecent(System.currentTimeMillis() - 24L * 60 * 60 * 1_000)
+    fun observeLatest(): Flow<List<ArticleEntity>> = db.articleDao().observeRecent(0)
 
     suspend fun seedDefaults() {
         val v2Seeded = settings.isSourcesCatalogV2Seeded()
@@ -74,10 +74,13 @@ class NewsRepository(
 
     suspend fun lookup(url: String): ArticleEntity? = db.articleDao().findByLink(url)
 
-    suspend fun readArticle(article: ArticleEntity): ReaderArticle {
-        val result = articleReader.load(article)
-        if (result.text.length > maxOf(article.content.length, article.excerpt.length + 100)) {
-            db.articleDao().updateReader(article.link, result.text.take(60_000), result.imageUrl)
+    suspend fun readArticle(article: ArticleEntity, refresh: Boolean = false): ReaderArticle {
+        val saved = db.articleDao().findByLink(article.link) ?: article
+        val result = articleReader.load(saved, refresh)
+        if (result.notice == null && result.text.isNotBlank()) {
+            db.articleDao().insertAll(listOf(saved))
+            db.articleDao().updateReader(article.link, result.title, result.text, result.imageUrl,
+                result.publishedAt ?: saved.publishedAt, result.author, org.json.JSONArray(result.images).toString())
         }
         return result
     }

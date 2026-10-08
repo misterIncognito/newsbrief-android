@@ -35,6 +35,9 @@ data class ArticleEntity(
     val excerpt: String,
     @ColumnInfo(defaultValue = "''") val content: String = "",
     @ColumnInfo(defaultValue = "''") val imageUrl: String = "",
+    @ColumnInfo(defaultValue = "0") val readerLoaded: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val author: String = "",
+    @ColumnInfo(defaultValue = "'[]'") val imagesJson: String = "[]",
     val link: String,
     val publishedAt: Long,
     val importedAt: Long = System.currentTimeMillis()
@@ -85,8 +88,10 @@ interface ArticleDao {
     @Query("SELECT * FROM articles WHERE link = :url LIMIT 1")
     suspend fun findByLink(url: String): ArticleEntity?
 
-    @Query("UPDATE articles SET content = :content, imageUrl = CASE WHEN :imageUrl != '' THEN :imageUrl ELSE imageUrl END WHERE link = :url")
-    suspend fun updateReader(url: String, content: String, imageUrl: String)
+    @Query("UPDATE articles SET title = :title, content = :content, imageUrl = :imageUrl, " +
+        "publishedAt = :publishedAt, author = :author, imagesJson = :imagesJson, readerLoaded = 1 WHERE link = :url")
+    suspend fun updateReader(url: String, title: String, content: String, imageUrl: String,
+        publishedAt: Long, author: String, imagesJson: String)
 
     @Query("UPDATE articles SET content = CASE WHEN content = '' THEN :content ELSE content END, " +
         "imageUrl = CASE WHEN imageUrl = '' THEN :imageUrl ELSE imageUrl END WHERE link = :url")
@@ -105,7 +110,7 @@ interface DigestDao {
     suspend fun save(digest: DigestEntity)
 }
 
-@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class], version = 2, exportSchema = true)
+@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class], version = 3, exportSchema = true)
 abstract class NewsDatabase : RoomDatabase() {
     abstract fun sourceDao(): SourceDao
     abstract fun articleDao(): ArticleDao
