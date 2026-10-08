@@ -5,6 +5,7 @@ import io.newsbrief.app.network.ArticleReader
 import io.newsbrief.app.network.ReaderArticle
 import io.newsbrief.app.network.NewsCollector
 import io.newsbrief.app.util.FeedRules
+import androidx.room.withTransaction
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.CancellationException
@@ -14,7 +15,8 @@ import kotlinx.coroutines.sync.withLock
 class NewsRepository(
     private val db: NewsDatabase,
     private val collector: NewsCollector,
-    private val settings: SettingsStore
+    private val settings: SettingsStore,
+    directoryNetwork: io.newsbrief.app.network.DirectoryNetwork = io.newsbrief.app.network.PublicDirectoryNetwork()
 ) {
     private val ai = AiClient(settings)
     private val articleReader = ArticleReader(settings)
@@ -45,6 +47,34 @@ class NewsRepository(
         require(name.isNotBlank()) { "Укажи название источника" }
         val address = FeedRules.canonicalAddress(rawAddress, kind)
         return db.sourceDao().insert(SourceEntity(name = name.trim().take(70), kind = kind, address = address)) != -1L
+    }
+
+    suspend fun discover(provider: io.newsbrief.app.network.DirectoryProvider, query: String): io.newsbrief.app.network.DirectoryResults =
+        directory.search(provider, query)
+
+    private val directory = SourceDirectoryRepository(db.catalogSearchDao(), directoryNetwork)
+
+    suspend fun addDiscoveredSource(source: io.newsbrief.app.network.DirectorySource): Boolean {
+        val address = FeedRules.canonicalAddress(source.address, source.kind)
+        val candidate = SourceEntity(name = source.title, address = address, kind = source.kind,
+            categoriesJson = org.json.JSONArray(source.categories.map { it.name }).toString())
+        val items = collector.collect(candidate).filter {
+            it.publishedAt <= System.currentTimeMillis() + 5 * 60_000L
+        }
+        require(items.isNotEmpty()) { "Источник не отдаёт доступных публикаций. Попробуй другой результат." }
+        return db.withTransaction {
+            val id = db.sourceDao().insert(candidate)
+            if (id == -1L) return@withTransaction false
+            val articles = items.map { it.copy(sourceId = id, sourceName = candidate.name) }
+            val inserted = db.articleDao().insertAll(articles)
+            articles.zip(inserted).forEach { (article, insertedId) ->
+                if (insertedId == -1L) {
+                    db.articleDao().associateEnabledSource(article.link, id, candidate.name)
+                    db.articleDao().fillMissingPreview(article.link, article.content, article.imageUrl)
+                }
+            }
+            true
+        }
     }
 
     suspend fun toggleSource(id: Long, enabled: Boolean) = db.sourceDao().setEnabled(id, enabled)

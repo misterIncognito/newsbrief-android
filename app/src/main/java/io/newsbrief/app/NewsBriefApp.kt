@@ -18,7 +18,7 @@ class NewsBriefApp : Application() {
         super.onCreate()
         settings = SettingsStore(this)
         val database = Room.databaseBuilder(this, NewsDatabase::class.java, "newsbrief.sqlite")
-            .addMigrations(io.newsbrief.app.data.NewsMigrations.FROM_1_2, io.newsbrief.app.data.NewsMigrations.FROM_2_3).build()
+            .addMigrations(io.newsbrief.app.data.NewsMigrations.FROM_1_2, io.newsbrief.app.data.NewsMigrations.FROM_2_3, io.newsbrief.app.data.NewsMigrations.FROM_3_4).build()
         repository = NewsRepository(database, WebCollectors(settings), settings)
         RefreshWorker.schedule(this)
     }

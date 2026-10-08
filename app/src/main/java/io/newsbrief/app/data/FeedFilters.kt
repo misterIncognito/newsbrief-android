@@ -10,6 +10,11 @@ data class FeedSourceOption(val key: String, val label: String, val ids: List<Lo
 
 object FeedFilters {
     fun categories(source: SourceEntity): Set<FeedCategory> {
+        val saved = runCatching {
+            val tags = org.json.JSONArray(source.categoriesJson)
+            (0 until tags.length()).mapNotNull { runCatching { FeedCategory.valueOf(tags.getString(it)) }.getOrNull() }.toSet()
+        }.getOrDefault(emptySet())
+        if (saved.isNotEmpty()) return saved
         val category = SourceCatalog.presets.firstOrNull { it.address == source.address }?.category
             ?: return setOf(FeedCategory.OTHER)
         return buildSet {

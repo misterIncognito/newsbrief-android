@@ -17,4 +17,10 @@ object NewsMigrations {
             db.execSQL("ALTER TABLE articles ADD COLUMN imagesJson TEXT NOT NULL DEFAULT '[]'")
         }
     }
+    val FROM_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE sources ADD COLUMN categoriesJson TEXT NOT NULL DEFAULT '[]'")
+            db.execSQL("CREATE TABLE IF NOT EXISTS catalog_searches (queryKey TEXT NOT NULL, responseJson TEXT NOT NULL, fetchedAt INTEGER NOT NULL, PRIMARY KEY(queryKey))")
+        }
+    }
 }

@@ -73,6 +73,69 @@ class NewsViewModel @JvmOverloads constructor(
     private val _readerBusy = MutableStateFlow(false)
     val readerBusy = _readerBusy.asStateFlow()
 
+    data class DirectoryState(
+        val provider: io.newsbrief.app.network.DirectoryProvider = io.newsbrief.app.network.DirectoryProvider.RSS,
+        val query: String = "technology", val searchedQuery: String = "",
+        val results: io.newsbrief.app.network.DirectoryResults? = null, val busy: Boolean = false,
+        val error: String? = null, val addingAddress: String? = null, val addMessage: String? = null
+    )
+    private val _catalogOpen = MutableStateFlow(false)
+    val catalogOpen = _catalogOpen.asStateFlow()
+    private val _directoryState = MutableStateFlow(DirectoryState())
+    val directoryState = _directoryState.asStateFlow()
+    private var directoryJob: Job? = null
+    private var directoryGeneration = 0
+
+    fun openCatalog() {
+        _catalogOpen.value = true
+        if (_directoryState.value.results == null) searchDirectory()
+    }
+    fun closeCatalog() {
+        _catalogOpen.value = false
+        directoryGeneration++
+        directoryJob?.cancel()
+        _directoryState.value = _directoryState.value.copy(busy = false)
+    }
+    fun directoryQuery(query: String) {
+        _directoryState.value = _directoryState.value.copy(query = query.take(120))
+        if (_directoryState.value.provider == io.newsbrief.app.network.DirectoryProvider.CURATED) searchDirectory()
+    }
+    fun directoryProvider(provider: io.newsbrief.app.network.DirectoryProvider) {
+        _directoryState.value = _directoryState.value.copy(provider = provider, results = null, error = null)
+        searchDirectory()
+    }
+    fun searchDirectory() {
+        directoryJob?.cancel()
+        val generation = ++directoryGeneration
+        val request = _directoryState.value
+        _directoryState.value = request.copy(busy = true, results = null, error = null)
+        directoryJob = viewModelScope.launch {
+            try {
+                val result = repo.discover(request.provider, request.query)
+                if (generation == directoryGeneration) _directoryState.value = _directoryState.value.copy(
+                    results = result, searchedQuery = request.query.trim(), busy = false)
+            } catch (e: CancellationException) { throw e
+            } catch (e: Exception) {
+                if (generation == directoryGeneration) _directoryState.value = _directoryState.value.copy(
+                    busy = false, error = e.message ?: "Каталог недоступен")
+            }
+        }
+    }
+    fun addDirectorySource(source: io.newsbrief.app.network.DirectorySource) {
+        if (_directoryState.value.addingAddress != null) return
+        _directoryState.value = _directoryState.value.copy(addingAddress = source.address, addMessage = null)
+        viewModelScope.launch {
+            try {
+                val added = repo.addDiscoveredSource(source)
+                _directoryState.value = _directoryState.value.copy(addMessage =
+                    if (added) "${source.title}: источник добавлен, публикации загружены" else "Источник уже добавлен")
+            } catch (e: CancellationException) { throw e
+            } catch (e: Exception) {
+                _directoryState.value = _directoryState.value.copy(addMessage = "Не удалось добавить ${source.title}: ${e.message}")
+            } finally { _directoryState.value = _directoryState.value.copy(addingAddress = null) }
+        }
+    }
+
     init {
         viewModelScope.launch {
             repo.seedDefaults()

@@ -1,8 +1,11 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.3**, 42 passing tests; device installation pending reconnection.
-See [FEED-FILTERS.md](FEED-FILTERS.md) for the latest build;
-[SOURCE-REFRESH-FIX.md](SOURCE-REFRESH-FIX.md) records the previous source-selection fix. The results below record the original 0.4.0 build.
+Latest build: **0.4.4**, 60 passing offline tests, plus 3 passing live directory
+integration checks. Debug APK built successfully; phone installation awaits USB
+reconnection. See [SOURCE-DISCOVERY.md](SOURCE-DISCOVERY.md) for the latest build
+and verified catalog coverage. Earlier fixes are recorded in
+[FEED-FILTERS.md](FEED-FILTERS.md) and [SOURCE-REFRESH-FIX.md](SOURCE-REFRESH-FIX.md).
+The results below record the original 0.4.0 build.
 
 Verified on Mac mini (Apple Silicon), 9 October 2026, Europe/Warsaw.
 Original archive Git history retained; starting commit `575bc30`.

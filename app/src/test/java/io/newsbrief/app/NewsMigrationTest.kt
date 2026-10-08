@@ -34,24 +34,37 @@ class NewsMigrationTest {
                     db.execSQL("INSERT INTO sources VALUES(1,'Saved source','https://example.org/rss','RSS',1)")
                     db.execSQL("INSERT INTO articles VALUES(1,1,'Saved source','Saved title','Saved excerpt','https://example.org/story',123,456)")
                     db.execSQL("INSERT INTO digests VALUES('2026-10-08','SHORT','Saved summary','[]',1,456)")
-                    if (version == 2) {
+                    if (version >= 2) {
                         NewsMigrations.FROM_1_2.migrate(db)
                         db.execSQL("UPDATE articles SET content='Offline body', imageUrl='https://example.org/image.jpg'")
                     }
+                    if (version >= 3) {
+                        NewsMigrations.FROM_2_3.migrate(db)
+                        db.execSQL("UPDATE articles SET readerLoaded=1, author='Saved author', imagesJson='[\"https://example.org/photo.jpg\"]'")
+                    }
+                    db.execSQL("INSERT INTO sources VALUES(2,'Disabled source','https://disabled.example/rss','RSS',0)")
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
             }).build())
         legacy.writableDatabase
         legacy.close()
         val migrated = Room.databaseBuilder(context, NewsDatabase::class.java, name)
-            .addMigrations(NewsMigrations.FROM_1_2, NewsMigrations.FROM_2_3).build()
+            .addMigrations(NewsMigrations.FROM_1_2, NewsMigrations.FROM_2_3, NewsMigrations.FROM_3_4).build()
         try {
             val item = migrated.articleDao().findByLink("https://example.org/story")!!
             assertEquals("Saved title", item.title)
             assertEquals(123L, item.publishedAt)
-            assertEquals(if (version == 2) "Offline body" else "", item.content)
-            assertEquals("[]", item.imagesJson)
+            assertEquals(if (version >= 2) "Offline body" else "", item.content)
+            assertEquals(if (version >= 3) "[\"https://example.org/photo.jpg\"]" else "[]", item.imagesJson)
+            if (version >= 3) {
+                assertTrue(item.readerLoaded)
+                assertEquals("Saved author", item.author)
+            }
+            assertEquals(2, migrated.sourceDao().count())
             assertEquals("Saved source", migrated.sourceDao().enabled().single().name)
+            assertEquals("[]", migrated.sourceDao().enabled().single().categoriesJson)
+            migrated.catalogSearchDao().save(io.newsbrief.app.data.CatalogSearchEntity("RSS:tech", "{}", 123))
+            assertEquals("{}", migrated.catalogSearchDao().find("RSS:tech")!!.responseJson)
             assertEquals("Saved summary", migrated.digestDao().find("2026-10-08", "SHORT")!!.content)
             migrated.articleDao().updateReader(item.link, "New title", "Full body", "https://example.org/image.jpg", 789, "Author", "[]")
         } finally { migrated.close() }
@@ -61,4 +74,5 @@ class NewsMigrationTest {
     }
     @Test fun version1PreservesArticlesSourcesAndSummaries() { migrate(1) }
     @Test fun version2PreservesOfflineContentAndImageMetadata() { migrate(2) }
+    @Test fun version3AddsDirectoryCacheWithoutLosingExistingData() { migrate(3) }
 }

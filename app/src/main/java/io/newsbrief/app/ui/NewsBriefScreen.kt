@@ -74,7 +74,10 @@ private enum class Page(val label: String, val glyph: String) {
 fun NewsBriefScreen(vm: NewsViewModel) {
     var page by rememberSaveable { mutableStateOf(Page.DIGEST) }
     val readerSource by vm.readerSource.collectAsStateWithLifecycle()
-    BackHandler(enabled = readerSource != null) { vm.closeReader() }
+    val catalogOpen by vm.catalogOpen.collectAsStateWithLifecycle()
+    BackHandler(enabled = readerSource != null || catalogOpen) {
+        if (readerSource != null) vm.closeReader() else vm.closeCatalog()
+    }
     val message by vm.message.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(message) {
@@ -92,7 +95,9 @@ fun NewsBriefScreen(vm: NewsViewModel) {
                     Text("Новости без информационного шума", style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (readerSource != null) {
+                if (catalogOpen) {
+                    TextButton(onClick = { vm.closeCatalog() }) { Text("← Назад") }
+                } else if (readerSource != null) {
                     TextButton(onClick = { vm.closeReader() }) { Text("← Назад") }
                 } else {
                     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
@@ -103,7 +108,7 @@ fun NewsBriefScreen(vm: NewsViewModel) {
             }
         },
         bottomBar = {
-            if (readerSource == null) NavigationBar {
+            if (readerSource == null && !catalogOpen) NavigationBar {
                 Page.entries.forEach { candidate ->
                     NavigationBarItem(
                         selected = page == candidate,
@@ -118,6 +123,8 @@ fun NewsBriefScreen(vm: NewsViewModel) {
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (readerSource != null) {
                 ReaderPage(vm)
+            } else if (catalogOpen) {
+                SourceDirectoryPage(vm)
             } else when (page) {
                 Page.DIGEST -> DigestPage(vm)
                 Page.NEWS -> FeedPage(vm)
@@ -306,12 +313,11 @@ private fun ReaderPage(vm: NewsViewModel) {
 private fun SourcesPage(vm: NewsViewModel) {
     val sources by vm.sources.collectAsStateWithLifecycle()
     var dialogVisible by rememberSaveable { mutableStateOf(false) }
-    var catalogVisible by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Мои источники", style = MaterialTheme.typography.headlineSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { catalogVisible = true }) { Text("Каталог источников") }
+                Button(onClick = { vm.openCatalog() }) { Text("Каталог источников") }
                 OutlinedButton(onClick = { dialogVisible = true }) { Text("Своя ссылка") }
             }
         }
@@ -344,52 +350,6 @@ private fun SourcesPage(vm: NewsViewModel) {
         vm.addSource(name, kind, url)
         dialogVisible = false
     }
-    if (catalogVisible) {
-        SourceCatalogDialog(
-            existingAddresses = sources.map { it.address }.toSet(),
-            onClose = { catalogVisible = false },
-            onAdd = { name, kind, url -> vm.addSource(name, kind, url) }
-        )
-    }
-}
-
-@Composable
-private fun SourceCatalogDialog(
-    existingAddresses: Set<String>,
-    onClose: () -> Unit,
-    onAdd: (String, String, String) -> Unit
-) {
-    var search by rememberSaveable { mutableStateOf("") }
-    val entries = remember(search) { SourceCatalog.search(search) }
-    AlertDialog(
-        onDismissRequest = onClose,
-        title = { Text("Каталог новостей") },
-        text = {
-            Column(Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(value = search, onValueChange = { search = it }, singleLine = true,
-                    label = { Text("Поиск источника") }, placeholder = { Text("The Verge, Business Insider…") },
-                    modifier = Modifier.fillMaxWidth())
-                if (entries.isEmpty()) Text("Источники не найдены")
-                LazyColumn(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(entries, key = { it.address }) { preset ->
-                        val added = preset.address in existingAddresses
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Column(Modifier.weight(1f)) {
-                                Text(preset.name, style = MaterialTheme.typography.bodyMedium)
-                                Text("${preset.category} · ${preset.kind}", style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            TextButton(enabled = !added, onClick = { onAdd(preset.name, preset.kind, preset.address) }) {
-                                Text(if (added) "Добавлен" else "+")
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onClose) { Text("Готово") } }
-    )
 }
 
 @Composable

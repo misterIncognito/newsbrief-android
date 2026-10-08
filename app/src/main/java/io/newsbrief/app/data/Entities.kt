@@ -23,7 +23,8 @@ data class SourceEntity(
     val name: String,
     val address: String,
     val kind: String,
-    val enabled: Boolean = true
+    val enabled: Boolean = true,
+    @ColumnInfo(defaultValue = "'[]'") val categoriesJson: String = "[]"
 )
 
 @Entity(tableName = "articles", indices = [Index(value = ["link"], unique = true), Index(value = ["publishedAt"])])
@@ -121,9 +122,23 @@ interface DigestDao {
     suspend fun save(digest: DigestEntity)
 }
 
-@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class], version = 3, exportSchema = true)
+@Entity(tableName = "catalog_searches")
+data class CatalogSearchEntity(@PrimaryKey val queryKey: String, val responseJson: String, val fetchedAt: Long)
+
+@Dao
+interface CatalogSearchDao {
+    @Query("SELECT * FROM catalog_searches WHERE queryKey = :key LIMIT 1")
+    suspend fun find(key: String): CatalogSearchEntity?
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun save(search: CatalogSearchEntity)
+    @Query("DELETE FROM catalog_searches WHERE queryKey NOT IN (SELECT queryKey FROM catalog_searches ORDER BY fetchedAt DESC LIMIT 50)")
+    suspend fun prune()
+}
+
+@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class], version = 4, exportSchema = true)
 abstract class NewsDatabase : RoomDatabase() {
     abstract fun sourceDao(): SourceDao
     abstract fun articleDao(): ArticleDao
     abstract fun digestDao(): DigestDao
+    abstract fun catalogSearchDao(): CatalogSearchDao
 }

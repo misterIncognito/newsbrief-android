@@ -13,8 +13,8 @@ android {
         applicationId = "io.newsbrief.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.4.3"
+        versionCode = 8
+        versionName = "0.4.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -50,4 +50,11 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.16.1")
     testImplementation("androidx.test:core:1.7.0")
     testImplementation("androidx.room:room-testing:2.8.5")
+}
+
+// External-service checks are opt-in; regular unit tests remain deterministic/offline.
+tasks.withType<Test>().configureEach {
+    if (!providers.gradleProperty("verifyDirectoryServices").isPresent) {
+        exclude("**/DirectoryServiceLiveTest*")
+    }
 }
