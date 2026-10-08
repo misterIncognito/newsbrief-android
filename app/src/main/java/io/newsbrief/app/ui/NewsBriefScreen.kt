@@ -193,12 +193,12 @@ private fun FeedPage(vm: NewsViewModel) {
     val articles by vm.articles.collectAsStateWithLifecycle()
     if (articles.isEmpty()) {
         Box(Modifier.fillMaxSize().padding(22.dp), contentAlignment = Alignment.Center) {
-            Text("Новостей за последние 24 часа нет. Обнови ленту на верхней панели.")
+            Text("Новостей от выбранных источников пока нет. Обнови ленту на верхней панели.")
         }
     } else {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            item { Text("Последние 24 часа · ${articles.size}", style = MaterialTheme.typography.titleMedium) }
+            item { Text("Выбранные источники · ${articles.size}", style = MaterialTheme.typography.titleMedium) }
             items(articles, key = { it.id }) { article -> NewsCard(article, vm) }
         }
     }

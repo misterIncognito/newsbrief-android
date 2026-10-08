@@ -18,10 +18,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 
-class NewsViewModel(application: Application) : AndroidViewModel(application) {
-    private val app = application as NewsBriefApp
-    private val repo = app.repository
-    private val store = app.settings
+class NewsViewModel @JvmOverloads constructor(
+    application: Application,
+    private val repo: io.newsbrief.app.data.NewsRepository = (application as NewsBriefApp).repository,
+    private val store: SettingsStore = (application as NewsBriefApp).settings
+) : AndroidViewModel(application) {
 
     val sources = repo.observeSources().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val articles = repo.observeLatest().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -60,16 +61,26 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     fun clearMessage() { _message.value = null }
     private fun report(message: String) { _message.value = message }
 
-    fun refresh() = viewModelScope.launch {
-        if (_refreshing.value) return@launch
+    private var refreshRequested = false
+
+    fun refresh() {
+        // Source changes during a refresh require another pass with the current source list.
+        refreshRequested = true
+        if (_refreshing.value) return
         _refreshing.value = true
-        try {
-            val outcome = repo.refresh()
-            report("Новых публикаций: ${outcome.added}" +
-                if (outcome.errors.isNotEmpty()) "\nОшибки: ${outcome.errors.joinToString("; ")}" else "")
-        } catch (e: Exception) {
-            report("Ошибка обновления: ${e.message}")
-        } finally { _refreshing.value = false }
+        viewModelScope.launch {
+            try {
+                while (refreshRequested) {
+                    refreshRequested = false
+                    val outcome = repo.refresh()
+                    report("Новых публикаций: ${outcome.added}" +
+                        if (outcome.errors.isNotEmpty()) "\nОшибки: ${outcome.errors.joinToString("; ")}" else "")
+                }
+            } catch (e: CancellationException) { throw e
+            } catch (e: Exception) {
+                report("Ошибка обновления: ${e.message}")
+            } finally { _refreshing.value = false }
+        }
     }
 
     fun changeMode(newMode: String) {
@@ -102,6 +113,7 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleSource(id: Long, value: Boolean) = viewModelScope.launch {
         repo.toggleSource(id, value)
+        if (value) refresh()
     }
 
     fun deleteSource(id: Long) = viewModelScope.launch {

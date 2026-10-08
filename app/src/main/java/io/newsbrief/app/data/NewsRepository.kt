@@ -7,6 +7,7 @@ import io.newsbrief.app.network.NewsCollector
 import io.newsbrief.app.util.FeedRules
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -60,10 +61,14 @@ class NewsRepository(
                 // Existing v0.3 articles had no image/full-text columns. Backfill
                 // metadata from refreshed feeds without overwriting saved reader text.
                 items.zip(results).forEach { (item, id) ->
-                    if (id == -1L && (item.content.isNotBlank() || item.imageUrl.isNotBlank())) {
-                        db.articleDao().fillMissingPreview(item.link, item.content, item.imageUrl)
+                    if (id == -1L) {
+                        db.articleDao().associateEnabledSource(item.link, item.sourceId, item.sourceName)
+                        if (item.content.isNotBlank() || item.imageUrl.isNotBlank()) {
+                            db.articleDao().fillMissingPreview(item.link, item.content, item.imageUrl)
+                        }
                     }
                 }
+            } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 errors += "${source.name}: ${e.message.orEmpty().take(120)}"
             }

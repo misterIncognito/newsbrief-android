@@ -76,10 +76,12 @@ interface SourceDao {
 
 @Dao
 interface ArticleDao {
-    @Query("SELECT * FROM articles WHERE publishedAt >= :from ORDER BY publishedAt DESC LIMIT 250")
+    @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
+        "WHERE s.enabled = 1 AND a.publishedAt >= :from ORDER BY a.publishedAt DESC LIMIT 250")
     fun observeRecent(from: Long): Flow<List<ArticleEntity>>
 
-    @Query("SELECT * FROM articles WHERE publishedAt >= :from ORDER BY publishedAt DESC LIMIT :limit")
+    @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
+        "WHERE s.enabled = 1 AND a.publishedAt >= :from ORDER BY a.publishedAt DESC LIMIT :limit")
     suspend fun recent(from: Long, limit: Int): List<ArticleEntity>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -96,6 +98,10 @@ interface ArticleDao {
     @Query("UPDATE articles SET content = CASE WHEN content = '' THEN :content ELSE content END, " +
         "imageUrl = CASE WHEN imageUrl = '' THEN :imageUrl ELSE imageUrl END WHERE link = :url")
     suspend fun fillMissingPreview(url: String, content: String, imageUrl: String)
+
+    @Query("UPDATE articles SET sourceId = :sourceId, sourceName = :sourceName WHERE link = :url AND " +
+        "NOT EXISTS (SELECT 1 FROM sources WHERE id = articles.sourceId AND enabled = 1)")
+    suspend fun associateEnabledSource(url: String, sourceId: Long, sourceName: String)
 
     @Query("DELETE FROM articles WHERE publishedAt < :cutoff")
     suspend fun deleteOld(cutoff: Long)
