@@ -1,8 +1,8 @@
 # NewsBrief Android build verification
 
 Latest build: **0.4.4**, 60 passing offline tests, plus 3 passing live directory
-integration checks. Debug APK built successfully; phone installation awaits USB
-reconnection. See [SOURCE-DISCOVERY.md](SOURCE-DISCOVERY.md) for the latest build
+integration checks. Debug APK built successfully and installed on the Motorola
+Edge 70 Fusion. All 661 saved articles and existing source settings were preserved. See [SOURCE-DISCOVERY.md](SOURCE-DISCOVERY.md) for the latest build
 and verified catalog coverage. Earlier fixes are recorded in
 [FEED-FILTERS.md](FEED-FILTERS.md) and [SOURCE-REFRESH-FIX.md](SOURCE-REFRESH-FIX.md).
 The results below record the original 0.4.0 build.

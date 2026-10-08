@@ -90,6 +90,14 @@ Build output: [validation/discovery-build.txt](validation/discovery-build.txt).
 Live results: [validation/directory-results.json](validation/directory-results.json)
 and [test output](validation/directory-live-tests.xml).
 
-The connected-phone check returned no devices. **0.4.4 has not been installed
-or visually tested on the phone**; its previous installed build was 0.4.2.
-The latest APK upgrades the same application without uninstalling or clearing data.
+Version **0.4.4 is installed on the Motorola Edge 70 Fusion**, upgrading 0.4.2
+without uninstalling or clearing data. Launch succeeded with no startup crash.
+On-phone checks displayed the native reader, 97 RSS technology results and the
+Telegram directory's 17,343-channel count. A subsequent AI query displayed three
+Telegram results. The migrated database passed its integrity check; all **661**
+previous articles, saved bodies, and all 19 source settings were preserved.
+Database version is now 4. Results: [validation/phone-044-results.json](validation/phone-044-results.json).
+
+This smoke test covers installation, migration, reader rendering and directory
+search. Airplane-mode image checks and every publisher's full-article extraction
+were not repeated during deployment.
