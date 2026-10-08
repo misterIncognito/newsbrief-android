@@ -27,6 +27,25 @@ class CollectorsTest {
         assertEquals("https://example.com/post/100", posts.first().link)
     }
 
+
+    @Test fun parsesAtomFullContentAndImage() {
+        val source = SourceEntity(4, "Atom", "https://example.com/atom", SourceKind.RSS)
+        val feed = """<?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns="http://www.w3.org/2005/Atom">
+              <entry><title>Подробная новость</title>
+                <link rel="alternate" href="https://example.com/news/1" />
+                <summary>Анонс</summary>
+                <content type="html"><![CDATA[<p>Полный текст статьи с подробностями.</p>
+                    <img src="https://example.com/news/pic.jpg"/>]]></content>
+              </entry>
+            </feed>
+        """.trimIndent()
+        val items = parser.parseFeed(feed, source)
+        assertEquals(1, items.size)
+        assertEquals("Полный текст статьи с подробностями.", items.first().content)
+        assertEquals("https://example.com/news/pic.jpg", items.first().imageUrl)
+    }
+
     @Test fun parsesTelegramPublicPreview() {
         val source = SourceEntity(2, "BILD", "https://t.me/s/BILD_Russian", SourceKind.TELEGRAM)
         val html = """

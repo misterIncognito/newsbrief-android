@@ -3,6 +3,7 @@ package io.newsbrief.app.network
 import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.data.SourceEntity
 import io.newsbrief.app.data.SourceKind
+import io.newsbrief.app.data.SettingsStore
 import io.newsbrief.app.util.FeedRules
 import org.jsoup.Jsoup
 import org.xmlpull.v1.XmlPullParser
@@ -24,9 +25,12 @@ interface NewsCollector {
 }
 
 /** Public feeds only; no credential or Telegram user session is required. */
-class WebCollectors : NewsCollector {
+class WebCollectors(private val settings: SettingsStore? = null) : NewsCollector {
     override suspend fun collect(source: SourceEntity): List<ArticleEntity> = withContext(Dispatchers.IO) {
-        val document = fetch(source.address)
+        val requestUrl = NewsRouting.endpoint(
+            source.address, "fetch", settings?.workerUrl() ?: NewsRouting.DEFAULT_WORKER
+        )
+        val document = fetch(requestUrl, proxied = NewsRouting.requiresProxy(source.address))
         when (source.kind) {
             SourceKind.RSS -> parseFeed(document, source)
             SourceKind.TELEGRAM -> parseTelegramPreview(document, source)
@@ -34,11 +38,11 @@ class WebCollectors : NewsCollector {
         }
     }
 
-    private fun fetch(address: String): String {
+    private fun fetch(address: String, proxied: Boolean): String {
         val connection = (URL(address).openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
             readTimeout = 20_000
-            instanceFollowRedirects = true
+            instanceFollowRedirects = !proxied
             setRequestProperty("User-Agent", "NewsBrief/0.1 (personal RSS reader)")
             setRequestProperty("Accept", "application/rss+xml, application/atom+xml, text/html, */*")
         }
@@ -72,6 +76,8 @@ class WebCollectors : NewsCollector {
         var title = ""
         var link = ""
         var description = ""
+        var fullText = ""
+        var imageUrl = ""
         var date = ""
         var capture = ""
         val buffer = StringBuilder()
@@ -82,13 +88,18 @@ class WebCollectors : NewsCollector {
                     val name = parser.name.substringAfter(':').lowercase(Locale.ROOT)
                     if (name == "item" || name == "entry") {
                         inside = true
-                        title = ""; link = ""; description = ""; date = ""
+                        title = ""; link = ""; description = ""; fullText = ""; imageUrl = ""; date = ""
                     } else if (inside) {
                         if (name == "link") {
                             val href = parser.getAttributeValue(null, "href")
                             if (!href.isNullOrBlank() && (parser.getAttributeValue(null, "rel") in listOf(null, "alternate"))) link = href
                         }
-                        if (name in setOf("title", "link", "description", "summary", "encoded", "pubdate", "published", "updated", "date")) {
+                        if (name in setOf("thumbnail", "enclosure") ||
+                            (name == "content" && (parser.prefix == "media" || parser.name.startsWith("media:")))) {
+                            val image = parser.getAttributeValue(null, "url")
+                            if (!image.isNullOrBlank() && image.startsWith("https://") && imageUrl.isBlank()) imageUrl = image
+                        }
+                        if (name in setOf("title", "link", "description", "summary", "encoded", "content", "pubdate", "published", "updated", "date")) {
                             capture = name
                             buffer.setLength(0)
                         }
@@ -102,7 +113,17 @@ class WebCollectors : NewsCollector {
                         when (capture) {
                             "title" -> title = Jsoup.parse(value).text()
                             "link" -> if (link.isBlank()) link = value
-                            "description", "summary", "encoded" -> if (description.isBlank() || capture == "encoded") description = Jsoup.parse(value).text()
+                            "description", "summary", "encoded", "content" -> {
+                                val html = Jsoup.parse(value)
+                                val image = html.selectFirst("img[src]")?.absUrl("src").orEmpty()
+                                    .ifBlank { html.selectFirst("img[src]")?.attr("src").orEmpty() }
+                                if (imageUrl.isBlank() && image.startsWith("https://")) imageUrl = image
+                                val plain = html.text()
+                                if (capture == "encoded" || capture == "content") {
+                                    if (plain.length > fullText.length) fullText = plain
+                                }
+                                if (description.isBlank() || capture == "encoded") description = plain
+                            }
                             "pubdate", "published", "updated", "date" -> if (date.isBlank()) date = value
                         }
                         capture = ""
@@ -115,6 +136,8 @@ class WebCollectors : NewsCollector {
                                 sourceName = source.name,
                                 title = title.take(240),
                                 excerpt = description.take(1_600),
+                                content = fullText.take(60_000),
+                                imageUrl = imageUrl,
                                 link = link,
                                 publishedAt = parseDate(date) ?: System.currentTimeMillis()
                             )

@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.NewsBriefApp
+import io.newsbrief.app.data.ArticleEntity
+import io.newsbrief.app.network.ReaderArticle
 import io.newsbrief.app.data.DigestEntity
 import io.newsbrief.app.data.DigestMode
 import io.newsbrief.app.data.SettingsStore
@@ -36,6 +38,14 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     val config = _config.asStateFlow()
     private val _hasKey = MutableStateFlow(store.hasApiKey(store.read().provider))
     val hasKey = _hasKey.asStateFlow()
+    private val _workerUrl = MutableStateFlow(store.workerUrl())
+    val workerUrl = _workerUrl.asStateFlow()
+    private val _readerSource = MutableStateFlow<ArticleEntity?>(null)
+    val readerSource = _readerSource.asStateFlow()
+    private val _reader = MutableStateFlow<ReaderArticle?>(null)
+    val reader = _reader.asStateFlow()
+    private val _readerBusy = MutableStateFlow(false)
+    val readerBusy = _readerBusy.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -95,6 +105,39 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteSource(id: Long) = viewModelScope.launch {
         repo.removeSource(id)
         report("Источник удалён")
+    }
+
+    fun openReader(article: ArticleEntity) {
+        _readerSource.value = article
+        _reader.value = null
+        viewModelScope.launch {
+            _readerBusy.value = true
+            try {
+                val result = repo.readArticle(article)
+                if (_readerSource.value?.link == article.link) _reader.value = result
+            } catch (e: Exception) {
+                report("Ошибка чтения: ${e.message}")
+            } finally { _readerBusy.value = false }
+        }
+    }
+
+    fun openLink(url: String, sourceName: String, title: String) = viewModelScope.launch {
+        val article = repo.lookup(url) ?: ArticleEntity(sourceId = 0, sourceName = sourceName,
+            title = title, excerpt = "", link = url, publishedAt = System.currentTimeMillis())
+        openReader(article)
+    }
+
+    fun closeReader() {
+        _readerSource.value = null
+        _reader.value = null
+    }
+
+    fun setWorkerUrl(value: String) {
+        try {
+            store.setWorkerUrl(value)
+            _workerUrl.value = store.workerUrl()
+            report("Адрес прокси сохранён")
+        } catch (e: Exception) { report("Неверный адрес: ${e.message}") }
     }
 
     fun setProvider(value: String) {

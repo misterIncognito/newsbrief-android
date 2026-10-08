@@ -1,5 +1,6 @@
 package io.newsbrief.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,6 +67,8 @@ private enum class Page(val label: String, val glyph: String) {
 @Composable
 fun NewsBriefScreen(vm: NewsViewModel) {
     var page by rememberSaveable { mutableStateOf(Page.DIGEST) }
+    val readerSource by vm.readerSource.collectAsStateWithLifecycle()
+    BackHandler(enabled = readerSource != null) { vm.closeReader() }
     val message by vm.message.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(message) {
@@ -83,14 +86,18 @@ fun NewsBriefScreen(vm: NewsViewModel) {
                     Text("Новости без информационного шума", style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                val refreshing by vm.refreshing.collectAsStateWithLifecycle()
-                TextButton(onClick = { vm.refresh() }, enabled = !refreshing) {
-                    Text(if (refreshing) "Загрузка…" else "Обновить")
+                if (readerSource != null) {
+                    TextButton(onClick = { vm.closeReader() }) { Text("← Назад") }
+                } else {
+                    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
+                    TextButton(onClick = { vm.refresh() }, enabled = !refreshing) {
+                        Text(if (refreshing) "Загрузка…" else "Обновить")
+                    }
                 }
             }
         },
         bottomBar = {
-            NavigationBar {
+            if (readerSource == null) NavigationBar {
                 Page.entries.forEach { candidate ->
                     NavigationBarItem(
                         selected = page == candidate,
@@ -103,7 +110,9 @@ fun NewsBriefScreen(vm: NewsViewModel) {
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when (page) {
+            if (readerSource != null) {
+                ReaderPage(vm)
+            } else when (page) {
                 Page.DIGEST -> DigestPage(vm)
                 Page.NEWS -> FeedPage(vm)
                 Page.SOURCES -> SourcesPage(vm)
@@ -121,7 +130,6 @@ private fun DigestPage(vm: NewsViewModel) {
     val news by vm.articles.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
     val hasKey by vm.hasKey.collectAsStateWithLifecycle()
-    val uriHandler = LocalUriHandler.current
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -161,7 +169,9 @@ private fun DigestPage(vm: NewsViewModel) {
                 val url = ref.optString("url")
                 Text(
                     "[${ref.optInt("number")}] ${ref.optString("source")} — ${ref.optString("title")}",
-                    modifier = Modifier.fillMaxWidth().clickable { if (url.startsWith("https://")) uriHandler.openUri(url) }
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        if (url.startsWith("https://")) vm.openLink(url, ref.optString("source"), ref.optString("title"))
+                    }
                         .padding(vertical = 6.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
@@ -189,24 +199,58 @@ private fun FeedPage(vm: NewsViewModel) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item { Text("Последние 24 часа · ${articles.size}", style = MaterialTheme.typography.titleMedium) }
-            items(articles, key = { it.id }) { article -> NewsCard(article) }
+            items(articles, key = { it.id }) { article -> NewsCard(article, vm) }
         }
     }
 }
 
 @Composable
-private fun NewsCard(article: ArticleEntity) {
-    val handler = LocalUriHandler.current
-    Card(Modifier.fillMaxWidth().clickable { handler.openUri(article.link) }) {
+private fun NewsCard(article: ArticleEntity, vm: NewsViewModel) {
+    val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
+    Card(Modifier.fillMaxWidth().clickable { vm.openReader(article) }) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            if (article.imageUrl.isNotBlank()) NewsImage(article.imageUrl, article.link, workerUrl, 145)
             Text("${article.sourceName} · ${formatDate(article.publishedAt)}",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             Text(article.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             if (article.excerpt.isNotBlank()) Text(article.excerpt, maxLines = 4, overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium)
-            Text("Открыть оригинал ↗", style = MaterialTheme.typography.labelMedium,
+            Text("Читать в NewsBrief →", style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary)
         }
+    }
+}
+
+@Composable
+private fun ReaderPage(vm: NewsViewModel) {
+    val source by vm.readerSource.collectAsStateWithLifecycle()
+    val reader by vm.reader.collectAsStateWithLifecycle()
+    val busy by vm.readerBusy.collectAsStateWithLifecycle()
+    val worker by vm.workerUrl.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
+    val item = source ?: return
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text(item.sourceName + " · " + formatDate(item.publishedAt),
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Text(reader?.title?.ifBlank { item.title } ?: item.title,
+            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        val image = reader?.imageUrl?.ifBlank { item.imageUrl } ?: item.imageUrl
+        if (image.isNotBlank()) NewsImage(image, item.link, worker, 220)
+        if (busy) CircularProgressIndicator()
+        val content = reader?.text?.ifBlank { item.content.ifBlank { item.excerpt } }
+            ?: item.content.ifBlank { item.excerpt }
+        SelectionContainer {
+            Text(content.ifBlank { "Текст пока недоступен. Можно повторить загрузку." },
+                style = MaterialTheme.typography.bodyLarge)
+        }
+        reader?.notice?.let { Text(it, color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall) }
+        OutlinedButton(onClick = { vm.openReader(item) }, enabled = !busy) {
+            Text("Обновить статью")
+        }
+        // Explicit action only; the feed/digest never opens a browser automatically.
+        TextButton(onClick = { uriHandler.openUri(item.link) }) { Text("Открыть оригинал ↗") }
     }
 }
 
@@ -335,8 +379,18 @@ private fun SettingsPage(vm: NewsViewModel) {
     val hasKey by vm.hasKey.collectAsStateWithLifecycle()
     var modelDraft by remember(config.provider) { mutableStateOf(config.model) }
     var keyDraft by remember(config.provider) { mutableStateOf("") }
+    val worker by vm.workerUrl.collectAsStateWithLifecycle()
+    var workerDraft by remember(worker) { mutableStateOf(worker) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("Прокси для новостей", style = MaterialTheme.typography.headlineSmall)
+        Text("Для «Зеркала» и «Медузы» RSS, статьи и изображения загружаются через Cloudflare Worker. При ошибке соединение напрямую не используется.",
+            style = MaterialTheme.typography.bodySmall)
+        OutlinedTextField(value = workerDraft, onValueChange = { workerDraft = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text("HTTPS URL Cloudflare Worker") })
+        OutlinedButton(onClick = { vm.setWorkerUrl(workerDraft) }) { Text("Сохранить прокси") }
+        HorizontalDivider()
         Text("Настройки ИИ", style = MaterialTheme.typography.headlineSmall)
         Text("Выбери модель. Выдержки публикаций отправляются напрямую с телефона выбранному ИИ-провайдеру, без нашего сервера.",
             color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -74,6 +74,16 @@ class SettingsStore(context: Context) {
         } catch (_: Exception) { "" } // e.g. keys invalidated after OS restore
     }
 
+    fun workerUrl(): String = prefs.getString("worker_url", io.newsbrief.app.network.NewsRouting.DEFAULT_WORKER)
+        ?: io.newsbrief.app.network.NewsRouting.DEFAULT_WORKER
+
+    fun setWorkerUrl(url: String) {
+        val normalized = url.trim().trimEnd('/')
+        // Validation lives in the common router, including full HTTPS URL requirements.
+        io.newsbrief.app.network.NewsRouting.endpoint("https://meduza.io/rss/all", "fetch", normalized)
+        prefs.edit().putString("worker_url", normalized).apply()
+    }
+
     fun isSourcesCatalogV2Seeded(): Boolean = prefs.getBoolean("sources_catalog_v2_seeded", false)
 
     fun markSourcesCatalogV2Seeded() {

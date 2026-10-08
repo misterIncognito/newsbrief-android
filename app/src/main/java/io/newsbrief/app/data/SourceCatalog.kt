@@ -54,6 +54,15 @@ object SourceCatalog {
             "Технологии · EN"),
         SourcePreset("Ars Technica", "https://arstechnica.com/feed/", SourceKind.RSS,
             "Технологии · EN"),
+        SourcePreset("The Verge", "https://www.theverge.com/rss/index.xml", SourceKind.RSS,
+            "Технологии · EN"),
+        SourcePreset("Business Insider Polska", "https://businessinsider.com.pl/.feed", SourceKind.RSS,
+            "Бизнес · PL"),
+        // Business Insider US does not offer an official RSS feed; this is a
+        // Google News query, so some links resolve via news.google.com.
+        SourcePreset("Business Insider (через Google News)",
+            "https://news.google.com/rss/search?q=site%3Abusinessinsider.com&hl=en-US&gl=US&ceid=US%3Aen",
+            SourceKind.RSS, "Бизнес · EN"),
         SourcePreset("DW Главное (Telegram)", "https://t.me/s/dwglavnoe", SourceKind.TELEGRAM,
             "На русском"),
         SourcePreset("Медуза LIVE (Telegram)", "https://t.me/s/meduzalive", SourceKind.TELEGRAM,
