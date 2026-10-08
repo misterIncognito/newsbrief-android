@@ -1,0 +1,26 @@
+.gradle/
+.idea/
+**/build/
+local.properties
+*.iml
+.DS_Store
+*.jks
+*.keystore
+
+# Local settings, cached data and secrets
+.env
+.env.*
+!.env.example
+*.log
+*.db
+*.sqlite
+*.sqlite3
+*.p12
+*.pfx
+*.pem
+*.key
+*.mobileprovision
+.cxx/
+.kotlin/
+captures/
+.externalNativeBuild/
