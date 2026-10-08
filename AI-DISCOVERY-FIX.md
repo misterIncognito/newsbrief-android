@@ -56,7 +56,7 @@ database migration or data reset is needed.
 
 ## Validation
 
-**70 offline tests passed**, zero failures/errors/skips. **Six live integration
+**71 offline tests passed**, zero failures/errors/skips. **Six live integration
 tests passed**. `assembleDebug` succeeded. Tests cover the actual JSON contracts,
 private/missing usernames, demo-response rejection, category aliases, raw offsets,
 last pages, crypto/gaming filtering, duplicate-page merging, cache invalidation,

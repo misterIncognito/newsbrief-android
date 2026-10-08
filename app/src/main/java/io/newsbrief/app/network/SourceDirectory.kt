@@ -167,6 +167,23 @@ object DirectoryParser {
         }
         error("Нет данных каталога")
     }
+    /** Legacy TGX response contract, retained for existing integrations and saved data. */
+    fun telegram(raw: String): DirectoryResults {
+        val root = rpcPayload(raw)
+        val array = root.optJSONArray("results") ?: error("Нет списка Telegram-каналов")
+        val items = (0 until minOf(array.length(), 20)).mapNotNull { i ->
+            val item = array.optJSONObject(i) ?: return@mapNotNull null
+            if (item.optString("type") != "channel") return@mapNotNull null
+            val handle = item.optString("handle").removePrefix("@")
+            val address = runCatching { FeedRules.canonicalAddress("@$handle", SourceKind.TELEGRAM) }.getOrNull()
+                ?: return@mapNotNull null
+            val tags = item.optJSONArray("categories")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty()
+            DirectorySource(text(item.optString("name").ifBlank { handle }, 240), address, SourceKind.TELEGRAM,
+                text(item.optString("summary"), 500), item.optString("language"),
+                item.optLong("memberCount", -1).takeIf { it >= 0 }, categories(tags))
+        }.distinctBy { it.address.lowercase(java.util.Locale.ROOT) }
+        return DirectoryResults(items, root.optInt("total", -1).takeIf { it >= 0 })
+    }
     fun tgden(raw: String, category: String? = null, offset: Int = 0): DirectoryResults {
         val response = JSONObject(raw)
         val root = if (response.has("result") || response.has("error")) rpcPayload(raw) else response

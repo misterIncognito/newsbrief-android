@@ -98,4 +98,20 @@ class TelegramCatalogTest {
             assertEquals(2, requests)
         } finally { db.close() }
     }
+    @Test fun keywordRpcUsesPublicChannelMetadataAndCategoryTags() {
+        val payload = JSONObject().put("total", 333).put("items", JSONArray().put(channel("ainews")
+            .put("description_ai_summary", "<p>AI news</p>").put("subscribers_count", 1234)
+            .put("language", JSONArray(listOf("ru", "en")))))
+        val raw = JSONObject().put("result", JSONObject().put("content", JSONArray().put(
+            JSONObject().put("type", "text").put("text", payload.toString())))).toString()
+        val result = DirectoryParser.tgden(raw)
+        assertEquals(333, result.total)
+        assertEquals("AI news", result.items.single().description)
+        assertEquals(1234L, result.items.single().audience)
+        assertEquals("ru / en", result.items.single().language)
+        assertEquals(setOf(FeedCategory.TECH), result.items.single().categories)
+        assertEquals(setOf("ai"), result.items.single().topics)
+        assertNull(result.nextOffset)
+    }
+
 }

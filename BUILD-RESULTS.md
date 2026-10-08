@@ -1,6 +1,6 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.5**, 70 passing offline tests and six passing live directory
+Latest build: **0.4.5**, 71 passing offline tests and six passing live directory
 integration checks. Debug APK built successfully and installed on the Motorola
 Edge 70 Fusion. Current Telegram AI discovery uses a real paginated category;
 see [AI-DISCOVERY-FIX.md](AI-DISCOVERY-FIX.md). The previous release is recorded in
