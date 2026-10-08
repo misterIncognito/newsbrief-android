@@ -26,6 +26,7 @@ class SourceRefreshTest {
     private fun settings(): SettingsStore = SettingsStore(app).apply {
         markSourcesCatalogV2Seeded()
         markSourcesCatalogV3Seeded()
+        markSourcesCatalogV4Seeded()
     }
     private fun article(source: SourceEntity, content: String = "") = ArticleEntity(
         sourceId = source.id, sourceName = source.name, title = source.name, excerpt = "Preview",

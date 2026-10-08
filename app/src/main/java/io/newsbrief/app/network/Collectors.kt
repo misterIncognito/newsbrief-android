@@ -145,14 +145,21 @@ class WebCollectors(private val settings: SettingsStore? = null) : NewsCollector
             val message = wrapper.selectFirst(".tgme_widget_message") ?: return@mapNotNull null
             val postId = message.attr("data-post")
             if (!postId.matches(Regex("[A-Za-z0-9_]+/[0-9]+"))) return@mapNotNull null
-            val content = wrapper.selectFirst(".tgme_widget_message_text")?.text()?.trim().orEmpty()
+            val content = wrapper.selectFirst(".tgme_widget_message_text")?.let { ArticleReader.htmlText(it) }.orEmpty()
             if (content.isBlank()) return@mapNotNull null
             val published = wrapper.selectFirst("time[datetime]")?.attr("datetime").orEmpty()
+            val images = wrapper.select(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb")
+                .mapNotNull { photo ->
+                    Regex("url\\(['\"]?(https://[^'\")]+)").find(photo.attr("style"))?.groupValues?.get(1)
+                }.distinct()
             ArticleEntity(
                 sourceId = source.id,
                 sourceName = source.name,
                 title = FeedRules.headline(content),
                 excerpt = content.take(1_600),
+                content = content.take(60_000),
+                imageUrl = images.firstOrNull().orEmpty(),
+                imagesJson = org.json.JSONArray(images).toString(),
                 link = "https://t.me/$postId",
                 publishedAt = parseDate(published) ?: System.currentTimeMillis()
             )

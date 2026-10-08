@@ -41,6 +41,12 @@ object SourceCatalog {
         SourcePreset("The Warsaw — Варшава", "https://t.me/s/thewwarsaw", SourceKind.TELEGRAM,
             "Польша · RU", enabledByDefault = true),
 
+        // Telegram alternatives requested alongside the original RSS feeds.
+        SourcePreset("BBC Русская служба (Telegram)", "https://t.me/s/bbcrussian", SourceKind.TELEGRAM,
+            "На русском", enabledByDefault = true),
+        SourcePreset("Зеркало (Telegram)", "https://t.me/s/zerkalo_io", SourceKind.TELEGRAM,
+            "Беларусь", enabledByDefault = true),
+
         // Opt-in: additional channels or feeds can overlap with defaults.
         SourcePreset("Хабр — искусственный интеллект", "https://habr.com/ru/rss/hubs/artificial_intelligence/articles/?fl=ru", SourceKind.RSS,
             "Технологии · RU"),
@@ -92,17 +98,21 @@ object SourceCatalog {
         "https://t.me/s/vcnews",
         "https://t.me/s/thewwarsaw"
     )
+    private val v4Addresses = setOf("https://t.me/s/bbcrussian", "https://t.me/s/zerkalo_io")
+    val newDefaultsV4 = presets.filter { it.address in v4Addresses }
+
     // V0.2 additions only (needed when upgrading directly from v0.1).
     val newDefaults = presets.filter {
-        it.enabledByDefault && it.address !in legacyDefaults && it.address !in v3Addresses
+        it.enabledByDefault && it.address !in legacyDefaults && it.address !in v3Addresses && it.address !in v4Addresses
     }
     val newDefaultsV3 = presets.filter { it.enabledByDefault && it.address in v3Addresses }
 
     /** Prevent deleted presets from reappearing on app startup after migration. */
-    fun defaultsToSeed(sourceCount: Int, v2Seeded: Boolean, v3Seeded: Boolean): List<SourcePreset> {
-        if (v2Seeded && v3Seeded) return emptyList()
+    fun defaultsToSeed(sourceCount: Int, v2Seeded: Boolean, v3Seeded: Boolean, v4Seeded: Boolean = false): List<SourcePreset> {
+        if (v2Seeded && v3Seeded && v4Seeded) return emptyList()
         if (sourceCount == 0 && !v2Seeded) return presets.filter { it.enabledByDefault }
         return (if (v2Seeded) emptyList() else newDefaults) +
-            (if (v3Seeded) emptyList() else newDefaultsV3)
+            (if (v3Seeded) emptyList() else newDefaultsV3) +
+            (if (v4Seeded) emptyList() else newDefaultsV4)
     }
 }

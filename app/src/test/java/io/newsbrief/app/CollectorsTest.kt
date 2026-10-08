@@ -99,4 +99,18 @@ class CollectorsTest {
         parser.parseFeed("<!DOCTYPE rss [<!ENTITY x SYSTEM 'file:///etc/passwd'>]><rss/>",
             SourceEntity(1, "RSS", "https://example.com/rss", SourceKind.RSS))
     }
+    @Test fun telegramPostsKeepFullTextParagraphsAndPhotos() {
+        val source = SourceEntity(1, "BBC Telegram", "https://t.me/s/bbcrussian", SourceKind.TELEGRAM)
+        val longText = "Подробный текст. ".repeat(150)
+        val html = """<div class="tgme_widget_message_wrap">
+            <div class="tgme_widget_message" data-post="bbcrussian/123">
+            <div class="tgme_widget_message_text"><p>Начало.</p><p>$longText</p></div>
+            <a class="tgme_widget_message_photo_wrap" style="background-image:url('https://cdn.example/photo.jpg')"></a>
+            <time datetime="2026-10-08T12:00:00Z"></time></div></div>"""
+        val item = parser.parseTelegramPreview(html, source).single()
+        assertTrue(item.content.length > 1600)
+        assertTrue(item.content.startsWith("Начало.\n\n"))
+        assertEquals("https://cdn.example/photo.jpg", item.imageUrl)
+        assertEquals("https://t.me/bbcrussian/123", item.link)
+    }
 }

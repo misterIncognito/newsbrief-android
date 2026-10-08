@@ -317,7 +317,7 @@ private fun SourceCatalogDialog(
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
-                    Text("9 источников при новой установке. Остальные можно подключить здесь.",
+                    Text("11 источников при новой установке. Остальные можно подключить здесь.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

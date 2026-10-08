@@ -1,4 +1,4 @@
-# NewsBrief — Android MVP (v0.4.1)
+# NewsBrief — Android MVP (v0.4.2)
 
 Локальный агрегатор новостей с ИИ-сводкой на Kotlin + Jetpack Compose, **без backend-сервера**.
 
@@ -96,7 +96,7 @@ bash scripts/build-on-mac.sh
 либо стандартное окружение JDK 17 и Android SDK 36. Wrapper закреплён на Gradle 8.13
 с проверкой SHA-256. Для Android Studio укажите JDK 17 и SDK в `local.properties`.
 
-На 9 октября 2026 сборка `testDebugUnitTest assembleDebug` успешна: 33 теста,
+На 9 октября 2026 сборка `testDebugUnitTest assembleDebug` успешна: 35 тестов,
 0 ошибок. APK: `app/build/outputs/apk/debug/app-debug.apk`.
 Подробные результаты и ограничения: [BUILD-RESULTS.md](BUILD-RESULTS.md).
 
@@ -115,3 +115,10 @@ Worker HTTP 502). Приложение показывает имеющийся �
 ### v0.4.1 — обновление выбранных источников
 
 Исправлено обновление ленты после изменения источников. Подробности и результаты: [SOURCE-REFRESH-FIX.md](SOURCE-REFRESH-FIX.md).
+
+### v0.4.2 — BBC и Зеркало из Telegram
+
+Официальные каналы [BBC Russian](https://t.me/bbcrussian) и [Зеркало](https://t.me/zerkalo_io)
+добавлены рядом с существующими RSS-источниками. При обновлении они добавляются
+один раз; отключение или удаление источника сохраняется. Другие настройки
+источников остаются прежними. Telegram-посты сохраняют полный текст, абзацы и фото.

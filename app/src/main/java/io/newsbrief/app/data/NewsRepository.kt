@@ -28,11 +28,13 @@ class NewsRepository(
     suspend fun seedDefaults() {
         val v2Seeded = settings.isSourcesCatalogV2Seeded()
         val v3Seeded = settings.isSourcesCatalogV3Seeded()
-        if (v2Seeded && v3Seeded) return
-        SourceCatalog.defaultsToSeed(db.sourceDao().count(), v2Seeded, v3Seeded)
+        val v4Seeded = settings.isSourcesCatalogV4Seeded()
+        if (v2Seeded && v3Seeded && v4Seeded) return
+        SourceCatalog.defaultsToSeed(db.sourceDao().count(), v2Seeded, v3Seeded, v4Seeded)
             .forEach { db.sourceDao().insert(it.asEntity()) }
         if (!v2Seeded) settings.markSourcesCatalogV2Seeded()
         if (!v3Seeded) settings.markSourcesCatalogV3Seeded()
+        if (!v4Seeded) settings.markSourcesCatalogV4Seeded()
     }
 
     suspend fun addSource(name: String, kind: String, rawAddress: String): Boolean {
@@ -46,7 +48,8 @@ class NewsRepository(
 
     suspend fun refresh(): RefreshResult = refreshMutex.withLock {
         seedDefaults()
-        val sources = db.sourceDao().enabled()
+        // Fetch newly added sources first so slow existing feeds do not delay them.
+        val sources = db.sourceDao().enabled().sortedByDescending { it.id }
         var total = 0
         val errors = mutableListOf<String>()
         for (source in sources) {
