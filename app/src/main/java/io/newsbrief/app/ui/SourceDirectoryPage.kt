@@ -49,8 +49,7 @@ fun SourceDirectoryPage(vm: NewsViewModel) {
         val page = state.results
         val provider = when (state.provider) {
             DirectoryProvider.RSS -> "Поиск по внешнему индексу RSS · Feedly"
-            DirectoryProvider.TELEGRAM -> page?.directorySize?.let { "${java.text.NumberFormat.getIntegerInstance().format(it)} каналов в каталоге · TGX" }
-                ?: "Поиск по внешнему каталогу Telegram · TGX"
+            DirectoryProvider.TELEGRAM -> "Каталог и поиск Telegram · TGden"
             DirectoryProvider.CURATED -> "Наша небольшая подборка проверенных адресов"
         }
         Text(provider, style = MaterialTheme.typography.labelMedium,
@@ -59,16 +58,25 @@ fun SourceDirectoryPage(vm: NewsViewModel) {
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
         state.addMessage?.let { Text(it, modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) }
         page?.let {
-            val status = if (it.total != null) "Найдено: ${it.total} · показано: ${it.items.size}" else "Показано: ${it.items.size}"
+            val displayed = if (it.category == "ai") it.items.filter { source -> TelegramTopics.show(source, state.hidePromotions) } else it.items
+            if (it.category == "ai") Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 16.dp)) {
+                Checkbox(checked = state.hidePromotions, onCheckedChange = vm::hideDirectoryPromotions)
+                Text("Скрыть крипто и игры", style = MaterialTheme.typography.bodySmall)
+            }
+            val status = if (it.total != null) {
+                val countLabel = if (it.category != null) "В категории" else "Найдено"
+                "$countLabel: ${it.total} · показано: ${displayed.size}"
+            } else "Показано: ${displayed.size}"
             Text("${state.searchedQuery} · $status" + if (it.cached) " · сохранённые результаты" else "",
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp))
             it.notice?.let { notice -> Text(notice, modifier = Modifier.padding(horizontal = 18.dp)) }
-            if (it.items.isEmpty()) Text("Ничего не найдено. Попробуй другое название или тему.", modifier = Modifier.padding(18.dp))
-            if (it.total != null && it.total > it.items.size) Text("Каталог показывает наиболее подходящие результаты. Уточни запрос, чтобы найти другие каналы.",
+            if (displayed.isEmpty()) Text(if (it.items.isNotEmpty()) "На этой странице нет каналов с выбранным фильтром. Загрузи ещё или отключи фильтр." else "Ничего не найдено. Попробуй другое название или тему.", modifier = Modifier.padding(18.dp))
+            if (it.category == null && it.total != null && it.total > it.items.size) Text("Каталог показывает наиболее подходящие результаты. Уточни запрос, чтобы найти другие каналы.",
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 18.dp))
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(it.items, key = { source -> source.address }) { source ->
+                items(displayed, key = { source -> source.address }) { source ->
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -89,6 +97,11 @@ fun SourceDirectoryPage(vm: NewsViewModel) {
                         }
                     }
                 }
+            }
+            if (it.nextOffset != null) OutlinedButton(onClick = vm::loadMoreDirectory,
+                enabled = !state.busy && state.query.trim() == state.searchedQuery,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text(if (state.busy) "Загрузка…" else "Загрузить ещё")
             }
         }
     }

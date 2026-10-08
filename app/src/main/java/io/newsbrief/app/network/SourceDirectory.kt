@@ -21,46 +21,77 @@ import java.util.concurrent.TimeUnit
 enum class DirectoryProvider(val label: String) { RSS("RSS / сайты"), TELEGRAM("Telegram"), CURATED("Рекомендации") }
 data class DirectorySource(
     val title: String, val address: String, val kind: String, val description: String = "",
-    val language: String = "", val audience: Long? = null, val categories: Set<FeedCategory> = emptySet()
+    val language: String = "", val audience: Long? = null, val categories: Set<FeedCategory> = emptySet(),
+    val topics: Set<String> = emptySet()
 )
 data class DirectoryResults(
     val items: List<DirectorySource>, val total: Int? = null, val directorySize: Int? = null,
-    val cached: Boolean = false, val notice: String? = null
+    val cached: Boolean = false, val notice: String? = null,
+    val category: String? = null, val nextOffset: Int? = null
 )
-interface DirectoryNetwork { suspend fun search(provider: DirectoryProvider, query: String): DirectoryResults }
+interface DirectoryNetwork {
+    suspend fun search(provider: DirectoryProvider, query: String): DirectoryResults
+    suspend fun more(provider: DirectoryProvider, query: String, offset: Int): DirectoryResults =
+        error("У этого поиска нет следующих страниц")
+}
+
+/** Topic shortcuts browse categories; specific names use the provider's working search tool. */
+object TelegramTopics {
+    fun category(query: String): String? = when (query.trim().lowercase(java.util.Locale.ROOT)) {
+        "ai", "ии", "artificial intelligence", "искусственный интеллект", "нейросети" -> "ai"
+        "tech", "technology", "technologies", "технологии" -> "tech"
+        "news", "новости" -> "news"
+        "business", "бизнес" -> "business"
+        "programming", "coding", "программирование", "код" -> "dev"
+        else -> null
+    }
+    fun show(source: DirectorySource, hidePromotions: Boolean): Boolean =
+        !hidePromotions || source.topics.none { it == "crypto" || it == "gaming" }
+    fun merge(previous: DirectoryResults, next: DirectoryResults): DirectoryResults {
+        require(previous.category != null && previous.category == next.category) { "Категория изменилась" }
+        require(next.nextOffset == null || next.nextOffset > (previous.nextOffset ?: -1)) { "Каталог повторил страницу" }
+        return next.copy(items = (previous.items + next.items).distinctBy { it.address.lowercase(java.util.Locale.ROOT) },
+            cached = previous.cached || next.cached)
+    }
+}
 
 class PublicDirectoryNetwork : DirectoryNetwork {
     private val client = OkHttpClient.Builder().followRedirects(false)
         .connectTimeout(10, TimeUnit.SECONDS).readTimeout(15, TimeUnit.SECONDS)
         .callTimeout(20, TimeUnit.SECONDS).build()
-    private var channelCount: Int? = null
 
     override suspend fun search(provider: DirectoryProvider, query: String): DirectoryResults = withContext(Dispatchers.IO) {
         when (provider) {
             DirectoryProvider.RSS -> DirectoryParser.feedly(request(Request.Builder().url(feedlyUrl(query)).build()))
             DirectoryProvider.TELEGRAM -> {
-                val results = DirectoryParser.telegram(rpc("search_directory", JSONObject()
-                    .put("query", query.removePrefix("@")).put("type", "channel").put("limit", 20)))
-                if (channelCount == null) channelCount = runCatching {
-                    DirectoryParser.rpcPayload(rpc("directory_stats", JSONObject())).optInt("publicChannels").takeIf { it > 0 }
-                }.getOrNull()
-                results.copy(directorySize = channelCount)
+                val category = TelegramTopics.category(query)
+                if (category != null) catalog(category, 0)
+                else DirectoryParser.tgden(rpc("search_telegram", JSONObject()
+                    .put("query", query.removePrefix("@")).put("type", "channel").put("limit", 25)))
             }
             DirectoryProvider.CURATED -> DirectoryResults(SourceCatalog.search(query).map {
                 DirectorySource(it.name, it.address, it.kind, it.category)
             })
         }
     }
+    override suspend fun more(provider: DirectoryProvider, query: String, offset: Int): DirectoryResults =
+        withContext(Dispatchers.IO) {
+            require(provider == DirectoryProvider.TELEGRAM)
+            val category = TelegramTopics.category(query) ?: error("Уточни запрос, чтобы найти другие каналы")
+            catalog(category, offset)
+        }
+    private fun catalog(category: String, offset: Int): DirectoryResults =
+        DirectoryParser.tgden(request(Request.Builder().url(catalogUrl(category, offset)).build()), category, offset)
     private fun rpc(name: String, arguments: JSONObject): String {
-        require(name in setOf("search_directory", "directory_stats"))
+        require(name == "search_telegram")
         val body = JSONObject().put("jsonrpc", "2.0").put("id", 1).put("method", "tools/call")
             .put("params", JSONObject().put("name", name).put("arguments", arguments)).toString()
-        return request(Request.Builder().url("https://tgfind.net/api/mcp")
+        return request(Request.Builder().url("https://tgden.com/api/mcp")
             .header("Accept", "application/json, text/event-stream")
             .post(body.toRequestBody("application/json".toMediaType())).build())
     }
     private fun request(request: Request): String = client.newCall(request.newBuilder()
-        .header("User-Agent", "NewsBrief/0.4.4").build()).execute().use { response ->
+        .header("User-Agent", "NewsBrief/0.4.5").build()).execute().use { response ->
         check(response.isSuccessful) { "Каталог недоступен (HTTP ${response.code})" }
         val body = response.body ?: error("Пустой ответ каталога")
         require(body.contentLength() <= 2_000_000) { "Слишком большой ответ каталога" }
@@ -77,6 +108,13 @@ class PublicDirectoryNetwork : DirectoryNetwork {
         }
     }
     companion object {
+        fun catalogUrl(category: String, offset: Int): String {
+            require(category in setOf("ai", "tech", "news", "business", "dev"))
+            require(offset >= 0)
+            return "https://tgden.com/api/catalog".toHttpUrl().newBuilder()
+                .addQueryParameter("category", category).addQueryParameter("limit", "25")
+                .addQueryParameter("offset", offset.toString()).build().toString()
+        }
         fun feedlyUrl(query: String): String = "https://cloud.feedly.com/v3/search/feeds".toHttpUrl()
             .newBuilder().addQueryParameter("query", query).addQueryParameter("count", "100").build().toString()
     }
@@ -129,28 +167,37 @@ object DirectoryParser {
         }
         error("Нет данных каталога")
     }
-    fun telegram(raw: String): DirectoryResults {
-        val root = rpcPayload(raw)
-        val array = root.optJSONArray("results") ?: error("Нет списка Telegram-каналов")
-        val items = (0 until minOf(array.length(), 20)).mapNotNull { i ->
+    fun tgden(raw: String, category: String? = null, offset: Int = 0): DirectoryResults {
+        val response = JSONObject(raw)
+        val root = if (response.has("result") || response.has("error")) rpcPayload(raw) else response
+        check(!root.optBoolean("isDemo")) { "Каталог вернул демонстрационные данные вместо результатов" }
+        val array = root.optJSONArray("items") ?: error("Нет списка Telegram-каналов")
+        val items = (0 until minOf(array.length(), 25)).mapNotNull { i ->
             val item = array.optJSONObject(i) ?: return@mapNotNull null
-            if (item.optString("type") != "channel") return@mapNotNull null
-            val handle = item.optString("handle").removePrefix("@")
+            if (item.optString("entity_type", "channel") != "channel" || item.optBoolean("is_private")) return@mapNotNull null
+            val handle = item.optString("username").removePrefix("@")
             val address = runCatching { FeedRules.canonicalAddress("@$handle", SourceKind.TELEGRAM) }.getOrNull()
                 ?: return@mapNotNull null
             val tags = item.optJSONArray("categories")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty()
-            DirectorySource(text(item.optString("name").ifBlank { handle }, 240), address, SourceKind.TELEGRAM,
-                text(item.optString("summary"), 500), item.optString("language"),
-                item.optLong("memberCount", -1).takeIf { it >= 0 }, categories(tags))
+            val languages = item.optJSONArray("language")?.let { a -> (0 until a.length()).map { a.optString(it) }.joinToString(" / ") }.orEmpty()
+            DirectorySource(text(item.optString("title").ifBlank { handle }, 240), address, SourceKind.TELEGRAM,
+                if (item.isNull("description_ai_summary")) "" else text(item.optString("description_ai_summary"), 500),
+                languages, item.optLong("subscribers_count", -1).takeIf { it >= 0 }, categories(tags),
+                tags.map { it.lowercase(java.util.Locale.ROOT) }.toSet())
         }.distinctBy { it.address.lowercase(java.util.Locale.ROOT) }
-        return DirectoryResults(items, root.optInt("total", -1).takeIf { it >= 0 })
+        val total = root.optInt("total", -1).takeIf { it >= 0 }
+        // Advance by raw records, including private/unusable entries; never repeat page 1.
+        val next = if (category != null && array.length() in 1..25 && total != null && offset + array.length() < total)
+            offset + array.length() else null
+        return DirectoryResults(items, total, category = category, nextOffset = next)
     }
     fun encode(result: DirectoryResults): String = JSONObject()
         .put("total", result.total).put("directorySize", result.directorySize)
+        .put("category", result.category).put("nextOffset", result.nextOffset)
         .put("items", JSONArray(result.items.map { item -> JSONObject()
             .put("title", item.title).put("address", item.address).put("kind", item.kind)
             .put("description", item.description).put("language", item.language).put("audience", item.audience)
-            .put("categories", JSONArray(item.categories.map { it.name })) })).toString()
+            .put("categories", JSONArray(item.categories.map { it.name })).put("topics", JSONArray(item.topics.toList())) })).toString()
     fun decode(raw: String): DirectoryResults {
         val root = JSONObject(raw)
         val array = root.getJSONArray("items")
@@ -160,8 +207,11 @@ object DirectoryParser {
             DirectorySource(item.getString("title"), item.getString("address"), item.getString("kind"),
                 item.optString("description"), item.optString("language"),
                 if (item.isNull("audience")) null else item.getLong("audience"),
-                (0 until tags.length()).mapNotNull { runCatching { FeedCategory.valueOf(tags.getString(it)) }.getOrNull() }.toSet())
+                (0 until tags.length()).mapNotNull { runCatching { FeedCategory.valueOf(tags.getString(it)) }.getOrNull() }.toSet(),
+                item.optJSONArray("topics")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() }.orEmpty())
         }, if (root.isNull("total")) null else root.getInt("total"),
-            if (root.isNull("directorySize")) null else root.getInt("directorySize"))
+            if (root.isNull("directorySize")) null else root.getInt("directorySize"),
+            category = if (root.isNull("category")) null else root.getString("category"),
+            nextOffset = if (root.isNull("nextOffset")) null else root.getInt("nextOffset"))
     }
 }

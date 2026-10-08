@@ -77,7 +77,8 @@ class NewsViewModel @JvmOverloads constructor(
         val provider: io.newsbrief.app.network.DirectoryProvider = io.newsbrief.app.network.DirectoryProvider.RSS,
         val query: String = "technology", val searchedQuery: String = "",
         val results: io.newsbrief.app.network.DirectoryResults? = null, val busy: Boolean = false,
-        val error: String? = null, val addingAddress: String? = null, val addMessage: String? = null
+        val error: String? = null, val addingAddress: String? = null, val addMessage: String? = null,
+        val hidePromotions: Boolean = true
     )
     private val _catalogOpen = MutableStateFlow(false)
     val catalogOpen = _catalogOpen.asStateFlow()
@@ -118,6 +119,29 @@ class NewsViewModel @JvmOverloads constructor(
             } catch (e: Exception) {
                 if (generation == directoryGeneration) _directoryState.value = _directoryState.value.copy(
                     busy = false, error = e.message ?: "Каталог недоступен")
+            }
+        }
+    }
+    fun hideDirectoryPromotions(value: Boolean) {
+        _directoryState.value = _directoryState.value.copy(hidePromotions = value)
+    }
+    fun loadMoreDirectory() {
+        val request = _directoryState.value
+        val previous = request.results ?: return
+        val offset = previous.nextOffset ?: return
+        if (request.busy || request.query.trim() != request.searchedQuery) return
+        directoryJob?.cancel()
+        val generation = ++directoryGeneration
+        _directoryState.value = request.copy(busy = true, error = null)
+        directoryJob = viewModelScope.launch {
+            try {
+                val next = repo.discover(request.provider, request.searchedQuery, offset)
+                if (generation == directoryGeneration) _directoryState.value = _directoryState.value.copy(
+                    results = io.newsbrief.app.network.TelegramTopics.merge(previous, next), busy = false)
+            } catch (e: CancellationException) { throw e
+            } catch (e: Exception) {
+                if (generation == directoryGeneration) _directoryState.value = _directoryState.value.copy(
+                    busy = false, error = e.message ?: "Не удалось загрузить следующую страницу")
             }
         }
     }

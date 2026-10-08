@@ -1,10 +1,10 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.4**, 60 passing offline tests, plus 3 passing live directory
+Latest build: **0.4.5**, 70 passing offline tests and six passing live directory
 integration checks. Debug APK built successfully and installed on the Motorola
-Edge 70 Fusion. All 661 saved articles and existing source settings were preserved. See [SOURCE-DISCOVERY.md](SOURCE-DISCOVERY.md) for the latest build
-and verified catalog coverage. Earlier fixes are recorded in
-[FEED-FILTERS.md](FEED-FILTERS.md) and [SOURCE-REFRESH-FIX.md](SOURCE-REFRESH-FIX.md).
+Edge 70 Fusion. Current Telegram AI discovery uses a real paginated category;
+see [AI-DISCOVERY-FIX.md](AI-DISCOVERY-FIX.md). The previous release is recorded in
+[SOURCE-DISCOVERY.md](SOURCE-DISCOVERY.md).
 The results below record the original 0.4.0 build.
 
 Verified on Mac mini (Apple Silicon), 9 October 2026, Europe/Warsaw.

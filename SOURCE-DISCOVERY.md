@@ -1,5 +1,8 @@
 # NewsBrief 0.4.4 — online source directories
 
+Historical 0.4.4 results. Telegram now uses TGden with paginated topic categories;
+see [AI-DISCOVERY-FIX.md](AI-DISCOVERY-FIX.md) for the current 0.4.5 behavior.
+
 The Sources → Source catalog button opens a native search page. RSS/sites,
 Telegram, and the existing curated recommendations are separate choices.
 Search accepts names, topics, handles and website addresses. Quick searches

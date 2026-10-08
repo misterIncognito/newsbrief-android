@@ -49,8 +49,8 @@ class NewsRepository(
         return db.sourceDao().insert(SourceEntity(name = name.trim().take(70), kind = kind, address = address)) != -1L
     }
 
-    suspend fun discover(provider: io.newsbrief.app.network.DirectoryProvider, query: String): io.newsbrief.app.network.DirectoryResults =
-        directory.search(provider, query)
+    suspend fun discover(provider: io.newsbrief.app.network.DirectoryProvider, query: String, offset: Int = 0): io.newsbrief.app.network.DirectoryResults =
+        directory.search(provider, query, offset)
 
     private val directory = SourceDirectoryRepository(db.catalogSearchDao(), directoryNetwork)
 
