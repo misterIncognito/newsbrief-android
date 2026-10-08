@@ -41,4 +41,20 @@ class CollectorsTest {
         assertEquals(1, posts.size)
         assertTrue(posts.first().link.endsWith("/321"))
     }
+
+    @Test fun parsesDeutscheWelleRdfRss() {
+        val source = SourceEntity(3, "DW", "https://rss.dw.com/rdf/rss-ru-all", SourceKind.RSS)
+        val feed = """<?xml version="1.0" encoding="UTF-8"?>
+            <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                 xmlns:dc="http://purl.org/dc/elements/1.1/">
+              <item><title>Новость</title><link>https://www.dw.com/ru/test</link>
+                <description>Подробности</description><dc:date>2026-10-08T12:10:00Z</dc:date>
+              </item>
+            </rdf:RDF>
+        """.trimIndent()
+        val items = parser.parseFeed(feed, source)
+        assertEquals(1, items.size)
+        assertEquals("Новость", items[0].title)
+        assertEquals("Подробности", items[0].excerpt)
+    }
 }

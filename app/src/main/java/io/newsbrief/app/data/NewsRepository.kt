@@ -11,7 +11,7 @@ import kotlinx.coroutines.sync.withLock
 class NewsRepository(
     private val db: NewsDatabase,
     private val collector: NewsCollector,
-    settings: SettingsStore
+    private val settings: SettingsStore
 ) {
     private val ai = AiClient(settings)
     private val refreshMutex = Mutex()
@@ -22,15 +22,14 @@ class NewsRepository(
     fun observeLatest(): Flow<List<ArticleEntity>> = db.articleDao().observeRecent(System.currentTimeMillis() - 24L * 60 * 60 * 1_000)
 
     suspend fun seedDefaults() {
-        if (db.sourceDao().count() != 0) return
-        listOf(
-            SourceEntity(name = "BBC Русская служба", kind = SourceKind.RSS,
-                address = "https://feeds.bbci.co.uk/russian/rss.xml"),
-            SourceEntity(name = "Зеркало", kind = SourceKind.RSS,
-                address = "https://news.zerkalo.io/rss/all.rss"),
-            SourceEntity(name = "BILD на русском", kind = SourceKind.TELEGRAM,
-                address = "https://t.me/s/BILD_Russian")
-        ).forEach { db.sourceDao().insert(it) }
+        if (settings.isSourcesCatalogV2Seeded()) return
+        val presets = if (db.sourceDao().count() == 0) {
+            SourceCatalog.presets.filter { it.enabledByDefault }
+        } else {
+            SourceCatalog.newDefaults
+        }
+        presets.forEach { db.sourceDao().insert(it.asEntity()) }
+        settings.markSourcesCatalogV2Seeded()
     }
 
     suspend fun addSource(name: String, kind: String, rawAddress: String): Boolean {
@@ -59,7 +58,7 @@ class NewsRepository(
                 errors += "${source.name}: ${e.message.orEmpty().take(120)}"
             }
         }
-        db.articleDao().deleteOld(System.currentTimeMillis() - 14L * 24 * 60 * 60 * 1_000)
+        // Do not silently destroy history. A future retention policy can be user-controlled.
         RefreshResult(added = total, sources = sources.size, errors = errors)
     }
 
@@ -68,9 +67,8 @@ class NewsRepository(
     suspend fun generateDigest(mode: String): DigestEntity {
         require(mode == DigestMode.SHORT || mode == DigestMode.FULL)
         val cutoff = System.currentTimeMillis() - 24L * 60 * 60 * 1_000
-        val recent = db.articleDao().recent(cutoff, 180)
-            .distinctBy { FeedRules.normalizedTitle(it.title) }
-        val digest = ai.generate(recent, mode)
+        val recent = db.articleDao().recent(cutoff, 600)
+        val digest = ai.generate(DigestArticleSelector.pick(recent), mode)
         db.digestDao().save(digest)
         return digest
     }

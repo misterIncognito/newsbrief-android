@@ -51,6 +51,7 @@ import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.data.DigestEntity
 import io.newsbrief.app.data.DigestMode
 import io.newsbrief.app.data.SettingsStore
+import io.newsbrief.app.data.SourceCatalog
 import io.newsbrief.app.data.SourceKind
 import org.json.JSONArray
 import java.time.Instant
@@ -213,13 +214,16 @@ private fun NewsCard(article: ArticleEntity) {
 private fun SourcesPage(vm: NewsViewModel) {
     val sources by vm.sources.collectAsStateWithLifecycle()
     var dialogVisible by rememberSaveable { mutableStateOf(false) }
+    var catalogVisible by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Мои источники", style = MaterialTheme.typography.headlineSmall)
-            Button(onClick = { dialogVisible = true }) { Text("+ Добавить") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { catalogVisible = true }) { Text("Каталог источников") }
+                OutlinedButton(onClick = { dialogVisible = true }) { Text("Своя ссылка") }
+            }
         }
-        Text("RSS и публичные Telegram-каналы. Telegram-превью — экспериментальный способ сбора.",
+        Text("Подключай нужные источники из каталога или добавляй свои RSS и публичные Telegram-каналы.",
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -248,6 +252,45 @@ private fun SourcesPage(vm: NewsViewModel) {
         vm.addSource(name, kind, url)
         dialogVisible = false
     }
+    if (catalogVisible) {
+        SourceCatalogDialog(
+            existingAddresses = sources.map { it.address }.toSet(),
+            onClose = { catalogVisible = false },
+            onAdd = { name, kind, url -> vm.addSource(name, kind, url) }
+        )
+    }
+}
+
+@Composable
+private fun SourceCatalogDialog(
+    existingAddresses: Set<String>,
+    onClose: () -> Unit,
+    onAdd: (String, String, String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Каталог новостей") },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(SourceCatalog.presets, key = { it.address }) { preset ->
+                    val added = preset.address in existingAddresses
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Text(preset.name, style = MaterialTheme.typography.bodyMedium)
+                            Text("${preset.category} · ${preset.kind}", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TextButton(
+                            enabled = !added,
+                            onClick = { onAdd(preset.name, preset.kind, preset.address) }
+                        ) { Text(if (added) "Добавлен" else "+") }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text("Готово") } }
+    )
 }
 
 @Composable

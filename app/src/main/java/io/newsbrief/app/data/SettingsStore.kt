@@ -73,4 +73,10 @@ class SettingsStore(context: Context) {
             String(cipher.doFinal(bytes.copyOfRange(12, bytes.size)), Charsets.UTF_8)
         } catch (_: Exception) { "" } // e.g. keys invalidated after OS restore
     }
+
+    fun isSourcesCatalogV2Seeded(): Boolean = prefs.getBoolean("sources_catalog_v2_seeded", false)
+
+    fun markSourcesCatalogV2Seeded() {
+        prefs.edit().putBoolean("sources_catalog_v2_seeded", true).apply()
+    }
 }
