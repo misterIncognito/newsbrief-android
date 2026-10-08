@@ -272,6 +272,11 @@ private fun SourceCatalogDialog(
         title = { Text("Каталог новостей") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    Text("9 источников при новой установке. Остальные можно подключить здесь.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 items(SourceCatalog.presets, key = { it.address }) { preset ->
                     val added = preset.address in existingAddresses
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,

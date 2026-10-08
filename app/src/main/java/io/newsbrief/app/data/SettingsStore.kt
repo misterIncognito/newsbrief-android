@@ -79,4 +79,10 @@ class SettingsStore(context: Context) {
     fun markSourcesCatalogV2Seeded() {
         prefs.edit().putBoolean("sources_catalog_v2_seeded", true).apply()
     }
+
+    fun isSourcesCatalogV3Seeded(): Boolean = prefs.getBoolean("sources_catalog_v3_seeded", false)
+
+    fun markSourcesCatalogV3Seeded() {
+        prefs.edit().putBoolean("sources_catalog_v3_seeded", true).apply()
+    }
 }

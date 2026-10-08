@@ -21,7 +21,21 @@ class SourceCatalogTest {
         assertTrue(SourceCatalog.presets.any { it.kind == SourceKind.RSS })
         assertTrue(SourceCatalog.presets.any { it.kind == SourceKind.TELEGRAM })
         assertEquals(3, SourceCatalog.newDefaults.size)
-        assertTrue(SourceCatalog.newDefaults.all { it.enabledByDefault })
+        assertEquals(3, SourceCatalog.newDefaultsV3.size)
+        assertTrue((SourceCatalog.newDefaults + SourceCatalog.newDefaultsV3).all { it.enabledByDefault })
         assertTrue(SourceCatalog.presets.any { !it.enabledByDefault })
+    }
+
+    @Test fun upgradeAddsOnlyNewDefaultsWithoutRestoringDeletedSources() {
+        val freshInstall = SourceCatalog.defaultsToSeed(0, v2Seeded = false, v3Seeded = false)
+        assertEquals(9, freshInstall.size)
+        assertEquals(1, freshInstall.count { it.name == "Медуза" })
+        val fromV1 = SourceCatalog.defaultsToSeed(3, v2Seeded = false, v3Seeded = false)
+        assertEquals(6, fromV1.size)
+        val fromV2 = SourceCatalog.defaultsToSeed(6, v2Seeded = true, v3Seeded = false)
+        assertEquals(setOf("Хабр — статьи", "vc.ru — бизнес и технологии", "The Warsaw — Варшава"),
+            fromV2.map { it.name }.toSet())
+        assertTrue(SourceCatalog.defaultsToSeed(3, v2Seeded = true, v3Seeded = true).isEmpty())
+        assertTrue(SourceCatalog.defaultsToSeed(0, v2Seeded = true, v3Seeded = true).isEmpty())
     }
 }

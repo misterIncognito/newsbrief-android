@@ -22,14 +22,13 @@ class NewsRepository(
     fun observeLatest(): Flow<List<ArticleEntity>> = db.articleDao().observeRecent(System.currentTimeMillis() - 24L * 60 * 60 * 1_000)
 
     suspend fun seedDefaults() {
-        if (settings.isSourcesCatalogV2Seeded()) return
-        val presets = if (db.sourceDao().count() == 0) {
-            SourceCatalog.presets.filter { it.enabledByDefault }
-        } else {
-            SourceCatalog.newDefaults
-        }
-        presets.forEach { db.sourceDao().insert(it.asEntity()) }
-        settings.markSourcesCatalogV2Seeded()
+        val v2Seeded = settings.isSourcesCatalogV2Seeded()
+        val v3Seeded = settings.isSourcesCatalogV3Seeded()
+        if (v2Seeded && v3Seeded) return
+        SourceCatalog.defaultsToSeed(db.sourceDao().count(), v2Seeded, v3Seeded)
+            .forEach { db.sourceDao().insert(it.asEntity()) }
+        if (!v2Seeded) settings.markSourcesCatalogV2Seeded()
+        if (!v3Seeded) settings.markSourcesCatalogV3Seeded()
     }
 
     suspend fun addSource(name: String, kind: String, rawAddress: String): Boolean {
