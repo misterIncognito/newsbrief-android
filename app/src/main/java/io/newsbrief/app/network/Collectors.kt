@@ -18,7 +18,7 @@ import java.util.Locale
 
 /** Compatibility entry point; all ingestion dispatches through the source registry. */
 class WebCollectors(settings: SourceSettings? = null,
-    val plugins: SourcePluginRegistry = SourcePluginRegistry.builtIns(settings)) : NewsCollector {
+    override val plugins: SourcePluginRegistry = SourcePluginRegistry.builtIns(settings)) : NewsCollector, SourceRegistryOwner {
     override suspend fun collect(source: SourceEntity) = plugins.collect(source)
     override fun merge(existing: ArticleEntity, incoming: ArticleEntity) = plugins.merge(existing, incoming)
     internal fun parseFeed(xml: String, source: SourceEntity) = FeedParsers().parseFeed(xml, source)
