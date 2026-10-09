@@ -4,7 +4,6 @@ import io.newsbrief.app.ai.AiClient
 import io.newsbrief.app.network.ArticleReader
 import io.newsbrief.app.network.ReaderArticle
 import io.newsbrief.app.network.NewsCollector
-import io.newsbrief.app.util.FeedRules
 import androidx.room.withTransaction
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -17,6 +16,8 @@ class NewsRepository(
     private val collector: NewsCollector,
     private val settings: SettingsStore,
     directoryNetwork: io.newsbrief.app.network.DirectoryNetwork = io.newsbrief.app.network.PublicDirectoryNetwork(),
+    val sourcePlugins: io.newsbrief.app.network.SourcePluginRegistry = (collector as? io.newsbrief.app.network.WebCollectors)?.plugins
+        ?: (collector as? io.newsbrief.app.network.SourcePluginRegistry) ?: io.newsbrief.app.network.SourcePluginRegistry.builtIns(settings),
     private val articleReader: ArticleReader = ArticleReader(settings),
     private val onFeedUpdated: () -> Unit = {}
 ) {
@@ -60,7 +61,7 @@ class NewsRepository(
 
     suspend fun addSource(name: String, kind: String, rawAddress: String): Boolean {
         require(name.isNotBlank()) { "Укажи название источника" }
-        val address = FeedRules.canonicalAddress(rawAddress, kind)
+        val address = sourcePlugins.canonicalAddress(rawAddress, kind)
         return db.sourceDao().insert(SourceEntity(name = name.trim().take(70), kind = kind, address = address)) != -1L
     }
 
@@ -70,7 +71,7 @@ class NewsRepository(
     private val directory = SourceDirectoryRepository(db.catalogSearchDao(), directoryNetwork)
 
     suspend fun addDiscoveredSource(source: io.newsbrief.app.network.DirectorySource): Boolean {
-        val address = FeedRules.canonicalAddress(source.address, source.kind)
+        val address = sourcePlugins.canonicalAddress(source.address, source.kind)
         val candidate = SourceEntity(name = source.title, address = address, kind = source.kind,
             categoriesJson = org.json.JSONArray(source.categories.map { it.name }).toString())
         val items = collector.collect(candidate).filter {
@@ -84,7 +85,9 @@ class NewsRepository(
             val inserted = db.articleDao().insertAll(articles)
             articles.zip(inserted).forEach { (article, insertedId) ->
                 if (insertedId == -1L) {
-                    db.articleDao().associateEnabledSource(article.link, id, candidate.name)
+                    db.articleDao().fillSourcePlugin(article.link, article.sourcePluginId)
+                    db.articleDao().associateEnabledSource(article.link, id, candidate.name, article.sourcePluginId)
+                    mergePluginPost(article)
                     db.articleDao().fillMissingPreview(article.link, article.content, article.imageUrl, article.linksJson)
                 }
             }
@@ -116,7 +119,9 @@ class NewsRepository(
                 // metadata from refreshed feeds without overwriting saved reader text.
                 items.zip(results).forEach { (item, id) ->
                     if (id == -1L) {
-                        db.articleDao().associateEnabledSource(item.link, item.sourceId, item.sourceName)
+                        db.articleDao().fillSourcePlugin(item.link, item.sourcePluginId)
+                        db.articleDao().associateEnabledSource(item.link, item.sourceId, item.sourceName, item.sourcePluginId)
+                        mergePluginPost(item)
                         if (item.content.isNotBlank() || item.imageUrl.isNotBlank() || item.linksJson != "[]") {
                             db.articleDao().fillMissingPreview(item.link, item.content, item.imageUrl, item.linksJson)
                         }
@@ -132,6 +137,13 @@ class NewsRepository(
         RefreshResult(added = total, sources = sources.size, errors = errors)
     }
 
+    private suspend fun mergePluginPost(incoming: ArticleEntity) {
+        val existing = db.articleDao().findByLink(incoming.link) ?: return
+        if (existing.sourceId != incoming.sourceId) return
+        val merged = sourcePlugins.merge(existing, incoming)
+        if (merged != existing) db.articleDao().updateArticle(merged)
+    }
+
     suspend fun lookup(url: String): ArticleEntity? = db.articleDao().findByLink(url)
 
     suspend fun prefetchCandidates(): List<ArticleEntity> =
@@ -141,7 +153,7 @@ class NewsRepository(
         val saved = lookup(url) ?: ArticleEntity(sourceId = 0, sourceName = parent.sourceName,
             title = parent.title, excerpt = "", link = url, publishedAt = parent.publishedAt)
         val linked = saved.copy(proxyRequired = saved.proxyRequired || parent.proxyRequired ||
-            io.newsbrief.app.network.ArticleLinks.telegramPreview(parent.link) != null)
+            io.newsbrief.app.network.ArticleLinks.isTelegramPost(parent))
         if (linked.proxyRequired && !saved.proxyRequired && saved.id != 0L) db.articleDao().requireProxy(url)
         return linked
     }

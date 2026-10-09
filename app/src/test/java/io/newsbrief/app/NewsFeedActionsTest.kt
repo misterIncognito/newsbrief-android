@@ -101,4 +101,41 @@ class NewsFeedActionsTest {
             assertNotNull(runBlocking { repo.lookup("https://source.example/story/15") })
         } finally { model?.viewModelScope?.cancel(); db.close(); Dispatchers.resetMain() }
     }
+    @Test fun sourceScreenListsRegisteredPluginsAndExplainsUnconfiguredTelegramProxy() {
+        val dispatcher = UnconfinedTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        fun waitFor(condition: () -> Boolean) { compose.waitUntil(5000) {
+            dispatcher.scheduler.runCurrent(); compose.waitForIdle(); condition()
+        } }
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
+        var model: NewsViewModel? = null
+        try {
+            val settings = SettingsStore(app)
+            val repo = NewsRepository(db, object : NewsCollector {
+                override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
+            }, settings)
+            lateinit var vm: NewsViewModel
+            compose.runOnIdle { vm = NewsViewModel(app, repo, settings); model = vm }
+            val owner = Owner()
+            compose.setContent { CompositionLocalProvider(LocalLifecycleOwner provides owner) {
+                MaterialTheme { NewsBriefScreen(vm) }
+            } }
+            compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
+            compose.onNodeWithText("Источники").performClick()
+            compose.onNodeWithText("Своя ссылка").performClick()
+            vm.sourcePlugins.forEach { compose.onNode(hasText(it.title) and hasClickAction()).assertExists() }
+            compose.onNodeWithText("Telegram через прокси").performClick()
+            compose.onNodeWithText("@канал, ссылка t.me или ID канала").assertExists()
+            compose.onNodeWithText("Отмена").performClick()
+            compose.onNodeWithText("Каналы Telegram-прокси").performClick()
+            waitFor { vm.proxyChannels.value.error != null }
+            compose.onNodeWithText("Настрой HTTPS-адрес и ключ Telegram-прокси", substring = true).assertExists()
+            compose.onNodeWithText("Закрыть").performClick()
+            compose.onNodeWithText("Настройки").performClick()
+            compose.onNodeWithText("HTTPS URL Telegram-прокси").performScrollTo().assertExists()
+            compose.onNodeWithText("Ключ доступа Telegram-прокси").performScrollTo().assertExists()
+        } finally { model?.viewModelScope?.cancel(); db.close(); Dispatchers.resetMain() }
+    }
+
 }

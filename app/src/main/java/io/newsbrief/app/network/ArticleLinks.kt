@@ -33,6 +33,9 @@ object ArticleLinks {
         }.distinctBy { it.url }.take(50)
     }.getOrDefault(emptyList())
 
+    fun isTelegramPost(article: io.newsbrief.app.data.ArticleEntity): Boolean =
+        article.sourcePluginId == io.newsbrief.app.data.SourceKind.TELEGRAM_PROXY || telegramPreview(article.link) != null
+
     fun telegramPreview(url: String): String? = runCatching {
         val uri = URI(url)
         if (uri.scheme != "https" || uri.host != "t.me" || uri.userInfo != null) return null

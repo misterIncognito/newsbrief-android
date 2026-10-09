@@ -4,6 +4,12 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 object NewsMigrations {
+    val FROM_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE articles ADD COLUMN sourcePluginId TEXT NOT NULL DEFAULT ''")
+            db.execSQL("UPDATE articles SET sourcePluginId = COALESCE((SELECT kind FROM sources WHERE sources.id = articles.sourceId), '')")
+        }
+    }
     val FROM_6_7 = object : Migration(6, 7) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("CREATE TABLE IF NOT EXISTS saved_articles (link TEXT NOT NULL, savedAt INTEGER NOT NULL, PRIMARY KEY(link))")

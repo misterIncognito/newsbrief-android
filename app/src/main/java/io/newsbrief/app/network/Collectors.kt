@@ -14,25 +14,20 @@ import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 interface NewsCollector {
     suspend fun collect(source: SourceEntity): List<ArticleEntity>
 }
 
-/** Public feeds only; no credential or Telegram user session is required. */
-class WebCollectors(private val settings: SettingsStore? = null) : NewsCollector {
-    override suspend fun collect(source: SourceEntity): List<ArticleEntity> = withContext(Dispatchers.IO) {
-        val document = NewsHttp.download(source.address, "fetch",
-            settings?.workerUrl() ?: NewsRouting.DEFAULT_WORKER, 3_000_000).toString(Charsets.UTF_8)
-        when (source.kind) {
-            SourceKind.RSS -> parseFeed(document, source)
-            SourceKind.TELEGRAM -> parseTelegramPreview(document, source)
-            else -> error("Неизвестный тип: ${source.kind}")
-        }
-    }
+/** Compatibility entry point; all ingestion dispatches through the source registry. */
+class WebCollectors(settings: SettingsStore? = null,
+    val plugins: SourcePluginRegistry = SourcePluginRegistry.builtIns(settings)) : NewsCollector {
+    override suspend fun collect(source: SourceEntity) = plugins.collect(source)
+    internal fun parseFeed(xml: String, source: SourceEntity) = FeedParsers().parseFeed(xml, source)
+    internal fun parseTelegramPreview(html: String, source: SourceEntity) = FeedParsers().parseTelegramPreview(html, source)
+}
 
+internal class FeedParsers {
     internal fun parseFeed(xml: String, source: SourceEntity): List<ArticleEntity> {
         require(!xml.contains("<!DOCTYPE", ignoreCase = true)) { "DTD не допускается в RSS" }
         val parser = XmlPullParserFactory.newInstance().newPullParser()

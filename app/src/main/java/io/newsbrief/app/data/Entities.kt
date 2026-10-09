@@ -9,12 +9,14 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Update
 import androidx.room.RoomDatabase
 import kotlinx.coroutines.flow.Flow
 
 object SourceKind {
     const val RSS = "RSS"
     const val TELEGRAM = "TELEGRAM"
+    const val TELEGRAM_PROXY = "TELEGRAM_PROXY"
 }
 
 @Entity(tableName = "sources", indices = [Index(value = ["address"], unique = true)])
@@ -41,6 +43,7 @@ data class ArticleEntity(
     @ColumnInfo(defaultValue = "'[]'") val imagesJson: String = "[]",
     @ColumnInfo(defaultValue = "'[]'") val linksJson: String = "[]",
     @ColumnInfo(defaultValue = "0") val proxyRequired: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val sourcePluginId: String = "",
     val link: String,
     val publishedAt: Long,
     val importedAt: Long = System.currentTimeMillis()
@@ -98,8 +101,14 @@ interface ArticleDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(items: List<ArticleEntity>): List<Long>
 
+    @Update
+    suspend fun updateArticle(article: ArticleEntity)
+
     @Query("SELECT * FROM articles WHERE link = :url LIMIT 1")
     suspend fun findByLink(url: String): ArticleEntity?
+
+    @Query("UPDATE articles SET sourcePluginId = :pluginId WHERE link = :url AND sourcePluginId = ''")
+    suspend fun fillSourcePlugin(url: String, pluginId: String)
 
     @Query("UPDATE articles SET proxyRequired = 1 WHERE link = :url")
     suspend fun requireProxy(url: String)
@@ -114,9 +123,9 @@ interface ArticleDao {
         "linksJson = CASE WHEN :linksJson != '[]' THEN :linksJson ELSE linksJson END WHERE link = :url")
     suspend fun fillMissingPreview(url: String, content: String, imageUrl: String, linksJson: String = "[]")
 
-    @Query("UPDATE articles SET sourceId = :sourceId, sourceName = :sourceName WHERE link = :url AND " +
+    @Query("UPDATE articles SET sourceId = :sourceId, sourceName = :sourceName, sourcePluginId = CASE WHEN :sourcePluginId != '' THEN :sourcePluginId ELSE sourcePluginId END WHERE link = :url AND " +
         "NOT EXISTS (SELECT 1 FROM sources WHERE id = articles.sourceId AND enabled = 1)")
-    suspend fun associateEnabledSource(url: String, sourceId: Long, sourceName: String)
+    suspend fun associateEnabledSource(url: String, sourceId: Long, sourceName: String, sourcePluginId: String = "")
 
     @Query("DELETE FROM articles WHERE publishedAt < :cutoff AND NOT EXISTS (SELECT 1 FROM saved_articles b WHERE b.link = articles.link)")
     suspend fun deleteOld(cutoff: Long)
@@ -144,7 +153,7 @@ interface CatalogSearchDao {
     suspend fun prune()
 }
 
-@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class, SavedArticleEntity::class], version = 7, exportSchema = true)
+@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class, SavedArticleEntity::class], version = 8, exportSchema = true)
 abstract class NewsDatabase : RoomDatabase() {
     abstract fun sourceDao(): SourceDao
     abstract fun articleDao(): ArticleDao

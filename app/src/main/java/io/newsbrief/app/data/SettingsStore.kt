@@ -84,6 +84,18 @@ class SettingsStore(context: Context) {
         prefs.edit().putString("worker_url", normalized).apply()
     }
 
+    fun telegramProxyUrl(): String = prefs.getString("telegram_proxy_url", "").orEmpty()
+    fun hasTelegramProxyKey(): Boolean = hasApiKey("TelegramProxy")
+    fun telegramProxyKey(): String = loadApiKey("TelegramProxy")
+    fun saveTelegramProxyKey(value: String) = saveApiKey("TelegramProxy", value)
+    fun setTelegramProxyUrl(value: String) {
+        val url = value.trim().trimEnd('/')
+        if (url.isNotBlank()) io.newsbrief.app.network.TelegramProxyClient.validateBaseUrl(url)
+        // A key belongs to one origin; never send an old key to a newly selected service.
+        if (url != telegramProxyUrl()) saveTelegramProxyKey("")
+        prefs.edit().putString("telegram_proxy_url", url).apply()
+    }
+
     fun isSourcesCatalogV2Seeded(): Boolean = prefs.getBoolean("sources_catalog_v2_seeded", false)
 
     fun markSourcesCatalogV2Seeded() {

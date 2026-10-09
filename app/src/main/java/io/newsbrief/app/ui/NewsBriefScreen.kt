@@ -290,7 +290,7 @@ private fun FeedPage(vm: NewsViewModel, feedScroll: LazyListState, savedScroll: 
 private fun NewsCard(article: ArticleEntity, vm: NewsViewModel) {
     val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
     val savedUrls by vm.savedUrls.collectAsStateWithLifecycle()
-    if (ArticleLinks.telegramPreview(article.link) != null) {
+    if (ArticleLinks.isTelegramPost(article)) {
         LaunchedEffect(article.link) {
             if (ArticleLinks.decode(article.linksJson).isEmpty()) vm.resolvePostLinks(article)
         }
@@ -384,6 +384,7 @@ private fun SourcesPage(vm: NewsViewModel) {
                 Button(onClick = { vm.openCatalog() }) { Text("Каталог источников") }
                 OutlinedButton(onClick = { dialogVisible = true }) { Text("Своя ссылка") }
             }
+            TextButton(onClick = { vm.openProxyChannels() }) { Text("Каналы Telegram-прокси") }
         }
         Text("Подключай нужные источники из каталога или добавляй свои RSS и публичные Telegram-каналы.",
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
@@ -397,12 +398,12 @@ private fun SourcesPage(vm: NewsViewModel) {
                             verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(source.name, style = MaterialTheme.typography.titleMedium)
-                                Text(source.kind, style = MaterialTheme.typography.labelSmall,
+                                Text(vm.sourcePlugins.firstOrNull { it.id == source.kind }?.title ?: source.kind, style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Switch(checked = source.enabled, onCheckedChange = { vm.toggleSource(source.id, it) })
                         }
-                        Text(source.address, style = MaterialTheme.typography.bodySmall,
+                        Text(source.address.removePrefix("telegram-proxy:"), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         TextButton(onClick = { vm.deleteSource(source.id) }) { Text("Удалить") }
                     }
@@ -410,14 +411,16 @@ private fun SourcesPage(vm: NewsViewModel) {
             }
         }
     }
-    if (dialogVisible) AddSourceDialog(onClose = { dialogVisible = false }) { name, kind, url ->
+    val proxyChannels by vm.proxyChannels.collectAsStateWithLifecycle()
+    if (proxyChannels.open) ProxyChannelsDialog(vm, proxyChannels)
+    if (dialogVisible) AddSourceDialog(vm.sourcePlugins, onClose = { dialogVisible = false }) { name, kind, url ->
         vm.addSource(name, kind, url)
         dialogVisible = false
     }
 }
 
 @Composable
-private fun AddSourceDialog(onClose: () -> Unit, onAdd: (String, String, String) -> Unit) {
+private fun AddSourceDialog(plugins: List<io.newsbrief.app.network.SourcePluginInfo>, onClose: () -> Unit, onAdd: (String, String, String) -> Unit) {
     var name by rememberSaveable { mutableStateOf("") }
     var address by rememberSaveable { mutableStateOf("") }
     var kind by rememberSaveable { mutableStateOf(SourceKind.RSS) }
@@ -426,16 +429,16 @@ private fun AddSourceDialog(onClose: () -> Unit, onAdd: (String, String, String)
         title = { Text("Подключить источник") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = kind == SourceKind.RSS, onClick = { kind = SourceKind.RSS },
-                        label = { Text("RSS") })
-                    FilterChip(selected = kind == SourceKind.TELEGRAM, onClick = { kind = SourceKind.TELEGRAM },
-                        label = { Text("Telegram") })
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    plugins.forEach { plugin ->
+                        FilterChip(selected = kind == plugin.id, onClick = { kind = plugin.id },
+                            label = { Text(plugin.title) })
+                    }
                 }
                 OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true,
                     label = { Text("Название") })
                 OutlinedTextField(value = address, onValueChange = { address = it }, singleLine = true,
-                    label = { Text(if (kind == SourceKind.RSS) "HTTPS-ссылка на RSS" else "@канал или https://t.me/канал") })
+                    label = { Text(plugins.firstOrNull { it.id == kind }?.addressHint.orEmpty()) })
             }
         },
         confirmButton = {
@@ -448,6 +451,34 @@ private fun AddSourceDialog(onClose: () -> Unit, onAdd: (String, String, String)
 }
 
 @Composable
+private fun ProxyChannelsDialog(vm: NewsViewModel, state: NewsViewModel.ProxyChannelsState) {
+    var search by rememberSaveable { mutableStateOf("") }
+    val sources by vm.sources.collectAsStateWithLifecycle()
+    AlertDialog(onDismissRequest = { vm.closeProxyChannels() }, title = { Text("Каналы Telegram-прокси") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Доступные каналы, которые уже собирает сервис. Подключение добавляет их в ленту.")
+                OutlinedTextField(value = search, onValueChange = { search = it }, singleLine = true, label = { Text("Поиск канала") })
+                if (state.busy) CircularProgressIndicator()
+                state.error?.let { Text(it) }
+                if (!state.busy && state.error == null && state.channels.isEmpty()) Text("На сервисе пока нет доступных каналов")
+                LazyColumn(Modifier.heightIn(max = 350.dp)) {
+                    items(state.channels.filter { it.name.contains(search, true) || it.address.contains(search, true) }, key = { it.address }) { source ->
+                        val added = sources.any { it.address == source.address }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(source.name, Modifier.weight(1f))
+                            TextButton(onClick = { vm.addSource(source.name, source.kind, source.address) }, enabled = !added) {
+                                Text(if (added) "Подключён" else "Добавить")
+                            }
+                        }
+                    }
+                }
+            }
+        }, confirmButton = { TextButton(onClick = { vm.closeProxyChannels() }) { Text("Закрыть") } },
+        dismissButton = { TextButton(onClick = { vm.openProxyChannels() }) { Text("Обновить") } })
+}
+
+@Composable
 private fun SettingsPage(vm: NewsViewModel) {
     val config by vm.config.collectAsStateWithLifecycle()
     val hasKey by vm.hasKey.collectAsStateWithLifecycle()
@@ -455,6 +486,10 @@ private fun SettingsPage(vm: NewsViewModel) {
     var keyDraft by remember(config.provider) { mutableStateOf("") }
     val worker by vm.workerUrl.collectAsStateWithLifecycle()
     var workerDraft by remember(worker) { mutableStateOf(worker) }
+    val telegramProxy by vm.telegramProxyUrl.collectAsStateWithLifecycle()
+    val telegramKeySaved by vm.hasTelegramProxyKey.collectAsStateWithLifecycle()
+    var telegramUrlDraft by remember(telegramProxy) { mutableStateOf(telegramProxy) }
+    var telegramKeyDraft by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Прокси для новостей", style = MaterialTheme.typography.headlineSmall)
@@ -464,6 +499,16 @@ private fun SettingsPage(vm: NewsViewModel) {
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             label = { Text("HTTPS URL Cloudflare Worker") })
         OutlinedButton(onClick = { vm.setWorkerUrl(workerDraft) }) { Text("Сохранить прокси") }
+        HorizontalDivider()
+        Text("Telegram-прокси", style = MaterialTheme.typography.headlineSmall)
+        Text("Укажи адрес отдельного сервиса Telegram и свой ключ доступа. Затем выбери его каналы в разделе «Источники». Ключ хранится зашифрованным на устройстве.", style = MaterialTheme.typography.bodySmall)
+        OutlinedTextField(value = telegramUrlDraft, onValueChange = { telegramUrlDraft = it }, singleLine = true,
+            modifier = Modifier.fillMaxWidth(), label = { Text("HTTPS URL Telegram-прокси") })
+        Text(if (telegramKeySaved) "Ключ доступа сохранён" else "Ключ доступа не добавлен")
+        OutlinedTextField(value = telegramKeyDraft, onValueChange = { telegramKeyDraft = it }, singleLine = true,
+            modifier = Modifier.fillMaxWidth(), visualTransformation = PasswordVisualTransformation(), label = { Text("Ключ доступа Telegram-прокси") })
+        OutlinedButton(onClick = { vm.saveTelegramProxy(telegramUrlDraft, telegramKeyDraft); telegramKeyDraft = "" }) { Text("Сохранить Telegram-прокси") }
+        if (telegramKeySaved) TextButton(onClick = { vm.removeTelegramProxyKey() }) { Text("Удалить ключ Telegram-прокси") }
         HorizontalDivider()
         Text("Настройки ИИ", style = MaterialTheme.typography.headlineSmall)
         Text("Выбери модель. Выдержки публикаций отправляются напрямую с телефона выбранному ИИ-провайдеру, без нашего сервера.",

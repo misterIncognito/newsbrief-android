@@ -16,7 +16,7 @@ class ArticlePrefetcher(private val repository: NewsRepository, private val sett
         require(limit in 1..24)
         val targets = linkedMapOf<String, Target>()
         for (post in repository.prefetchCandidates()) {
-            val primary = if (ArticleLinks.telegramPreview(post.link) != null)
+            val primary = if (ArticleLinks.isTelegramPost(post))
                 ArticleLinks.fullArticle(ArticleLinks.decode(post.linksJson)) else null
             val article = if (primary != null) repository.linkedArticle(post, primary.url) else post
             val previous = targets[article.link]
@@ -37,7 +37,7 @@ class ArticlePrefetcher(private val repository: NewsRepository, private val sett
     }
 
     private fun needsText(article: ArticleEntity): Boolean =
-        ArticleLinks.telegramPreview(article.link) == null && (!article.readerLoaded || article.content.isBlank())
+        !ArticleLinks.isTelegramPost(article) && (!article.readerLoaded || article.content.isBlank())
 
     private fun leadImage(article: ArticleEntity): String = article.imageUrl.ifBlank {
         ArticleReader.decodeImages(article.imagesJson).firstOrNull().orEmpty()

@@ -45,17 +45,22 @@ class ReaderLinksMigrationTest {
                         NewsMigrations.FROM_5_6.migrate(db)
                         db.execSQL("UPDATE articles SET proxyRequired=1")
                     }
+                    if (version >= 7) {
+                        NewsMigrations.FROM_6_7.migrate(db)
+                        db.execSQL("INSERT INTO saved_articles VALUES('https://t.me/devby/16806',789)")
+                    }
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
             }).build())
         legacy.writableDatabase; legacy.close()
         val db = Room.databaseBuilder(context, NewsDatabase::class.java, name)
-            .addMigrations(NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6, NewsMigrations.FROM_6_7).build()
+            .addMigrations(NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6, NewsMigrations.FROM_6_7, NewsMigrations.FROM_7_8).build()
         try {
             val article = db.articleDao().findByLink("https://t.me/devby/16806")!!
             assertEquals("Offline full body", article.content)
             assertEquals(if (version == 4) "[]" else "[{\"label\":\"Подробнее\",\"url\":\"https://devby.io/news/story\"}]", article.linksJson)
             assertEquals(version >= 6, article.proxyRequired)
+            assertEquals(SourceKind.TELEGRAM, article.sourcePluginId)
             assertEquals("Author", article.author)
             assertTrue(article.readerLoaded)
             assertEquals(123L, article.publishedAt)
@@ -68,18 +73,20 @@ class ReaderLinksMigrationTest {
             db.articleDao().fillMissingPreview(article.link, "New preview", "", links)
             db.articleDao().requireProxy(article.link)
             assertEquals(links, db.articleDao().findByLink(article.link)!!.linksJson)
-            assertTrue(db.savedArticleDao().observeUrls().first().isEmpty())
+            assertEquals(if (version >= 7) listOf(article.link) else emptyList<String>(), db.savedArticleDao().observeUrls().first())
             db.savedArticleDao().insert(SavedArticleEntity(article.link, 789))
         } finally { db.close() }
         val reopened = Room.databaseBuilder(context, NewsDatabase::class.java, name).build()
         try {
             val saved = reopened.articleDao().findByLink("https://t.me/devby/16806")!!
+            assertEquals(SourceKind.TELEGRAM, saved.sourcePluginId)
             assertEquals("Offline full body", saved.content)
             assertTrue(saved.proxyRequired)
             assertTrue(saved.linksJson.contains("devby.io/news/story"))
             assertEquals(saved, reopened.articleDao().observeSaved().first().single())
         } finally { reopened.close(); context.deleteDatabase(name) }
     }
+    @Test fun version7PreservesBookmarksAndBackfillsPluginOrigin() { migrate(7) }
     @Test fun version4PreservesOfflineArticlesDisabledSourcesSummariesAndCatalog() { migrate(4) }
     @Test fun version5PreservesSavedLinksAndPersistsProxyChoiceAfterReopen() { migrate(5) }
     @Test fun version6AddsBookmarksWithoutLosingArticlesSettingsMetadataOrProxyChoice() { migrate(6) }

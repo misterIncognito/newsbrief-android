@@ -1,17 +1,26 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.10**, **130 passing offline tests**. Debug APK and Android test APK
-built successfully. Returning to the feed or resuming the app with the feed visible now
-refreshes sources, retaining filters and scroll position. Save/Share controls are available
-on news cards, Telegram posts and the native reader. Saved items persist in Room and remain
-accessible after source disable/delete; the additive 6 → 7 migration preserves existing data.
-The full Compose navigation test verifies refresh, scroll preservation and Saved-view actions;
-Android chooser and migration/storage tests also pass. Physical-phone installation is
-pending USB reconnection. See [SAVED-REFRESH.md](SAVED-REFRESH.md) and
-[validation/saved-refresh-0410-results.json](validation/saved-refresh-0410-results.json).
-Prior 0.4.9 AMP live checks (3/3) and the Meduza cover selection fix:
-[AMP-READER.md](AMP-READER.md). Earlier phone migration/gesture results:
-[READER-REFRESH-FIX.md](READER-REFRESH-FIX.md).
+Latest build: **0.4.11**, **150 passing tests** (147 offline + 3 live article/image
+checks), zero failures/errors/skips. Debug APK and Android test APK built successfully.
+Source collection and article extraction use separate plugin registries. The Telegram
+service connector includes encrypted access-key storage, bearer renewal, channel discovery,
+full posts and entity links. Service deployment is pending, so its base URL is configurable;
+Telegram API verification uses deterministic contract fixtures.
+
+Room 7→8 preserves existing data and persists plugin identity; migrations from versions 1–7
+pass. Compose checks cover source-plugin choices, the unconfigured-service notice and
+connection settings alongside existing Save/Share, return refresh and scroll behavior.
+Live Meduza AMP, Zerkalo AMP and devby Readability checks pass, including `/image` downloads
+and offline image-cache reopening. No phone is currently attached, so 0.4.11 is not installed.
+
+One initial new UI test matched both a source label and the plugin selector; restricting
+its assertion to clickable controls fixed the test. The focused and final full suites pass.
+See [PLUGINS.md](PLUGINS.md), [validation/plugins-0411-results.json](validation/plugins-0411-results.json)
+and [validation/build-0411-output.txt](validation/build-0411-output.txt).
+Previous 0.4.10 changes: [SAVED-REFRESH.md](SAVED-REFRESH.md).
+Previous live AMP checks: [AMP-READER.md](AMP-READER.md).
+Earlier phone checks: [READER-REFRESH-FIX.md](READER-REFRESH-FIX.md).
+
 The results below record the original 0.4.0 build.
 
 Verified on Mac mini (Apple Silicon), 9 October 2026, Europe/Warsaw.
