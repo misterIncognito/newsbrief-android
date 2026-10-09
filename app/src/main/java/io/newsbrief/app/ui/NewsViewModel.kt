@@ -31,8 +31,14 @@ class NewsViewModel @JvmOverloads constructor(
     val features: List<io.newsbrief.app.runtime.AppFeature> = (application as? NewsBriefApp)?.runtime?.features ?: io.newsbrief.app.runtime.GeneratedFeatures.create()
 ) : AndroidViewModel(application), SourcesUi, ReaderUi, FeedUi, AiUi {
 
-    val presentation = (application as? NewsBriefApp)?.runtime?.bindings?.presentation
-        ?: io.newsbrief.app.runtime.FeatureBindings.create(features).presentation
+    val bindings = (application as? NewsBriefApp)?.runtime?.bindings ?: io.newsbrief.app.runtime.FeatureBindings.create(features)
+    val presentation = bindings.presentation
+    override val browserAvailable get() = bindings.browser != null
+    fun openArticle(article: ArticleEntity) {
+        if (presentation != null) openReader(article)
+        else if (browserAvailable) openBrowser(article.link, article.proxyRequired)
+        else openExternalArticle(getApplication(), article.link)
+    }
     override val sourcePlugins = repo.sourcePlugins.available
     private val _telegramProxyUrl = MutableStateFlow(store.telegramProxyUrl())
     val telegramProxyUrl = _telegramProxyUrl.asStateFlow()
@@ -75,14 +81,14 @@ class NewsViewModel @JvmOverloads constructor(
     override val savedUrls = repo.observeSavedUrls().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     private val _savedOnly = MutableStateFlow(false)
     override val savedOnly = _savedOnly.asStateFlow()
-    override fun showSaved(value: Boolean) { _savedOnly.value = value }
+    override fun showSaved(value: Boolean) { if (bindings.saveArticle != null) _savedOnly.value = value }
     private val saving = mutableSetOf<String>()
     override fun toggleSaved(article: ArticleEntity) = viewModelScope.launch {
         if (!saving.add(article.link)) return@launch
         try {
-            report(if (repo.toggleSaved(article)) "Публикация сохранена" else "Публикация убрана из сохранённых")
+            repo.toggleSaved(article)
         } catch (e: CancellationException) { throw e }
-        catch (e: Exception) { report("Не удалось сохранить публикацию: ${e.message}") }
+        catch (e: Exception) { report("Не удалось выполнить действие: ${e.message}") }
         finally { saving.remove(article.link) }
     }
 
@@ -135,6 +141,7 @@ class NewsViewModel @JvmOverloads constructor(
     val browserForceProxy = _browserForceProxy.asStateFlow()
     override fun openBrowser(url: String, forceProxy: Boolean) {
         if (io.newsbrief.app.network.ArticleLinks.valid(url)) {
+            if (!browserAvailable) { openExternalArticle(getApplication(), url); return }
             _browserForceProxy.value = forceProxy
             _browserUrl.value = url
         }
@@ -305,6 +312,7 @@ class NewsViewModel @JvmOverloads constructor(
     private val readerHistory = ArrayDeque<ArticleEntity>()
 
     override fun openReader(article: ArticleEntity, refresh: Boolean) {
+        if (presentation == null) { openExternalArticle(getApplication(), article.link); return }
         if (!refresh && _readerSource.value?.link != article.link) readerHistory.clear()
         readerJob?.cancel()
         _readerSource.value = article
