@@ -19,20 +19,38 @@ data class ReaderArticle(
     val notice: String? = null,
     val publishedAt: Long? = null,
     val author: String = "",
-    val images: List<String> = emptyList()
+    val images: List<String> = emptyList(),
+    val links: List<ArticleLink> = emptyList()
 )
 
-class ArticleReader(private val settings: SettingsStore) {
+class ArticleReader(private val settings: SettingsStore,
+    private val download: (String, String, String, Int) -> ByteArray = { url, type, worker, limit ->
+        NewsHttp.download(url, type, worker, limit)
+    }
+) {
     suspend fun load(article: ArticleEntity, refresh: Boolean = false): ReaderArticle = withContext(Dispatchers.IO) {
         val cached = ReaderArticle(article.title, article.content.ifBlank { article.excerpt },
             article.imageUrl, article.link, publishedAt = article.publishedAt, author = article.author,
-            images = decodeImages(article.imagesJson))
+            images = decodeImages(article.imagesJson), links = ArticleLinks.decode(article.linksJson))
         // Full feed content and saved reader text are usable without a network request.
-        if ((!refresh && (article.readerLoaded || article.content.isNotBlank())) ||
-            article.link.startsWith("https://t.me/")) return@withContext cached
+        val telegramPreview = ArticleLinks.telegramPreview(article.link)
+        if (!refresh && if (telegramPreview != null) cached.links.isNotEmpty()
+            else article.readerLoaded || article.content.isNotBlank()) return@withContext cached
         try {
-            val raw = NewsHttp.download(article.link, "article", settings.workerUrl(), 2_500_000)
+            val raw = download(telegramPreview ?: article.link,
+                if (telegramPreview != null) "fetch" else "article", settings.workerUrl(), 2_500_000)
                 .toString(Charsets.UTF_8)
+            if (telegramPreview != null) {
+                val post = WebCollectors().parseTelegramPreview(raw, io.newsbrief.app.data.SourceEntity(
+                    id = article.sourceId, name = article.sourceName, address = telegramPreview,
+                    kind = io.newsbrief.app.data.SourceKind.TELEGRAM)).firstOrNull { it.link == article.link }
+                    ?: error("Публикация Telegram недоступна")
+                // Link hydration must not replace already saved post text.
+                return@withContext cached.copy(text = article.content.ifBlank { post.content },
+                    imageUrl = cached.imageUrl.ifBlank { post.imageUrl },
+                    images = cached.images.ifEmpty { decodeImages(post.imagesJson) },
+                    links = ArticleLinks.decode(post.linksJson))
+            }
             val result = parseArticle(raw, article.link)
             require(result.text.isNotBlank()) { "Article text unavailable" }
             result.copy(title = result.title.ifBlank { cached.title },
@@ -93,9 +111,14 @@ class ArticleReader(private val settings: SettingsStore) {
                 val url = java.net.URI(original).resolve(it).toString()
                 if (url.startsWith("https://")) images.add(0, url)
             }
-            val body = document.selectFirst("article") ?: document.selectFirst("main") ?: document.body()
-            return ReaderArticle(document.selectFirst("h1")?.text() ?: document.title(),
-                htmlText(body).take(60_000), images.firstOrNull().orEmpty(), original, images = images.distinct())
+            val body = document.selectFirst(".article__body") ?: document.selectFirst("article") ?: document.selectFirst("main") ?: document.body()
+            val title = document.selectFirst("h1")?.text() ?: document.title()
+            val links = ArticleLinks.extract(body)
+            val date = document.selectFirst("meta[property=article:published_time],meta[name=date]")?.attr("content")
+            val author = document.selectFirst("meta[name=author]")?.attr("content").orEmpty()
+            return ReaderArticle(title, htmlText(body).take(60_000), images.firstOrNull().orEmpty(), original,
+                publishedAt = date?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() },
+                author = author, images = images.distinct(), links = links)
         }
     }
 }

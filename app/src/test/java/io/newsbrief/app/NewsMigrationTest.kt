@@ -49,7 +49,7 @@ class NewsMigrationTest {
         legacy.writableDatabase
         legacy.close()
         val migrated = Room.databaseBuilder(context, NewsDatabase::class.java, name)
-            .addMigrations(NewsMigrations.FROM_1_2, NewsMigrations.FROM_2_3, NewsMigrations.FROM_3_4).build()
+            .addMigrations(NewsMigrations.FROM_1_2, NewsMigrations.FROM_2_3, NewsMigrations.FROM_3_4, NewsMigrations.FROM_4_5).build()
         try {
             val item = migrated.articleDao().findByLink("https://example.org/story")!!
             assertEquals("Saved title", item.title)

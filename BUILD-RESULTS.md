@@ -1,10 +1,11 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.5**, 71 passing offline tests and six passing live directory
-integration checks. Debug APK built successfully and installed on the Motorola
-Edge 70 Fusion. Current Telegram AI discovery uses a real paginated category;
-see [AI-DISCOVERY-FIX.md](AI-DISCOVERY-FIX.md). The previous release is recorded in
-[SOURCE-DISCOVERY.md](SOURCE-DISCOVERY.md).
+Latest build: **0.4.6**, 87 passing offline tests, debug APK and Android test APK built successfully.
+Four on-phone refresh gesture tests passed before the embedded browser was added.
+The earlier reader/refresh build was installed with all 665 articles preserved; the final
+browser-enabled APK is awaiting USB reconnection for installation and live UI checks.
+See [READER-REFRESH-FIX.md](READER-REFRESH-FIX.md). Previous Telegram discovery results:
+[AI-DISCOVERY-FIX.md](AI-DISCOVERY-FIX.md).
 The results below record the original 0.4.0 build.
 
 Verified on Mac mini (Apple Silicon), 9 October 2026, Europe/Warsaw.

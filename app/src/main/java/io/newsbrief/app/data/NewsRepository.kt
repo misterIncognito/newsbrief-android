@@ -70,7 +70,7 @@ class NewsRepository(
             articles.zip(inserted).forEach { (article, insertedId) ->
                 if (insertedId == -1L) {
                     db.articleDao().associateEnabledSource(article.link, id, candidate.name)
-                    db.articleDao().fillMissingPreview(article.link, article.content, article.imageUrl)
+                    db.articleDao().fillMissingPreview(article.link, article.content, article.imageUrl, article.linksJson)
                 }
             }
             true
@@ -100,8 +100,8 @@ class NewsRepository(
                 items.zip(results).forEach { (item, id) ->
                     if (id == -1L) {
                         db.articleDao().associateEnabledSource(item.link, item.sourceId, item.sourceName)
-                        if (item.content.isNotBlank() || item.imageUrl.isNotBlank()) {
-                            db.articleDao().fillMissingPreview(item.link, item.content, item.imageUrl)
+                        if (item.content.isNotBlank() || item.imageUrl.isNotBlank() || item.linksJson != "[]") {
+                            db.articleDao().fillMissingPreview(item.link, item.content, item.imageUrl, item.linksJson)
                         }
                     }
                 }
@@ -122,7 +122,7 @@ class NewsRepository(
         if (result.notice == null && result.text.isNotBlank()) {
             db.articleDao().insertAll(listOf(saved))
             db.articleDao().updateReader(article.link, result.title, result.text, result.imageUrl,
-                result.publishedAt ?: saved.publishedAt, result.author, org.json.JSONArray(result.images).toString())
+                result.publishedAt ?: saved.publishedAt, result.author, org.json.JSONArray(result.images).toString(), io.newsbrief.app.network.ArticleLinks.encode(result.links))
         }
         return result
     }

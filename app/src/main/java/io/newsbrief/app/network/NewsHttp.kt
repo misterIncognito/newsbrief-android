@@ -5,6 +5,8 @@ import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
+data class DownloadedResource(val bytes: ByteArray, val mimeType: String, val encoding: String?, val finalUrl: String)
+
 /** Every redirect is routed again; required-proxy requests never escape the Worker. */
 object NewsHttp {
     private val client = OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
@@ -12,7 +14,11 @@ object NewsHttp {
         .callTimeout(35, TimeUnit.SECONDS).build()
 
     internal fun download(resource: String, type: String, worker: String, maxBytes: Int,
-                 forceProxy: Boolean = false, transport: OkHttpClient = client): ByteArray {
+                 forceProxy: Boolean = false, transport: OkHttpClient = client): ByteArray =
+        downloadResource(resource, type, worker, maxBytes, forceProxy, transport).bytes
+
+    internal fun downloadResource(resource: String, type: String, worker: String, maxBytes: Int,
+                 forceProxy: Boolean = false, transport: OkHttpClient = client): DownloadedResource {
         var target = resource
         var mustProxy = forceProxy || NewsRouting.requiresProxy(resource)
         repeat(4) { redirect ->
@@ -30,7 +36,11 @@ object NewsHttp {
                         check(response.isSuccessful) { "HTTP ${response.code}" }
                         val body = response.body ?: error("Empty response")
                         require(body.contentLength() <= maxBytes) { "Response too large" }
-                        return body.byteStream().use { stream ->
+                        val contentType = body.contentType()
+                        val mimeType = contentType?.let { "${it.type}/${it.subtype}" } ?: "application/octet-stream"
+                        val encoding = if (mimeType.startsWith("text/") || mimeType.contains("json") || mimeType.contains("xml"))
+                            contentType?.charset(Charsets.UTF_8)?.name() ?: "UTF-8" else null
+                        val data = body.byteStream().use { stream ->
                             val out = ByteArrayOutputStream()
                             val bytes = ByteArray(8192)
                             var count = stream.read(bytes)
@@ -41,6 +51,7 @@ object NewsHttp {
                             }
                             out.toByteArray()
                         }
+                        return DownloadedResource(data, mimeType, encoding, target)
                     }
                 }
         }

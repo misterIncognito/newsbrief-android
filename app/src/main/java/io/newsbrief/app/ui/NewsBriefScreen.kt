@@ -18,6 +18,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.platform.testTag
+import io.newsbrief.app.network.ArticleLinks
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -74,9 +77,12 @@ private enum class Page(val label: String, val glyph: String) {
 fun NewsBriefScreen(vm: NewsViewModel) {
     var page by rememberSaveable { mutableStateOf(Page.DIGEST) }
     val readerSource by vm.readerSource.collectAsStateWithLifecycle()
+    val browserUrl by vm.browserUrl.collectAsStateWithLifecycle()
+    val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
     val catalogOpen by vm.catalogOpen.collectAsStateWithLifecycle()
-    BackHandler(enabled = readerSource != null || catalogOpen) {
-        if (readerSource != null) vm.closeReader() else vm.closeCatalog()
+    BackHandler(enabled = readerSource != null || browserUrl != null || catalogOpen) {
+        if (browserUrl != null) vm.closeBrowser()
+        else if (readerSource != null) vm.closeReader() else vm.closeCatalog()
     }
     val message by vm.message.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -88,14 +94,16 @@ fun NewsBriefScreen(vm: NewsViewModel) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 22.dp, bottom = 12.dp),
+            Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 20.dp, end = 12.dp, top = 22.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text("NewsBrief", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text("Новости без информационного шума", style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (catalogOpen) {
+                if (browserUrl != null) {
+                    TextButton(onClick = { vm.closeBrowser() }) { Text("← К статье") }
+                } else if (catalogOpen) {
                     TextButton(onClick = { vm.closeCatalog() }) { Text("← Назад") }
                 } else if (readerSource != null) {
                     TextButton(onClick = { vm.closeReader() }) { Text("← Назад") }
@@ -108,7 +116,7 @@ fun NewsBriefScreen(vm: NewsViewModel) {
             }
         },
         bottomBar = {
-            if (readerSource == null && !catalogOpen) NavigationBar {
+            if (readerSource == null && browserUrl == null && !catalogOpen) NavigationBar {
                 Page.entries.forEach { candidate ->
                     NavigationBarItem(
                         selected = page == candidate,
@@ -121,7 +129,9 @@ fun NewsBriefScreen(vm: NewsViewModel) {
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            if (readerSource != null) {
+            if (browserUrl != null) {
+                EmbeddedBrowserPage(browserUrl!!, workerUrl)
+            } else if (readerSource != null) {
                 ReaderPage(vm)
             } else if (catalogOpen) {
                 SourceDirectoryPage(vm)
@@ -243,16 +253,17 @@ private fun FeedPage(vm: NewsViewModel) {
         }
         Text("Публикаций: ${articles.size}", modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (articles.isEmpty()) {
-            Box(Modifier.weight(1f).fillMaxWidth().padding(22.dp), contentAlignment = Alignment.Center) {
-                Text(if (refreshing) "Загружаем новости…"
-                    else if (filtered) "В этом фильтре пока нет публикаций. Выбери другой источник или обнови ленту."
-                    else "Новостей от подключённых источников пока нет. Обнови ленту на верхней панели.")
-            }
-        } else {
-            LazyColumn(Modifier.weight(1f).fillMaxWidth(),
+        FeedRefreshContainer(isRefreshing = refreshing, onRefresh = { vm.refresh() },
+            modifier = Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(Modifier.fillMaxSize().testTag("news-feed"),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (articles.isEmpty()) item {
+                    Text(if (refreshing) "Загружаем новости…"
+                        else if (filtered) "В этом фильтре пока нет публикаций. Выбери другой источник или потяни ленту вниз."
+                        else "Потяни ленту вниз, чтобы загрузить новости.",
+                        modifier = Modifier.fillParentMaxHeight().padding(22.dp))
+                }
                 items(articles, key = { it.id }) { article -> NewsCard(article, vm) }
             }
         }
@@ -283,7 +294,7 @@ private fun ReaderPage(vm: NewsViewModel) {
     val busy by vm.readerBusy.collectAsStateWithLifecycle()
     val worker by vm.workerUrl.collectAsStateWithLifecycle()
     val item = source ?: return
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
+    Column(Modifier.fillMaxSize().verticalScroll(remember(item.link) { androidx.compose.foundation.ScrollState(0) }).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(item.sourceName + " · " + formatDate(reader?.publishedAt ?: item.publishedAt),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -294,11 +305,31 @@ private fun ReaderPage(vm: NewsViewModel) {
         images.forEach { NewsImage(it, item.link, worker, 220) }
         reader?.author?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
         if (busy) CircularProgressIndicator()
+        val links = reader?.links ?: ArticleLinks.decode(item.linksJson)
+        val primary = ArticleLinks.fullArticle(links)
+        if (primary != null && ArticleLinks.telegramPreview(item.link) != null) {
+            Button(onClick = { vm.openReaderLink(primary.url) }, enabled = !busy,
+                modifier = Modifier.fillMaxWidth()) {
+                Text("Читать полную статью · " + java.net.URI(primary.url).host)
+            }
+        }
+        OutlinedButton(onClick = {
+            vm.openBrowser(if (ArticleLinks.telegramPreview(item.link) != null) primary?.url ?: item.link else item.link)
+        }, modifier = Modifier.fillMaxWidth()) { Text("Открыть во встроенном браузере") }
         val content = reader?.text?.ifBlank { item.content.ifBlank { item.excerpt } }
             ?: item.content.ifBlank { item.excerpt }
         SelectionContainer {
             Text(content.ifBlank { "Текст пока недоступен. Можно повторить загрузку." },
                 style = MaterialTheme.typography.bodyLarge)
+        }
+        links.forEach { link ->
+            OutlinedButton(onClick = { vm.openReaderLink(link.url) }, enabled = !busy,
+                modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth()) {
+                    Text(link.label, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(java.net.URI(link.url).host, style = MaterialTheme.typography.labelSmall)
+                }
+            }
         }
         reader?.notice?.let { Text(it, color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodySmall) }

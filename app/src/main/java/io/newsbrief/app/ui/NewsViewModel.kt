@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.CancellationException
 
 class NewsViewModel @JvmOverloads constructor(
@@ -68,6 +70,12 @@ class NewsViewModel @JvmOverloads constructor(
     val workerUrl = _workerUrl.asStateFlow()
     private val _readerSource = MutableStateFlow<ArticleEntity?>(null)
     val readerSource = _readerSource.asStateFlow()
+    private val _browserUrl = MutableStateFlow<String?>(null)
+    val browserUrl = _browserUrl.asStateFlow()
+    fun openBrowser(url: String) {
+        if (io.newsbrief.app.network.ArticleLinks.valid(url)) _browserUrl.value = url
+    }
+    fun closeBrowser() { _browserUrl.value = null }
     private val _reader = MutableStateFlow<ReaderArticle?>(null)
     val reader = _reader.asStateFlow()
     private val _readerBusy = MutableStateFlow(false)
@@ -232,8 +240,10 @@ class NewsViewModel @JvmOverloads constructor(
     }
 
     private var readerJob: Job? = null
+    private val readerHistory = ArrayDeque<ArticleEntity>()
 
     fun openReader(article: ArticleEntity, refresh: Boolean = false) {
+        if (!refresh && _readerSource.value?.link != article.link) readerHistory.clear()
         readerJob?.cancel()
         _readerSource.value = article
         _reader.value = null
@@ -245,7 +255,7 @@ class NewsViewModel @JvmOverloads constructor(
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 report("Ошибка чтения: ${e.message}")
-            } finally { _readerBusy.value = false }
+            } finally { if (currentCoroutineContext().isActive) _readerBusy.value = false }
         }
     }
 
@@ -255,11 +265,30 @@ class NewsViewModel @JvmOverloads constructor(
         openReader(article)
     }
 
+    fun openReaderLink(url: String) = viewModelScope.launch {
+        if (!io.newsbrief.app.network.ArticleLinks.valid(url)) return@launch
+        val parent = _readerSource.value ?: return@launch
+        val linked = repo.lookup(url) ?: ArticleEntity(sourceId = 0, sourceName = parent.sourceName,
+            title = parent.title, excerpt = "", link = url, publishedAt = parent.publishedAt)
+        if (parent.link == url) return@launch
+        val history = readerHistory.toList() + parent
+        openReader(linked)
+        readerHistory.addAll(history)
+    }
+
     fun closeReader() {
+        if (_browserUrl.value != null) { closeBrowser(); return }
         readerJob?.cancel()
         _readerBusy.value = false
-        _readerSource.value = null
-        _reader.value = null
+        val previous = readerHistory.removeLastOrNull()
+        if (previous != null) {
+            val history = readerHistory.toList()
+            openReader(previous)
+            readerHistory.addAll(history)
+        } else {
+            _readerSource.value = null
+            _reader.value = null
+        }
     }
 
     fun setWorkerUrl(value: String) {

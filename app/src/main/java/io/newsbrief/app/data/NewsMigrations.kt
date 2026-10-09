@@ -23,4 +23,9 @@ object NewsMigrations {
             db.execSQL("CREATE TABLE IF NOT EXISTS catalog_searches (queryKey TEXT NOT NULL, responseJson TEXT NOT NULL, fetchedAt INTEGER NOT NULL, PRIMARY KEY(queryKey))")
         }
     }
+    val FROM_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE articles ADD COLUMN linksJson TEXT NOT NULL DEFAULT '[]'")
+        }
+    }
 }

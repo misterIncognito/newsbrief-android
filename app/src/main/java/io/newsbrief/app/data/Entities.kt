@@ -39,6 +39,7 @@ data class ArticleEntity(
     @ColumnInfo(defaultValue = "0") val readerLoaded: Boolean = false,
     @ColumnInfo(defaultValue = "''") val author: String = "",
     @ColumnInfo(defaultValue = "'[]'") val imagesJson: String = "[]",
+    @ColumnInfo(defaultValue = "'[]'") val linksJson: String = "[]",
     val link: String,
     val publishedAt: Long,
     val importedAt: Long = System.currentTimeMillis()
@@ -97,13 +98,14 @@ interface ArticleDao {
     suspend fun findByLink(url: String): ArticleEntity?
 
     @Query("UPDATE articles SET title = :title, content = :content, imageUrl = :imageUrl, " +
-        "publishedAt = :publishedAt, author = :author, imagesJson = :imagesJson, readerLoaded = 1 WHERE link = :url")
+        "publishedAt = :publishedAt, author = :author, imagesJson = :imagesJson, linksJson = :linksJson, readerLoaded = 1 WHERE link = :url")
     suspend fun updateReader(url: String, title: String, content: String, imageUrl: String,
-        publishedAt: Long, author: String, imagesJson: String)
+        publishedAt: Long, author: String, imagesJson: String, linksJson: String = "[]")
 
     @Query("UPDATE articles SET content = CASE WHEN content = '' THEN :content ELSE content END, " +
-        "imageUrl = CASE WHEN imageUrl = '' THEN :imageUrl ELSE imageUrl END WHERE link = :url")
-    suspend fun fillMissingPreview(url: String, content: String, imageUrl: String)
+        "imageUrl = CASE WHEN imageUrl = '' THEN :imageUrl ELSE imageUrl END, " +
+        "linksJson = CASE WHEN :linksJson != '[]' THEN :linksJson ELSE linksJson END WHERE link = :url")
+    suspend fun fillMissingPreview(url: String, content: String, imageUrl: String, linksJson: String = "[]")
 
     @Query("UPDATE articles SET sourceId = :sourceId, sourceName = :sourceName WHERE link = :url AND " +
         "NOT EXISTS (SELECT 1 FROM sources WHERE id = articles.sourceId AND enabled = 1)")
@@ -135,7 +137,7 @@ interface CatalogSearchDao {
     suspend fun prune()
 }
 
-@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class], version = 4, exportSchema = true)
+@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class], version = 5, exportSchema = true)
 abstract class NewsDatabase : RoomDatabase() {
     abstract fun sourceDao(): SourceDao
     abstract fun articleDao(): ArticleDao

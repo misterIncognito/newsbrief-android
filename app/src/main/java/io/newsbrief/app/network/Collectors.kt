@@ -140,12 +140,14 @@ class WebCollectors(private val settings: SettingsStore? = null) : NewsCollector
     }
 
     internal fun parseTelegramPreview(html: String, source: SourceEntity): List<ArticleEntity> {
-        val page = Jsoup.parse(html)
-        return page.select(".tgme_widget_message_wrap").mapNotNull { wrapper ->
-            val message = wrapper.selectFirst(".tgme_widget_message") ?: return@mapNotNull null
+        val page = Jsoup.parse(html, source.address)
+        return page.select(".tgme_widget_message").mapNotNull { message ->
+            val wrapper = message
             val postId = message.attr("data-post")
             if (!postId.matches(Regex("[A-Za-z0-9_]+/[0-9]+"))) return@mapNotNull null
-            val content = wrapper.selectFirst(".tgme_widget_message_text")?.let { ArticleReader.htmlText(it) }.orEmpty()
+            val textElement = wrapper.selectFirst(".tgme_widget_message_text")
+            val links = textElement?.let { ArticleLinks.extract(it) }.orEmpty()
+            val content = textElement?.let { ArticleReader.htmlText(it) }.orEmpty()
             if (content.isBlank()) return@mapNotNull null
             val published = wrapper.selectFirst("time[datetime]")?.attr("datetime").orEmpty()
             val images = wrapper.select(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb")
@@ -160,6 +162,7 @@ class WebCollectors(private val settings: SettingsStore? = null) : NewsCollector
                 content = content.take(60_000),
                 imageUrl = images.firstOrNull().orEmpty(),
                 imagesJson = org.json.JSONArray(images).toString(),
+                linksJson = ArticleLinks.encode(links),
                 link = "https://t.me/$postId",
                 publishedAt = parseDate(published) ?: System.currentTimeMillis()
             )

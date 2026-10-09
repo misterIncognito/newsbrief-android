@@ -13,7 +13,8 @@ object NewsRouting {
 
     fun requiresProxy(articleOrFeedUrl: String): Boolean {
         val host = runCatching { URI(articleOrFeedUrl).host?.lowercase(Locale.ROOT) }.getOrNull() ?: return false
-        return proxyRequired.any { host == it || host.endsWith(".$it") }
+        return proxyRequired.any { host == it || host.endsWith(".$it") } ||
+            Regex("(?:[a-z0-9-]+\\.)?zerkalo-[a-z0-9-]+\\.site").matches(host)
     }
 
     /** Force proxy for images belonging to an article whose origin is proxy-required. */
