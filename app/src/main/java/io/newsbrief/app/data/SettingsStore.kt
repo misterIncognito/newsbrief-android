@@ -11,7 +11,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** API keys are encrypted with non-exportable Android Keystore AES key, never bundled into APK. */
-class SettingsStore(context: Context) : SourceSettings, SyncSettings, AiSettings {
+class SettingsStore(context: Context) : AppSettings {
     private val prefs = context.getSharedPreferences("newsbrief_settings", Context.MODE_PRIVATE)
 
     companion object {
@@ -28,12 +28,12 @@ class SettingsStore(context: Context) : SourceSettings, SyncSettings, AiSettings
         return AiConfig(provider, model)
     }
 
-    fun setProvider(provider: String) {
+    override fun setProvider(provider: String) {
         require(provider == QWEN || provider == OPENAI)
         prefs.edit().putString("provider", provider).apply()
     }
 
-    fun setModel(provider: String, model: String) {
+    override fun setModel(provider: String, model: String) {
         require(model.isNotBlank())
         prefs.edit().putString("model_$provider", model.trim()).apply()
     }
@@ -49,7 +49,7 @@ class SettingsStore(context: Context) : SourceSettings, SyncSettings, AiSettings
         }.generateKey()
     }
 
-    fun saveApiKey(provider: String, value: String) {
+    override fun saveApiKey(provider: String, value: String) {
         if (value.isBlank()) {
             prefs.edit().remove("key_$provider").apply()
             return
@@ -61,7 +61,7 @@ class SettingsStore(context: Context) : SourceSettings, SyncSettings, AiSettings
         prefs.edit().putString("key_$provider", Base64.encodeToString(payload, Base64.NO_WRAP)).apply()
     }
 
-    fun hasApiKey(provider: String): Boolean = prefs.contains("key_$provider")
+    override fun hasApiKey(provider: String): Boolean = prefs.contains("key_$provider")
 
     override fun loadApiKey(provider: String): String {
         val encoded = prefs.getString("key_$provider", null) ?: return ""
@@ -76,7 +76,7 @@ class SettingsStore(context: Context) : SourceSettings, SyncSettings, AiSettings
     override fun workerUrl(): String = prefs.getString("worker_url", io.newsbrief.app.network.NewsRouting.DEFAULT_WORKER)
         ?: io.newsbrief.app.network.NewsRouting.DEFAULT_WORKER
 
-    fun setWorkerUrl(url: String) {
+    override fun setWorkerUrl(url: String) {
         val normalized = url.trim().trimEnd('/')
         // Validation lives in the common router, including full HTTPS URL requirements.
         io.newsbrief.app.network.NewsRouting.endpoint("https://meduza.io/rss/all", "fetch", normalized)
@@ -90,10 +90,10 @@ class SettingsStore(context: Context) : SourceSettings, SyncSettings, AiSettings
     }
 
     override fun telegramProxyUrl(): String = prefs.getString("telegram_proxy_url", "").orEmpty()
-    fun hasTelegramProxyKey(): Boolean = hasApiKey("TelegramProxy")
+    override fun hasTelegramProxyKey(): Boolean = hasApiKey("TelegramProxy")
     override fun telegramProxyKey(): String = loadApiKey("TelegramProxy")
-    fun saveTelegramProxyKey(value: String) = saveApiKey("TelegramProxy", value)
-    fun setTelegramProxyUrl(value: String) {
+    override fun saveTelegramProxyKey(value: String) = saveApiKey("TelegramProxy", value)
+    override fun setTelegramProxyUrl(value: String) {
         val url = value.trim().trimEnd('/')
         if (url.isNotBlank()) io.newsbrief.app.network.ProxyUrls.telegramService(url)
         // A key belongs to one origin; never send an old key to a newly selected service.
@@ -101,25 +101,25 @@ class SettingsStore(context: Context) : SourceSettings, SyncSettings, AiSettings
         prefs.edit().putString("telegram_proxy_url", url).apply()
     }
 
-    fun isSourcesCatalogV2Seeded(): Boolean = prefs.getBoolean("sources_catalog_v2_seeded", false)
+    override fun isSourcesCatalogV2Seeded(): Boolean = prefs.getBoolean("sources_catalog_v2_seeded", false)
 
-    fun markSourcesCatalogV2Seeded() {
+    override fun markSourcesCatalogV2Seeded() {
         prefs.edit().putBoolean("sources_catalog_v2_seeded", true).apply()
     }
 
-    fun isSourcesCatalogV3Seeded(): Boolean = prefs.getBoolean("sources_catalog_v3_seeded", false)
+    override fun isSourcesCatalogV3Seeded(): Boolean = prefs.getBoolean("sources_catalog_v3_seeded", false)
 
-    fun markSourcesCatalogV3Seeded() {
+    override fun markSourcesCatalogV3Seeded() {
         prefs.edit().putBoolean("sources_catalog_v3_seeded", true).apply()
     }
-    fun isSourcesCatalogV4Seeded(): Boolean = prefs.getBoolean("sources_catalog_v4_seeded", false)
+    override fun isSourcesCatalogV4Seeded(): Boolean = prefs.getBoolean("sources_catalog_v4_seeded", false)
 
-    fun markSourcesCatalogV4Seeded() {
+    override fun markSourcesCatalogV4Seeded() {
         prefs.edit().putBoolean("sources_catalog_v4_seeded", true).apply()
     }
-    fun isSourcesCatalogV5Seeded(): Boolean = prefs.getBoolean("sources_catalog_v5_seeded", false)
+    override fun isSourcesCatalogV5Seeded(): Boolean = prefs.getBoolean("sources_catalog_v5_seeded", false)
 
-    fun markSourcesCatalogV5Seeded() {
+    override fun markSourcesCatalogV5Seeded() {
         prefs.edit().putBoolean("sources_catalog_v5_seeded", true).apply()
     }
 }
