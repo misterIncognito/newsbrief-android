@@ -7,6 +7,7 @@ import io.newsbrief.app.runtime.*
 import io.newsbrief.app.ui.*
 
 class AiFeature : AppFeature {
+    override val hasSettings = true
     override val id = "ai"
     override val title = "Главное"
     override val order = 70
