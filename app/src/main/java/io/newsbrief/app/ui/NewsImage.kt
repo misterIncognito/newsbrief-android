@@ -20,15 +20,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun NewsImage(imageUrl: String, articleUrl: String, workerBase: String, height: Int = 180) {
+fun NewsImage(imageUrl: String, articleUrl: String, workerBase: String, height: Int = 180, forceProxy: Boolean = false) {
     if (!imageUrl.startsWith("https://")) return
     val resource = runCatching { io.newsbrief.app.network.ArticleImageCache.originalUrl(imageUrl, workerBase) }
         .getOrNull() ?: return
     val filesDir = LocalContext.current.filesDir
-    val cache = androidx.compose.runtime.remember(filesDir) {
-        io.newsbrief.app.network.ArticleImageCache(File(filesDir, "reader-images"))
+    val cache = androidx.compose.runtime.remember(filesDir, articleUrl, forceProxy) {
+        io.newsbrief.app.network.ArticleImageCache(File(filesDir, "reader-images"), requireProxy = forceProxy || io.newsbrief.app.network.NewsRouting.requiresProxy(articleUrl))
     }
-    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = resource, key2 = workerBase) {
+    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = resource, key2 = workerBase, key3 = forceProxy || io.newsbrief.app.network.NewsRouting.requiresProxy(articleUrl)) {
         value = withContext(Dispatchers.IO) {
             runCatching {
                 val bytes = cache.load(resource, workerBase)
