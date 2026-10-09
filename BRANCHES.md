@@ -83,8 +83,9 @@ need ordinary conflict resolution; separate branches cannot eliminate that.
 ## Validation
 
 The full refactoring reference passes 160 unit tests and builds the debug and Android-test
-APKs. Each new feature branch is also checked with only its declared prerequisites before
-this split is finalized. Results and exact commits are recorded in `BUILD-RESULTS.md` and
+APKs. All nine new feature branches and the dev foundation build and test successfully
+with only their declared prerequisites. Shared dev changes were merged forward into
+every feature without conflicts. Results and exact commits are recorded in `BUILD-RESULTS.md` and
 `validation/independent-feature-branches-results.json`.
 
 Earlier extraction records are in [the archived branch workflow](docs/stacked-branch-history.md).
