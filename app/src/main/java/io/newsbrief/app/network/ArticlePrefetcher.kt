@@ -56,7 +56,7 @@ class ArticlePrefetcher(private val repository: PrefetchArticleStore, private va
             if (image.isNotBlank()) {
                 val resource = ArticleImages.originalUrl(image, settings.workerUrl())
                 if (!images.contains(resource)) {
-                    images.load(resource, settings.workerUrl())
+                    images.loadForArticle(resource, settings.workerUrl(), article)
                     savedImages++
                 }
             }
