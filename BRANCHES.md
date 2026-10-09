@@ -1,102 +1,147 @@
-# NewsBrief incremental features
+# NewsBrief optional capabilities
 
-Start from `dev` and merge the features you need. Each feature registers its screens,
-settings and services automatically; startup, navigation and shared adapters belong to
-the foundation. **`feature/app-integration` is optional.** It is the convenient complete
-assembly and contains tests that exercise all features together.
+`dev` contains the application host, shared contracts and session-backed storage. The
+baseline article action opens the original HTTPS link using Android's external browser.
+There is no fallback native article renderer, catalog, saved-items screen or sharing action.
+Features contribute their own screens, settings, article actions, controls and services.
+`feature/app-integration` is an optional complete assembly and cross-feature test suite.
 
-`integration/feed` is a verified small working application: Feed + Sources + Networking
-+ Storage. It loads RSS/Atom/Telegram, offers source discovery and filters, displays
-feed-provided article text in native Compose, saves/shares articles and persists data.
-It contains no background workers, full-page reader/browser, AI client or article extraction
-plugins. Live source availability still depends on the publisher and configured services.
+## Minimal app
 
-## Add features progressively
+The current `integration/feed` branch contains exactly:
+
+- Feed list and refresh gestures.
+- RSS/Atom provider and generic source registry.
+- Networking transport.
+- Room storage for the persistent feed and existing offline data.
+
+Tapping a feed item opens the external browser. The MVP has no source-management/catalog
+screens, filter controls, Save/Share buttons, native reader, embedded browser, synchronization,
+AI or proxy implementations. There is no empty Settings tab. The feed is cached; reading
+full pages is the external browser's responsibility. Previously stored article bodies,
+images, summaries, saved records and settings remain available to their optional features.
+Existing cached Telegram items may still appear as ordinary feed records even when no
+Telegram provider is installed; those sources are skipped during refresh.
+
+For a fresh database, the RSS plugin supplies BBC Russian and The Verge as a small initial
+source list. This is not the searchable catalog. Existing source selections are preserved;
+removed sources are not silently restored. Without Storage, the same app works in memory
+until its process exits. Session-only state is not automatically imported when Storage is
+added later; existing persistent data is opened using the unchanged migrations.
+
+Build a minimal branch progressively:
 
 ```sh
-git switch -c my-app dev
+git switch -c my-mvp dev
 git merge feature/feed
-# Working feed UI, native feed-text reading and save/share; needs a data provider.
-git merge feature/sources-discovery
-# Adds sources, HTTP transport and manual loading. No synchronization feature required.
+git merge feature/rss-source
 git merge feature/storage
-# Adds Room and persistent settings. Existing databases use the original migrations.
 ```
 
-Build or run after any step. Feed alone starts empty unless a host supplies data; no
-sample news is inserted. Without Storage, articles/settings/saves last for the current
-process and existing offline files are left untouched. With Storage, cached articles can
-be read offline even without Sources or the full Reader. Installing a different composition
-restarts the process: session-only state does not migrate automatically into Room.
+RSS brings its Networking and Source Providers prerequisites. Feed alone displays data
+supplied through the host's store/collector ports; it starts empty without a provider or
+stored articles. You can build/run after each merge.
 
-Optional next additions:
+## Independent feature branches
+
+| Feature branch | Owns | Required feature branches |
+| --- | --- | --- |
+| `feature/feed` | Feed rows, refresh gestures, default external article action | None |
+| `feature/networking` | HTTP download, size/time limits and redirect enforcement | None |
+| `feature/source-providers` | Generic provider registry and initial source seeding | None |
+| `feature/rss-source` | RSS/Atom parsing and fetching, minimal RSS defaults | Networking, Source Providers |
+| `feature/telegram-source` | Public Telegram preview provider/parser and reader-content adapter | Networking, Source Providers |
+| `feature/source-management` | Add/remove/enable sources | None; adding requires a registered provider |
+| `feature/source-discovery` | Curated/catalog search, Feedly/TGden discovery and cache | Networking; connecting a result requires its provider |
+| `feature/page-proxy` | Provider-neutral proxy registry and terminal routing policy | None |
+| `feature/news-proxy` | Cloudflare Worker page/image/extraction plugin and its settings | Page Proxy |
+| `feature/telegram-proxy` | Telegram service provider/content plugin, auth/config and channel browser | Networking, Source Providers |
+| `feature/save-articles` | Save action, saved-feed control and storage-port service | None |
+| `feature/share-articles` | Share action and Android share intent | None |
+| `feature/feed-filters` | Category/publisher selection and grouping | None |
+| `feature/native-reader` | Native article/AMP parsing, rich cards, images and image cache | Networking |
+| `feature/embedded-browser` | Internal WebView, original-page mode and request policy | Networking |
+| `feature/synchronization` | Background workers, cooldown and optional prefetch | None |
+| `feature/storage` | Room, migrations and encrypted persistent settings | None |
+| `feature/ai` | AI client, digest selection/screen and settings | None |
+| `feature/article-plugins` | Extensible article extraction registry, AMP/HTML and content-port adapters | Native Reader |
+| `feature/app-integration` | Complete convenience assembly and cross-feature tests | No runtime registration requirement; its tests need all capabilities |
+
+Save works through the store port, using session memory or Room when present. Share does
+not require Save. Native Reader does not require Embedded Browser, a source catalog or
+article plugins. With only Embedded Browser added, feed taps open the internal browser.
+When Native Reader is also present, it handles feed taps and offers the browser action.
+Without either, article taps use the external browser. Synchronization does not own feed UI
+or source loading; manual RSS refresh works without it. Prefetch waits for a reader/image
+store. AI needs article data to generate a summary, not every feature implementation.
+
+## Proxy and content plugins
+
+`PageProxyPlugin` accepts a provider-neutral resource/type request. The optional Page Proxy
+registry chooses an installed provider. `CloudflarePageProxy` implements `/fetch`, `/article`
+and `/image`; Worker URL encoding and extraction-provider registration live in News Proxy.
+Another page service can implement the same contract without changing HTTP transport or
+feed code. A selected provider's failure is terminal; it does not fall back to a direct
+request or silently select another service. Protected Meduza/Zerkalo hosts and explicitly
+proxy-required requests fail before networking when no matching plugin is installed.
+Ordinary image requests may use an installed proxy or go direct when none is present;
+images belonging to protected articles retain their proxy requirement.
+
+The Telegram service API provides channels/posts, so it implements `NewsSourcePlugin` and
+`TelegramContent` rather than pretending to fetch arbitrary web pages. Public Telegram is
+a separate plugin. Missing/failing Telegram service support never falls back to public
+Telegram or a publisher request. Both providers retain their original persisted IDs.
+The service URL remains configurable; no deployment of that service is implied.
+
+These plugins govern requests made by NewsBrief. The MVP hands the original article URL
+to the external browser; that browser controls its own connections. Protected in-app
+feeds/pages still need a suitable proxy plugin. Existing Worker/service configuration keys
+and legacy Room records remain in shared contracts/storage for data compatibility; that
+does not install or activate a proxy implementation.
+
+## Add only what you want
 
 ```sh
-git merge feature/reader-browser    # Full article extraction, AMP, images and browser
-git merge feature/synchronization   # Background refresh, persisted cooldown and prefetch
-git merge feature/ai                # Digest screen, AI settings and generation
-git merge feature/article-plugins   # Pluggable article extraction providers
+git switch integration/feed
+git merge feature/save-articles      # Save only; no Share
+git merge feature/share-articles     # Independently add Share
+git merge feature/source-management  # Manage configured sources
+git merge feature/source-discovery   # Independently add catalog/search
+git merge feature/news-proxy         # Generic Page Proxy plus the Worker provider
+git merge feature/telegram-proxy     # Independently add Telegram service support
 ```
 
-Prefetch needs a reader to fetch full pages, so it remains inactive when Reader is absent.
-Synchronization can be developed alone using shared ports; real news requires a source
-provider or cached data. AI can be developed alone, but summaries need articles. These
-are data requirements, not a requirement to merge every feature.
-
-## Ownership and real prerequisites
-
-| Branch | Adds | Required feature branches |
-| --- | --- | --- |
-| `feature/feed` | News list, filters, gestures, visibility refresh | None |
-| `feature/networking` | HTTP transport, proxy/redirect enforcement, Worker settings | None |
-| `feature/sources-discovery` | RSS/Atom/Telegram providers, source/catalog UI and settings | Networking |
-| `feature/storage` | Room, migrations, persistent encrypted settings | None |
-| `feature/reader-browser` | Full article/AMP reader, images, internal browser, rich cards | Networking |
-| `feature/synchronization` | Cooldown coordinator, WorkManager refresh and optional prefetch | None |
-| `feature/ai` | AI client, digest selection/screen/settings | None |
-| `feature/article-plugins` | Telegram/AMP/Worker/HTML extraction registry/providers | Reader/browser and Sources |
-| `feature/app-integration` | Complete convenience assembly and full-app tests | None for runtime wiring; full-app tests need all features |
-
-Prerequisites are already merged into the corresponding branch. For example, merging
-Sources also brings Networking, but does not bring Storage, Reader, Synchronization or AI.
-These are Git feature branches within the existing `:app` Gradle module.
-
-The foundation owns records/ports, a working app host/view model/repository, memory-backed
-fallbacks, manual feed loading and basic article presentation. Feature bindings implement
-`AppFeature`; generated typed registration selects the available bindings. Source files and
-Gradle dependencies for excluded features are omitted from compilation. Each feature
-contributes its own UI/settings and only replaces the services it provides. The foundation
-has no dependency on concrete Room, HTTP, WorkManager, AI or reader implementations.
-Room annotations remain shared via `room-common`; schema 8 and migrations are unchanged.
-
-`tools/features.json` declares ownership, registrations and prerequisites. Run
-`python3 tools/check-feature-boundaries.py` to check a checkout. Build a smaller composition
-from a branch containing more features with, for example:
+The minimal `integration/feed` branch is kept free of these optional additions. Actual
+verification merges are preserved on `verify/optional-feature-merges`. Use your own
+application branch for a different combination. Default builds enable features present
+on the branch; from a complete checkout, a composition can also be selected explicitly:
 
 ```sh
 ./gradlew :app:testDebugUnitTest :app:assembleDebug \
-  -PnewsbriefFeatures=feed,sources-discovery
+  -PnewsbriefFeatures=feed,rss-source,storage
 ```
 
-Required features are included automatically. An empty `-PnewsbriefFeatures=` builds the
-foundation only. The default includes every runtime feature present on that branch. Full-app
-integration tests run only when all their required features are selected.
+Prerequisites are selected automatically. An empty `-PnewsbriefFeatures=` builds just the
+host. Excluded implementation sources and dependency scripts do not reach compilation;
+typed feature registration includes only selected bindings. These remain Git capability
+branches within the existing `:app` Gradle module, not separate Gradle modules.
+`tools/features.json` records ownership/prerequisites. Run
+`python3 tools/check-feature-boundaries.py` to check a checkout.
 
-## Keep development mergeable
-
-Bring shared changes into a feature with a normal forward merge:
+## Merge shared development forward
 
 ```sh
-git switch feature/feed
+git switch feature/save-articles
 git merge dev
 ```
 
-Merge prerequisite updates into their dependants, then merge updated features into your
-application branch. Shared contract edits can still need ordinary conflict resolution.
-Do not merge `feature/app-integration` unless you want the complete app. Feature branches
-retain their Git history; the former cumulative branches remain under `archive/stacked/`.
-The previous separation is documented in [the earlier guide](docs/independent-feature-history.md).
+Merge prerequisite updates into their dependants, then merge updated capabilities into
+your application branch. Normal conflict resolution can still be needed for shared ports.
+No force reset or history rewrite was used. Previous bundled branches, including the
+previously installed feed assembly, are preserved under `archive/bundled/`; earlier stacks
+remain under `archive/stacked/`. The old combined `sources-discovery` and `reader-browser`
+branches are archived in favor of the narrower branches above. `main`, `release` and
+`v0.4.12` remain unchanged.
 
-`release`, `main`, `v0.4.12` and the phone installation were not changed by this correction.
-See [BUILD-RESULTS.md](BUILD-RESULTS.md) for tested combinations, actual incremental merges,
-APK locations and limits of verification.
+See [BUILD-RESULTS.md](BUILD-RESULTS.md) for exact tested commits, combinations and APKs,
+and [the preceding guide](docs/coarse-incremental-feature-history.md) for historical context.
