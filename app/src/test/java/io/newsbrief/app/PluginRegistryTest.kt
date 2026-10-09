@@ -43,6 +43,33 @@ class PluginRegistryTest {
         assertEquals("details", ArticleLinks.decode(post.linksJson).single().label)
         assertEquals(SourceKind.TELEGRAM, post.sourcePluginId)
     }
+    @Test fun customArticlePluginCanPrecedeBuiltInsWithoutChangingReader() = runBlocking {
+        val plugin = object : ArticleFetchPlugin {
+            override val id = "custom-reader"
+            override fun supports(request: ArticleFetchRequest) = request.article.link.contains("publisher.example")
+            override suspend fun fetch(request: ArticleFetchRequest) = ReaderArticle("Custom", "Plugin content", "", request.article.link)
+        }
+        val registry = ArticleFetchRegistry(listOf(plugin) + ArticleFetchRegistry.builtIns(TelegramProxyClient { TelegramProxyConfig("", "") }).plugins)
+        val reader = ArticleReader(settings, plugins = registry, download = { _, _, _, _ -> error("Unexpected network") })
+        assertEquals("Plugin content", reader.load(article()).text)
+        assertTrue(runCatching { ArticleFetchRegistry(listOf(plugin, plugin)) }.isFailure)
+    }
+    @Test fun declinedArticlePluginContinuesAndTerminalFailureDoesNot() = runBlocking {
+        val calls = mutableListOf<String>()
+        fun plugin(id: String, fail: Boolean = false, decline: Boolean = false) = object : ArticleFetchPlugin {
+            override val id = id
+            override fun supports(request: ArticleFetchRequest) = true
+            override suspend fun fetch(request: ArticleFetchRequest): ReaderArticle? {
+                calls += id
+                if (fail) error("Unavailable")
+                return if (decline) null else ReaderArticle(id, "Article", "", request.article.link)
+            }
+        }
+        assertEquals("next", ArticleReader(settings, plugins = ArticleFetchRegistry(listOf(plugin("decline", decline = true), plugin("next")))).load(article()).title)
+        calls.clear()
+        val result = ArticleReader(settings, plugins = ArticleFetchRegistry(listOf(plugin("terminal", fail = true), plugin("forbidden-fallback")))).load(article())
+        assertNotNull(result.notice); assertEquals(listOf("terminal"), calls)
+    }
     @Test fun articleTransportKeepsProxyPolicyAcrossCustomAmpHost() = runBlocking {
         val requests = mutableListOf<String>()
         val reader = ArticleReader(settings, proxyDownload = { url, _, _, _ ->
@@ -55,7 +82,7 @@ class PluginRegistryTest {
     }
     @Test fun telegramProxyFailureNeverFallsBackToPublicPreviewOrPublisher() = runBlocking {
         val reader = ArticleReader(settings,
-            telegram = TelegramProxyClient { TelegramProxyConfig("", "") },
+            plugins = ArticleFetchRegistry.builtIns(TelegramProxyClient { TelegramProxyConfig("", "") }),
             proxyDownload = { _, _, _, _ -> error("No Worker fallback for proxy post") },
             download = { _, _, _, _ -> error("No public Telegram fallback") })
         val post = article("https://t.me/channel/10").copy(sourcePluginId = SourceKind.TELEGRAM_PROXY)

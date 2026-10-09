@@ -1,9 +1,5 @@
 # NewsBrief — Android MVP (v0.4.12)
 
-Development branch: article plugin extensibility is isolated on `feature/article-plugins`.
-`dev` retains source plugins and a working built-in article reader. See [BRANCHES.md](BRANCHES.md).
-The version notes below describe the released 0.4.12 history.
-
 Локальный агрегатор новостей с ИИ-сводкой на Kotlin + Jetpack Compose, **без backend-сервера**.
 
 ## В MVP реализовано

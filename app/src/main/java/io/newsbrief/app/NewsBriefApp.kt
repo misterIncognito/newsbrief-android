@@ -25,8 +25,9 @@ class NewsBriefApp : Application() {
             io.newsbrief.app.network.TelegramProxyConfig(settings.telegramProxyUrl(), settings.telegramProxyKey())
         }
         val sources = io.newsbrief.app.network.SourcePluginRegistry.builtIns(settings, telegram)
+        val articles = io.newsbrief.app.network.ArticleFetchRegistry.builtIns(telegram)
         repository = NewsRepository(database, sources, settings, sourcePlugins = sources,
-            articleReader = io.newsbrief.app.network.ArticleReader(settings, telegram = telegram),
+            articleReader = io.newsbrief.app.network.ArticleReader(settings, plugins = articles),
             onFeedUpdated = { io.newsbrief.app.worker.PrefetchWorker.enqueue(this) })
         prefetcher = io.newsbrief.app.network.ArticlePrefetcher(repository, settings,
             io.newsbrief.app.network.ArticleImageCache(java.io.File(filesDir, "reader-images")))
