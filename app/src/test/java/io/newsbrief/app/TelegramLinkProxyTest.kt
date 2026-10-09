@@ -36,7 +36,7 @@ class TelegramLinkProxyTest {
             val url = "https://devby.io/news/story"
             var proxied = 0
             val reader = ArticleReader(settings, proxyDownload = { target, type, _, _ ->
-                assertEquals(url, target); assertEquals("article", type); proxied++
+                assertEquals(url, target); assertEquals("fetch", type); proxied++
                 """{"title":"Full article","text":"Full body"}""".toByteArray()
             }, download = { _, _, _, _ -> error("Direct request must not happen") })
             val repo = NewsRepository(db, object : NewsCollector {
@@ -71,7 +71,7 @@ class TelegramLinkProxyTest {
         val reader = ArticleReader(SettingsStore(app), proxyDownload = { _, _, _, _ -> calls++; error("Worker unavailable") },
             download = { _, _, _, _ -> error("Must not connect directly") })
         val result = reader.load(post.copy(link = "https://devby.io/news/story", content = "", proxyRequired = true))
-        assertEquals(1, calls)
+        assertEquals(2, calls)
         assertNotNull(result.notice)
         assertTrue(result.notice!!.contains("Worker unavailable"))
     }

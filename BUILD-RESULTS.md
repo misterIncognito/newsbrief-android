@@ -1,11 +1,15 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.8**, 104 passing offline tests. Debug APK and Android test APK built
-successfully. Background prefetch downloads pending RSS/Atom articles and Telegram-linked
-articles into Room, with shared offline cover-image caching. Complete Telegram posts stay
-in the feed, and outgoing links retain their proxy requirement in the reader and browser.
-Phone installation is pending USB reconnection. See [ARTICLE-PREFETCH.md](ARTICLE-PREFETCH.md)
-and [TELEGRAM-FEED-FIX.md](TELEGRAM-FEED-FIX.md). Earlier phone migration/gesture results:
+Latest build: **0.4.9**, **120 passing offline tests**. Debug APK and Android test APK built
+successfully. The native reader and background prefetch prefer publisher-advertised AMP
+pages, preserving original URLs, proxy requirements, metadata and offline storage.
+Live validation: **3 of 3 checks pass**, including real image downloads and offline cache
+reads for Meduza AMP, Zerkalo mirror AMP and dev.by non-AMP extraction. An initial live
+failure exposed Meduza's broken generic sharing image. Article photos/structured article
+covers now take priority, and the article-specific Meduza cover works through `/image`.
+Phone installation is pending USB reconnection. See [AMP-READER.md](AMP-READER.md),
+[ARTICLE-PREFETCH.md](ARTICLE-PREFETCH.md) and [TELEGRAM-FEED-FIX.md](TELEGRAM-FEED-FIX.md).
+Earlier phone migration/gesture results:
 [READER-REFRESH-FIX.md](READER-REFRESH-FIX.md).
 The results below record the original 0.4.0 build.
 

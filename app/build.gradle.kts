@@ -13,8 +13,8 @@ android {
         applicationId = "io.newsbrief.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "0.4.8"
+        versionCode = 13
+        versionName = "0.4.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -62,5 +62,8 @@ dependencies {
 tasks.withType<Test>().configureEach {
     if (!providers.gradleProperty("verifyDirectoryServices").isPresent) {
         exclude("**/DirectoryServiceLiveTest*")
+    }
+    if (!providers.gradleProperty("verifyAmpReaders").isPresent) {
+        exclude("**/AmpReaderLiveTest*")
     }
 }

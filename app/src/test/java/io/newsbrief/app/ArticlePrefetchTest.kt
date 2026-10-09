@@ -98,7 +98,7 @@ class ArticlePrefetchTest {
             val store = settings()
             var proxies = 0
             val reader = ArticleReader(store, proxyDownload = { target, type, _, _ ->
-                assertEquals(url, target); assertEquals("article", type); proxies++
+                assertEquals(url, target); assertEquals("fetch", type); proxies++
                 """{"title":"Publisher","text":"Full publisher article"}""".toByteArray()
             }, download = { _, _, _, _ -> error("Direct request forbidden") })
             val repo = NewsRepository(db, emptyCollector, store, articleReader = reader)
