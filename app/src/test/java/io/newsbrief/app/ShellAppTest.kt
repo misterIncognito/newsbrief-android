@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = NewsBriefApp::class)
+@Config(sdk = [35], application = EmptyNewsBriefApp::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ShellAppTest {
     @get:Rule val compose = createComposeRule()
@@ -48,4 +48,8 @@ class ShellAppTest {
             assertEquals("https://proxy.example", prefs.getString("telegram_proxy_url", null))
         } finally { activity.pause().stop().destroy() }
     }
+}
+
+class EmptyNewsBriefApp : NewsBriefApp() {
+    override fun installedFeatures() = emptyList<io.newsbrief.app.runtime.AppFeature>()
 }
