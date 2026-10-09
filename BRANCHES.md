@@ -12,13 +12,16 @@ The shell does not open or delete the existing database, image cache or credenti
 | `feature/sources-discovery` | RSS/Atom/Telegram ingestion, source plugins, catalogs, search, filters and shared content contracts | `feature/storage` |
 | `feature/reader-browser` | Native article extraction, AMP, embedded browser, image and article presentation components | `feature/sources-discovery` |
 | `feature/synchronization` | Refresh/cooldown, prefetch, workers, repository, app wiring, feed/source UI and view model | `feature/reader-browser` |
-| `feature/ai` | Existing digest client, screen and provider settings | Restore the five core areas first |
-| `feature/article-plugins` | Existing article interface, registry and providers | Restore the five core areas first |
+| `feature/ai` | Existing digest client, screen and provider settings | `feature/synchronization` |
+| `feature/article-plugins` | Existing article interface, registry and providers | `feature/synchronization` |
 
 The five core branches are stacked because the implementations depend on one another.
 Each contains an explicit restoration commit for its own removal, plus normal merges
 of its prerequisites. Each branch builds and tests with those prerequisites included;
-only synchronization restores the complete app UI and activates background work.
+the synchronization layer restores the complete app UI and activates background work.
+The existing AI and article-plugin branches also include the core stack via normal
+merges; their original restoration commits remain in history. Merging either one
+into the shell brings its prerequisites too.
 They are Git feature branches within the existing `:app` Gradle module, not five new
 Gradle modules. Each owns a dependency script under `app/features/`; absent features
 contribute no runtime libraries to the shell. Build configuration rejects missing
@@ -51,6 +54,38 @@ Cherry-pick a self-contained fix only when its prerequisites already exist. Late
 to the same files may require normal conflict resolution. No history rewriting is used.
 All branches remain local until explicitly pushed; this extraction does not install
 an APK on the phone.
+
+## Core extraction verification
+
+| Branch | Passing offline tests |
+| --- | ---: |
+| `dev` shell | 2 |
+| `feature/networking` | 9 |
+| `feature/storage` | 18 |
+| `feature/sources-discovery` | 41 |
+| `feature/reader-browser` | 66 |
+| `feature/synchronization` | 151 |
+| `feature/ai` with core prerequisites | 152 |
+| `feature/article-plugins` with core prerequisites | 153 |
+| Temporary combined core + AI + article-plugin merge | 154 |
+
+All listed variants build a debug APK. The full core and optional/combined variants
+also build Android test APKs. Device tests were not run for this extraction.
+The shell tests cover its welcome screen and preservation of existing database,
+image-cache files and encrypted-credential preferences on startup. APK inspection
+confirms absent feature classes and absence of Room/OkHttp/WorkManager/Jsoup in the shell.
+Room schema 8 and all stored migration definitions are restored unchanged on Storage.
+
+Merge checks pass in both directions between dev and every feature. Recombining the
+five core layers restores all application/test sources exactly as in the tested
+pre-extraction baseline; only optional dependency registration changed in the main
+build script. The two optional feature branches were synced by real merges; their
+README conflicts were resolved without changing feature behavior or rewriting history.
+
+Initial configuration/compilation issues were corrected and recorded. See
+[full results](validation/core-feature-branches-results.json),
+[resolved failures](validation/core-feature-initial-failures.txt), and
+[branch history](validation/core-feature-branch-history.txt).
 
 ## Historical extraction records
 

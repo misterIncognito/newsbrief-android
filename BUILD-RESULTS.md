@@ -1,13 +1,21 @@
 # NewsBrief Android build verification
 
-Current feature extraction: `dev` passes **151 unit tests** with AI and article plugins
-removed. `feature/ai` passes **152** with AI restored and article plugins excluded.
-Both branches build debug and Android test APKs. Saved digests and provider preferences
-survive the removal in a regression test; Room schema 8 is unchanged. See
-[branch workflow](BRANCHES.md) and [AI verification](validation/ai-branches-results.json).
-The earlier article-plugin extraction results remain in
-[article-plugin verification](validation/article-plugin-branches-results.json).
-The deployed release and historical results below are unchanged.
+Current `dev` is a minimal shell: **2 passing tests**, debug APK built. Core feature
+branches pass **9 / 18 / 41 / 66 / 151** tests in dependency order. The synced AI and
+article-plugin branches pass **152 / 153**; their temporary combined merge passes
+**154**. All final builds pass. Initial failures and their fixes are recorded in
+[core extraction results](validation/core-feature-branches-results.json) and
+[resolved failure excerpts](validation/core-feature-initial-failures.txt).
+See [branch workflow](BRANCHES.md) for prerequisites and PR targets.
+
+Current shell APK: `app/build/outputs/apk/debug/app-debug.apk`.
+Verified combined APK: `app/build/outputs/apk/verified/newsbrief-all-features-debug.apk`.
+Both are local build outputs and are not installed on the phone.
+
+The extraction did not deploy an APK or change `main`, `release`, `v0.4.12` or on-device
+data. The historical release/deployment results below describe the deployed app.
+Earlier split records: [AI](validation/ai-branches-results.json) and
+[article plugins](validation/article-plugin-branches-results.json).
 
 Latest deployed release: **0.4.12**, **154 passing offline tests**, zero failures/errors/skips.
 Debug APK and Android test APK built successfully. The update adds a persistent three-minute
