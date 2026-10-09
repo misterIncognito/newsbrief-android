@@ -43,7 +43,7 @@ class ArticlePrefetchTest {
             var network = 0
             var scheduled = 0
             val collector = object : NewsCollector {
-                override suspend fun collect(source: SourceEntity) = WebCollectors().parseFeed("""<feed xmlns="http://www.w3.org/2005/Atom">
+                override suspend fun collect(source: SourceEntity) = FeedParsers().parseFeed("""<feed xmlns="http://www.w3.org/2005/Atom">
                     <entry><title>Story</title><link href="https://example.org/story"/><summary>Preview only</summary>
                     <updated>${Instant.now().minusSeconds(5)}</updated></entry></feed>""", source)
             }

@@ -128,7 +128,7 @@ class NewsFeedActionsTest {
             compose.onNodeWithText("Telegram через прокси").performClick()
             compose.onNodeWithText("@канал, ссылка t.me или ID канала").assertExists()
             compose.onNodeWithText("Отмена").performClick()
-            compose.onNodeWithText("Каналы Telegram-прокси").performClick()
+            compose.onNodeWithText("Telegram-прокси").performClick()
             waitFor { vm.proxyChannels.value.error != null }
             compose.onNodeWithText("Настрой HTTPS-адрес и ключ Telegram-прокси", substring = true).assertExists()
             compose.onNodeWithText("Закрыть").performClick()
