@@ -1,3 +1,1 @@
-listOf("reader-browser", "sources-discovery").forEach {
-    check(file("features/$it.gradle.kts").isFile) { "Article plugins require $it" }
-}
+// Optional article-plugins feature. Prerequisites are declared in tools/features.json.
