@@ -1,35 +1,38 @@
 package io.newsbrief.app.data
 
-import io.newsbrief.app.ai.AiClient
-import io.newsbrief.app.network.ArticleReader
+import io.newsbrief.app.network.ArticleLoader
+import io.newsbrief.app.network.SourceRegistry
+import io.newsbrief.app.network.EmptySourceRegistry
+import io.newsbrief.app.runtime.FeatureBindings
 import io.newsbrief.app.network.ReaderArticle
 import io.newsbrief.app.network.NewsCollector
-import androidx.room.withTransaction
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.CancellationException
 
 class NewsRepository(
-    private val db: NewsDatabase,
+    private val db: NewsStore,
     private val collector: NewsCollector,
-    private val settings: SettingsStore,
-    directoryNetwork: io.newsbrief.app.network.DirectoryNetwork = io.newsbrief.app.network.PublicDirectoryNetwork(),
-    val sourcePlugins: io.newsbrief.app.network.SourcePluginRegistry = (collector as? io.newsbrief.app.network.WebCollectors)?.plugins
-        ?: (collector as? io.newsbrief.app.network.SourcePluginRegistry) ?: io.newsbrief.app.network.SourcePluginRegistry.builtIns(settings),
-    private val articleReader: ArticleReader = ArticleReader(settings, telegram = io.newsbrief.app.network.TelegramArticleContent(settings)),
+    private val settings: AppSettings,
+    directoryNetwork: io.newsbrief.app.network.DirectoryNetwork? = null,
+    sourcePlugins: SourceRegistry? = null,
+    articleReader: ArticleLoader? = null,
     private val clock: () -> Long = System::currentTimeMillis,
-    private val onFeedUpdated: () -> Unit = {}
+    private val onFeedUpdated: () -> Unit = {},
+    private val extensions: FeatureBindings = FeatureBindings.create()
 ) : io.newsbrief.app.network.PrefetchArticleStore {
-    private val ai = AiClient(settings)
+    val sourcePlugins: SourceRegistry = sourcePlugins ?: (collector as? io.newsbrief.app.network.SourceRegistryOwner)?.plugins ?: (collector as? SourceRegistry)
+        ?: extensions.sources?.invoke(settings) ?: EmptySourceRegistry()
+    private val articleReader = articleReader ?: extensions.article?.invoke(settings, extensions.extractor?.invoke(settings))
 
-    companion object { const val SYNC_COOLDOWN_MILLIS = io.newsbrief.app.sync.FeedSynchronizer.SYNC_COOLDOWN_MILLIS }
+    companion object { const val SYNC_COOLDOWN_MILLIS = 3 * 60_000L }
 
     fun observeSources(): Flow<List<SourceEntity>> = db.sourceDao().observe()
     fun observeLatest(): Flow<List<ArticleEntity>> = db.articleDao().observeRecent(0)
     fun observeSaved(): Flow<List<ArticleEntity>> = db.articleDao().observeSaved()
     fun observeSavedUrls(): Flow<List<String>> = db.savedArticleDao().observeUrls()
 
-    suspend fun toggleSaved(article: ArticleEntity): Boolean = db.withTransaction {
+    suspend fun toggleSaved(article: ArticleEntity): Boolean = db.transaction {
         if (db.savedArticleDao().contains(article.link)) {
             db.savedArticleDao().remove(article.link)
             false
@@ -43,19 +46,11 @@ class NewsRepository(
     fun observeFeed(sourceIds: List<Long>?): Flow<List<ArticleEntity>> =
         db.articleDao().observeFiltered(sourceIds.orEmpty(), sourceIds != null)
 
-    suspend fun seedDefaults() {
-        val v2Seeded = settings.isSourcesCatalogV2Seeded()
-        val v3Seeded = settings.isSourcesCatalogV3Seeded()
-        val v4Seeded = settings.isSourcesCatalogV4Seeded()
-        val v5Seeded = settings.isSourcesCatalogV5Seeded()
-        if (v2Seeded && v3Seeded && v4Seeded && v5Seeded) return
-        SourceCatalog.defaultsToSeed(db.sourceDao().count(), v2Seeded, v3Seeded, v4Seeded, v5Seeded)
-            .forEach { db.sourceDao().insert(it.asEntity()) }
-        if (!v2Seeded) settings.markSourcesCatalogV2Seeded()
-        if (!v3Seeded) settings.markSourcesCatalogV3Seeded()
-        if (!v4Seeded) settings.markSourcesCatalogV4Seeded()
-        if (!v5Seeded) settings.markSourcesCatalogV5Seeded()
-    }
+    suspend fun seedDefaults() = extensions.seed(db, settings)
+    fun feedOptions(sources: List<SourceEntity>, category: FeedCategory) = extensions.filterOptions(sources, category)
+    fun filterSourceIds(sources: List<SourceEntity>, category: FeedCategory, keys: Set<String>): List<Long>? =
+        if (category == FeedCategory.ALL && keys.isEmpty()) null else feedOptions(sources, category)
+            .filter { keys.isEmpty() || it.key in keys }.flatMap { it.ids }.distinct().sorted()
 
     suspend fun addSource(name: String, kind: String, rawAddress: String): Boolean {
         require(name.isNotBlank()) { "Укажи название источника" }
@@ -64,9 +59,9 @@ class NewsRepository(
     }
 
     suspend fun discover(provider: io.newsbrief.app.network.DirectoryProvider, query: String, offset: Int = 0): io.newsbrief.app.network.DirectoryResults =
-        directory.search(provider, query, offset)
+        directory?.invoke(provider, query, offset) ?: io.newsbrief.app.network.DirectoryResults(emptyList())
 
-    private val directory = SourceDirectoryRepository(db.catalogSearchDao(), directoryNetwork)
+    private val directory = extensions.directory?.invoke(db, directoryNetwork)
 
     suspend fun addDiscoveredSource(source: io.newsbrief.app.network.DirectorySource): Boolean {
         val address = sourcePlugins.canonicalAddress(source.address, source.kind)
@@ -76,9 +71,9 @@ class NewsRepository(
             it.publishedAt <= System.currentTimeMillis() + 5 * 60_000L
         }
         require(items.isNotEmpty()) { "Источник не отдаёт доступных публикаций. Попробуй другой результат." }
-        val added = db.withTransaction {
+        val added = db.transaction {
             val id = db.sourceDao().insert(candidate)
-            if (id == -1L) return@withTransaction false
+            if (id == -1L) return@transaction false
             val articles = items.map { it.copy(sourceId = id, sourceName = candidate.name) }
             val inserted = db.articleDao().insertAll(articles)
             articles.zip(inserted).forEach { (article, insertedId) ->
@@ -98,10 +93,11 @@ class NewsRepository(
     suspend fun toggleSource(id: Long, enabled: Boolean) = db.sourceDao().setEnabled(id, enabled)
     suspend fun removeSource(id: Long) = db.sourceDao().delete(id)
 
-    private val synchronizer = io.newsbrief.app.sync.FeedSynchronizer(db, collector, settings, clock, onFeedUpdated)
-    suspend fun refresh(): io.newsbrief.app.sync.FeedSynchronizer.RefreshResult {
+    private val refreshAction = extensions.refresh?.invoke(db, collector, settings, clock, onFeedUpdated)
+        ?: ManualFeedLoader(db, collector, onFeedUpdated)::refresh
+    suspend fun refresh(): RefreshResult {
         seedDefaults()
-        return synchronizer.refresh()
+        return refreshAction()
     }
 
     private suspend fun mergePluginPost(incoming: ArticleEntity) {
@@ -128,7 +124,10 @@ class NewsRepository(
     override suspend fun readArticle(article: ArticleEntity, refresh: Boolean, preserveLongerText: Boolean): ReaderArticle {
         val stored = db.articleDao().findByLink(article.link) ?: article
         val saved = stored.copy(proxyRequired = stored.proxyRequired || article.proxyRequired)
-        val loaded = articleReader.load(saved, refresh)
+        val loaded = articleReader?.load(saved, refresh) ?: return ReaderArticle(saved.title,
+            saved.content.ifBlank { saved.excerpt }, saved.imageUrl, saved.link, publishedAt = saved.publishedAt,
+            author = saved.author, images = io.newsbrief.app.network.ArticleImages.decode(saved.imagesJson),
+            links = io.newsbrief.app.network.ArticleLinks.decode(saved.linksJson))
         val result = if (preserveLongerText && saved.content.length > loaded.text.length)
             loaded.copy(text = saved.content) else loaded
         if (result.notice == null && result.text.isNotBlank()) {
@@ -146,7 +145,7 @@ class NewsRepository(
         require(mode == DigestMode.SHORT || mode == DigestMode.FULL)
         val cutoff = System.currentTimeMillis() - 24L * 60 * 60 * 1_000
         val recent = db.articleDao().recent(cutoff, 600)
-        val digest = ai.generate(DigestArticleSelector.pick(recent), mode)
+        val digest = (extensions.generate ?: error("ИИ-сводки пока не подключены"))(recent, mode, settings)
         db.digestDao().save(digest)
         return digest
     }

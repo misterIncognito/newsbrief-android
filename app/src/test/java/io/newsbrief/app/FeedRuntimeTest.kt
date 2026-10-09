@@ -1,0 +1,65 @@
+package io.newsbrief.app
+
+import android.app.Application
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.lifecycle.viewModelScope
+import androidx.test.core.app.ApplicationProvider
+import io.newsbrief.app.data.*
+import io.newsbrief.app.features.FeedFeature
+import io.newsbrief.app.network.NewsCollector
+import io.newsbrief.app.runtime.FeatureBindings
+import io.newsbrief.app.ui.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.test.*
+import org.junit.Assert.*
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35], application = Application::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@OptIn(ExperimentalCoroutinesApi::class)
+class FeedRuntimeTest {
+    @get:Rule val compose = createComposeRule()
+    @Test fun feedLoadsDisplaysReadsAndSavesWithoutOtherFeatures() {
+        val dispatcher = UnconfinedTestDispatcher(); Dispatchers.setMain(dispatcher)
+        val store = MemoryNewsStore(); val settings = MemorySettings(); val features = listOf(FeedFeature())
+        val bindings = FeatureBindings.create(features)
+        assertNull(bindings.persistentStorage); assertNull(bindings.article); assertNull(bindings.generate); assertNull(bindings.refresh)
+        val sourceId = runBlocking { store.sourceDao().insert(SourceEntity(name = "Fixture RSS", address = "https://example.org/rss", kind = SourceKind.RSS)) }
+        var calls = 0
+        val repo = NewsRepository(store, object : NewsCollector {
+            override suspend fun collect(source: SourceEntity): List<ArticleEntity> {
+                calls++
+                return listOf(ArticleEntity(sourceId = sourceId, sourceName = source.name, title = "Real feed item", excerpt = "Preview",
+                    content = "Full content supplied by the feed", link = "https://example.org/story", publishedAt = 1000))
+            }
+        }, settings, extensions = bindings)
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val vm = NewsViewModel(app, repo, settings, features)
+        fun waitFor(test: () -> Boolean) { compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); compose.waitForIdle(); test() } }
+        try {
+            compose.setContent { MaterialTheme { NewsBriefScreen(vm) } }
+            waitFor { vm.feedArticles.value.size == 1 }
+            assertTrue(calls > 0)
+            compose.onNodeWithText("Лента").assertExists()
+            compose.onNodeWithText("Главное").assertDoesNotExist()
+            compose.onNodeWithText("Real feed item").performClick()
+            waitFor { vm.reader.value != null }
+            compose.onNodeWithText("Full content supplied by the feed").assertIsDisplayed()
+            compose.onNodeWithText("Открыть во встроенном браузере").assertDoesNotExist()
+            compose.onNodeWithText("Сохранить").performClick()
+            waitFor { vm.savedUrls.value.isNotEmpty() }
+            compose.onNodeWithText("← Назад").performClick()
+            compose.onNodeWithText("Сохранённые").performClick()
+            waitFor { vm.feedArticles.value.size == 1 }
+            compose.onNodeWithText("Real feed item").assertExists()
+        } finally { vm.viewModelScope.cancel(); Dispatchers.resetMain() }
+    }
+}

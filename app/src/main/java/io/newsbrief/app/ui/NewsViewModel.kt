@@ -8,10 +8,9 @@ import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.network.ReaderArticle
 import io.newsbrief.app.data.DigestEntity
 import io.newsbrief.app.data.DigestMode
-import io.newsbrief.app.data.SettingsStore
+import io.newsbrief.app.data.AppSettings
 import io.newsbrief.app.data.SourceKind
 import io.newsbrief.app.data.FeedCategory
-import io.newsbrief.app.data.FeedFilters
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -28,9 +27,12 @@ import kotlinx.coroutines.CancellationException
 class NewsViewModel @JvmOverloads constructor(
     application: Application,
     private val repo: io.newsbrief.app.data.NewsRepository = (application as NewsBriefApp).repository,
-    private val store: SettingsStore = (application as NewsBriefApp).settings
+    private val store: AppSettings = (application as NewsBriefApp).settings,
+    val features: List<io.newsbrief.app.runtime.AppFeature> = (application as? NewsBriefApp)?.runtime?.features ?: io.newsbrief.app.runtime.GeneratedFeatures.create()
 ) : AndroidViewModel(application), SourcesUi, ReaderUi, FeedUi, AiUi {
 
+    val presentation = (application as? NewsBriefApp)?.runtime?.bindings?.presentation
+        ?: io.newsbrief.app.runtime.FeatureBindings.create(features).presentation
     override val sourcePlugins = repo.sourcePlugins.available
     private val _telegramProxyUrl = MutableStateFlow(store.telegramProxyUrl())
     val telegramProxyUrl = _telegramProxyUrl.asStateFlow()
@@ -89,12 +91,12 @@ class NewsViewModel @JvmOverloads constructor(
     private val _feedSources = MutableStateFlow<Set<String>>(emptySet())
     override val feedSources = _feedSources.asStateFlow()
     override val feedOptions = combine(repo.observeSources(), _feedCategory) { sources, category ->
-        FeedFilters.options(sources, category)
+        repo.feedOptions(sources, category)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override val feedArticles = combine(repo.observeSources(), _feedCategory, _feedSources, _savedOnly) { sources, category, source, saved ->
-        saved to FeedFilters.sourceIds(sources, category, source)
+        saved to repo.filterSourceIds(sources, category, source)
     }.distinctUntilChanged().flatMapLatest { (saved, ids) -> if (saved) repo.observeSaved() else repo.observeFeed(ids) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -394,6 +396,6 @@ class NewsViewModel @JvmOverloads constructor(
     fun saveKey(value: String) {
         store.saveApiKey(_config.value.provider, value)
         _hasKey.value = store.hasApiKey(_config.value.provider)
-        report(if (value.isBlank()) "Ключ удалён" else "Ключ сохранён на устройстве")
+        report(if (value.isBlank()) "Ключ удалён" else if (store is io.newsbrief.app.data.MemorySettings) "Ключ сохранён до закрытия приложения" else "Ключ сохранён на устройстве")
     }
 }
