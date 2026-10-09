@@ -16,10 +16,10 @@ class NewsRepository(
     private val db: NewsDatabase,
     private val collector: NewsCollector,
     private val settings: SettingsStore,
-    directoryNetwork: io.newsbrief.app.network.DirectoryNetwork = io.newsbrief.app.network.PublicDirectoryNetwork()
+    directoryNetwork: io.newsbrief.app.network.DirectoryNetwork = io.newsbrief.app.network.PublicDirectoryNetwork(),
+    private val articleReader: ArticleReader = ArticleReader(settings)
 ) {
     private val ai = AiClient(settings)
-    private val articleReader = ArticleReader(settings)
     private val refreshMutex = Mutex()
 
     data class RefreshResult(val added: Int, val sources: Int, val errors: List<String>)
@@ -117,10 +117,12 @@ class NewsRepository(
     suspend fun lookup(url: String): ArticleEntity? = db.articleDao().findByLink(url)
 
     suspend fun readArticle(article: ArticleEntity, refresh: Boolean = false): ReaderArticle {
-        val saved = db.articleDao().findByLink(article.link) ?: article
+        val stored = db.articleDao().findByLink(article.link) ?: article
+        val saved = stored.copy(proxyRequired = stored.proxyRequired || article.proxyRequired)
         val result = articleReader.load(saved, refresh)
         if (result.notice == null && result.text.isNotBlank()) {
             db.articleDao().insertAll(listOf(saved))
+            if (saved.proxyRequired) db.articleDao().requireProxy(saved.link)
             db.articleDao().updateReader(article.link, result.title, result.text, result.imageUrl,
                 result.publishedAt ?: saved.publishedAt, result.author, org.json.JSONArray(result.images).toString(), io.newsbrief.app.network.ArticleLinks.encode(result.links))
         }

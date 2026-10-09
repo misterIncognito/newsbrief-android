@@ -72,8 +72,13 @@ class NewsViewModel @JvmOverloads constructor(
     val readerSource = _readerSource.asStateFlow()
     private val _browserUrl = MutableStateFlow<String?>(null)
     val browserUrl = _browserUrl.asStateFlow()
-    fun openBrowser(url: String) {
-        if (io.newsbrief.app.network.ArticleLinks.valid(url)) _browserUrl.value = url
+    private val _browserForceProxy = MutableStateFlow(false)
+    val browserForceProxy = _browserForceProxy.asStateFlow()
+    fun openBrowser(url: String, forceProxy: Boolean = false) {
+        if (io.newsbrief.app.network.ArticleLinks.valid(url)) {
+            _browserForceProxy.value = forceProxy
+            _browserUrl.value = url
+        }
     }
     fun closeBrowser() { _browserUrl.value = null }
     private val _reader = MutableStateFlow<ReaderArticle?>(null)
@@ -265,11 +270,37 @@ class NewsViewModel @JvmOverloads constructor(
         openReader(article)
     }
 
+    private val resolvedPostLinks = mutableSetOf<String>()
+    fun resolvePostLinks(post: ArticleEntity) {
+        if (!resolvedPostLinks.add(post.link)) return
+        viewModelScope.launch {
+            try {
+                if (repo.readArticle(post).notice != null) resolvedPostLinks.remove(post.link)
+            } catch (e: CancellationException) {
+                resolvedPostLinks.remove(post.link)
+                throw e
+            } catch (_: Exception) {
+                resolvedPostLinks.remove(post.link)
+            }
+        }
+    }
+
+    private suspend fun linkedArticle(parent: ArticleEntity, url: String): ArticleEntity {
+        val saved = repo.lookup(url) ?: ArticleEntity(sourceId = 0, sourceName = parent.sourceName,
+            title = parent.title, excerpt = "", link = url, publishedAt = parent.publishedAt)
+        return saved.copy(proxyRequired = saved.proxyRequired || parent.proxyRequired ||
+            io.newsbrief.app.network.ArticleLinks.telegramPreview(parent.link) != null)
+    }
+
+    fun openFeedLink(post: ArticleEntity, url: String) = viewModelScope.launch {
+        if (!io.newsbrief.app.network.ArticleLinks.valid(url)) return@launch
+        openReader(linkedArticle(post, url))
+    }
+
     fun openReaderLink(url: String) = viewModelScope.launch {
         if (!io.newsbrief.app.network.ArticleLinks.valid(url)) return@launch
         val parent = _readerSource.value ?: return@launch
-        val linked = repo.lookup(url) ?: ArticleEntity(sourceId = 0, sourceName = parent.sourceName,
-            title = parent.title, excerpt = "", link = url, publishedAt = parent.publishedAt)
+        val linked = linkedArticle(parent, url)
         if (parent.link == url) return@launch
         val history = readerHistory.toList() + parent
         openReader(linked)

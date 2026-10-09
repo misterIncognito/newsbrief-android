@@ -40,6 +40,7 @@ data class ArticleEntity(
     @ColumnInfo(defaultValue = "''") val author: String = "",
     @ColumnInfo(defaultValue = "'[]'") val imagesJson: String = "[]",
     @ColumnInfo(defaultValue = "'[]'") val linksJson: String = "[]",
+    @ColumnInfo(defaultValue = "0") val proxyRequired: Boolean = false,
     val link: String,
     val publishedAt: Long,
     val importedAt: Long = System.currentTimeMillis()
@@ -97,6 +98,9 @@ interface ArticleDao {
     @Query("SELECT * FROM articles WHERE link = :url LIMIT 1")
     suspend fun findByLink(url: String): ArticleEntity?
 
+    @Query("UPDATE articles SET proxyRequired = 1 WHERE link = :url")
+    suspend fun requireProxy(url: String)
+
     @Query("UPDATE articles SET title = :title, content = :content, imageUrl = :imageUrl, " +
         "publishedAt = :publishedAt, author = :author, imagesJson = :imagesJson, linksJson = :linksJson, readerLoaded = 1 WHERE link = :url")
     suspend fun updateReader(url: String, title: String, content: String, imageUrl: String,
@@ -137,7 +141,7 @@ interface CatalogSearchDao {
     suspend fun prune()
 }
 
-@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class], version = 5, exportSchema = true)
+@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class], version = 6, exportSchema = true)
 abstract class NewsDatabase : RoomDatabase() {
     abstract fun sourceDao(): SourceDao
     abstract fun articleDao(): ArticleDao

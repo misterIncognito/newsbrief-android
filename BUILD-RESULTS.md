@@ -1,11 +1,11 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.6**, 87 passing offline tests, debug APK and Android test APK built successfully.
-Four on-phone refresh gesture tests passed before the embedded browser was added.
-The earlier reader/refresh build was installed with all 665 articles preserved; the final
-browser-enabled APK is awaiting USB reconnection for installation and live UI checks.
-See [READER-REFRESH-FIX.md](READER-REFRESH-FIX.md). Previous Telegram discovery results:
-[AI-DISCOVERY-FIX.md](AI-DISCOVERY-FIX.md).
+Latest build: **0.4.7**, 94 passing offline tests, including three Compose feed interaction
+checks with native text rendering. Debug APK and Android test APK built successfully.
+Telegram posts now render directly in the feed; their article links inherit strict proxy
+routing in the reader and embedded browser. Phone installation is pending USB reconnection.
+See [TELEGRAM-FEED-FIX.md](TELEGRAM-FEED-FIX.md). Earlier phone migration/gesture results:
+[READER-REFRESH-FIX.md](READER-REFRESH-FIX.md).
 The results below record the original 0.4.0 build.
 
 Verified on Mac mini (Apple Silicon), 9 October 2026, Europe/Warsaw.

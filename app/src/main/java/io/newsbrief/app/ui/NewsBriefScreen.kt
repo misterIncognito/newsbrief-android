@@ -79,6 +79,7 @@ fun NewsBriefScreen(vm: NewsViewModel) {
     val readerSource by vm.readerSource.collectAsStateWithLifecycle()
     val browserUrl by vm.browserUrl.collectAsStateWithLifecycle()
     val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
+    val browserForceProxy by vm.browserForceProxy.collectAsStateWithLifecycle()
     val catalogOpen by vm.catalogOpen.collectAsStateWithLifecycle()
     BackHandler(enabled = readerSource != null || browserUrl != null || catalogOpen) {
         if (browserUrl != null) vm.closeBrowser()
@@ -130,7 +131,7 @@ fun NewsBriefScreen(vm: NewsViewModel) {
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (browserUrl != null) {
-                EmbeddedBrowserPage(browserUrl!!, workerUrl)
+                EmbeddedBrowserPage(browserUrl!!, workerUrl, browserForceProxy)
             } else if (readerSource != null) {
                 ReaderPage(vm)
             } else if (catalogOpen) {
@@ -273,6 +274,15 @@ private fun FeedPage(vm: NewsViewModel) {
 @Composable
 private fun NewsCard(article: ArticleEntity, vm: NewsViewModel) {
     val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
+    if (ArticleLinks.telegramPreview(article.link) != null) {
+        LaunchedEffect(article.link) {
+            if (ArticleLinks.decode(article.linksJson).isEmpty()) vm.resolvePostLinks(article)
+        }
+        TelegramFeedPost(article, workerUrl,
+            onLink = { vm.openFeedLink(article, it) },
+            onBrowser = { vm.openBrowser(it, forceProxy = true) })
+        return
+    }
     Card(Modifier.fillMaxWidth().clickable { vm.openReader(article) }) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             if (article.imageUrl.isNotBlank()) NewsImage(article.imageUrl, article.link, workerUrl, 145)
@@ -314,7 +324,9 @@ private fun ReaderPage(vm: NewsViewModel) {
             }
         }
         OutlinedButton(onClick = {
-            vm.openBrowser(if (ArticleLinks.telegramPreview(item.link) != null) primary?.url ?: item.link else item.link)
+            val telegram = ArticleLinks.telegramPreview(item.link) != null
+            vm.openBrowser(if (telegram) primary?.url ?: item.link else item.link,
+                forceProxy = item.proxyRequired || (telegram && primary != null))
         }, modifier = Modifier.fillMaxWidth()) { Text("Открыть во встроенном браузере") }
         val content = reader?.text?.ifBlank { item.content.ifBlank { item.excerpt } }
             ?: item.content.ifBlank { item.excerpt }

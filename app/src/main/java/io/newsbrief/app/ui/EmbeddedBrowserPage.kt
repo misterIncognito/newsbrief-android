@@ -20,7 +20,7 @@ import java.io.ByteArrayInputStream
 import java.net.URI
 
 @Composable
-internal fun EmbeddedBrowserPage(url: String, worker: String) {
+internal fun EmbeddedBrowserPage(url: String, worker: String, forceProxy: Boolean = false) {
     var browser by remember(url) { mutableStateOf<WebView?>(null) }
     var canGoBack by remember(url) { mutableStateOf(false) }
     var progress by remember(url) { mutableIntStateOf(0) }
@@ -67,7 +67,7 @@ internal fun EmbeddedBrowserPage(url: String, worker: String) {
                             val route = BrowserRouting.route(target, request.isForMainFrame,
                                 documentUrl.get(), request.requestHeaders.entries.firstOrNull {
                                     it.key.equals("Accept", ignoreCase = true)
-                                }?.value.orEmpty())
+                                }?.value.orEmpty(), forceProxy)
                             val result = NewsHttp.downloadResource(target, route.type, worker, 5_000_000, route.forceProxy)
                             if (request.isForMainFrame) documentUrl.set(result.finalUrl)
                             if (request.isForMainFrame && result.finalUrl != target && result.mimeType == "text/html") {

@@ -24,6 +24,9 @@ data class ReaderArticle(
 )
 
 class ArticleReader(private val settings: SettingsStore,
+    private val proxyDownload: (String, String, String, Int) -> ByteArray = { url, type, worker, limit ->
+        NewsHttp.download(url, type, worker, limit, forceProxy = true)
+    },
     private val download: (String, String, String, Int) -> ByteArray = { url, type, worker, limit ->
         NewsHttp.download(url, type, worker, limit)
     }
@@ -37,7 +40,8 @@ class ArticleReader(private val settings: SettingsStore,
         if (!refresh && if (telegramPreview != null) cached.links.isNotEmpty()
             else article.readerLoaded || article.content.isNotBlank()) return@withContext cached
         try {
-            val raw = download(telegramPreview ?: article.link,
+            val fetch = if (article.proxyRequired) proxyDownload else download
+            val raw = fetch(telegramPreview ?: article.link,
                 if (telegramPreview != null) "fetch" else "article", settings.workerUrl(), 2_500_000)
                 .toString(Charsets.UTF_8)
             if (telegramPreview != null) {

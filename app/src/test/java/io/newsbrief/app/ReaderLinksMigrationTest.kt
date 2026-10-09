@@ -18,12 +18,12 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class ReaderLinksMigrationTest {
-    @Test fun version4PreservesOfflineArticlesDisabledSourcesSummariesAndCatalog() = runBlocking {
+    private fun migrate(version: Int) = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "reader-links-migration.sqlite"
         context.deleteDatabase(name)
         val legacy = FrameworkSQLiteOpenHelperFactory().create(SupportSQLiteOpenHelper.Configuration.builder(context)
-            .name(name).callback(object : SupportSQLiteOpenHelper.Callback(4) {
+            .name(name).callback(object : SupportSQLiteOpenHelper.Callback(version) {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     db.execSQL("CREATE TABLE sources (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, address TEXT NOT NULL, kind TEXT NOT NULL, enabled INTEGER NOT NULL, categoriesJson TEXT NOT NULL DEFAULT '[]')")
                     db.execSQL("CREATE UNIQUE INDEX index_sources_address ON sources(address)")
@@ -36,16 +36,21 @@ class ReaderLinksMigrationTest {
                     db.execSQL("INSERT INTO articles VALUES(1,1,'Disabled','Saved title','Excerpt','Offline full body','https://example.org/photo.jpg',1,'Author','[\"https://example.org/photo.jpg\"]','https://t.me/devby/16806',123,456)")
                     db.execSQL("INSERT INTO digests VALUES('2026-10-08','SHORT','Summary','[]',1,456)")
                     db.execSQL("INSERT INTO catalog_searches VALUES('TELEGRAM:AI','{\"saved\":true}',123)")
+                    if (version == 5) {
+                        NewsMigrations.FROM_4_5.migrate(db)
+                        db.execSQL("UPDATE articles SET linksJson='[{\"label\":\"Подробнее\",\"url\":\"https://devby.io/news/story\"}]'")
+                    }
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
             }).build())
         legacy.writableDatabase; legacy.close()
         val db = Room.databaseBuilder(context, NewsDatabase::class.java, name)
-            .addMigrations(NewsMigrations.FROM_4_5).build()
+            .addMigrations(NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6).build()
         try {
             val article = db.articleDao().findByLink("https://t.me/devby/16806")!!
             assertEquals("Offline full body", article.content)
-            assertEquals("[]", article.linksJson)
+            assertEquals(if (version == 4) "[]" else "[{\"label\":\"Подробнее\",\"url\":\"https://devby.io/news/story\"}]", article.linksJson)
+            assertFalse(article.proxyRequired)
             assertEquals("Author", article.author)
             assertTrue(article.readerLoaded)
             assertEquals(123L, article.publishedAt)
@@ -56,13 +61,17 @@ class ReaderLinksMigrationTest {
             assertEquals("{\"saved\":true}", db.catalogSearchDao().find("TELEGRAM:AI")!!.responseJson)
             val links = "[{\"label\":\"Подробнее\",\"url\":\"https://devby.io/news/story\"}]"
             db.articleDao().fillMissingPreview(article.link, "New preview", "", links)
+            db.articleDao().requireProxy(article.link)
             assertEquals(links, db.articleDao().findByLink(article.link)!!.linksJson)
         } finally { db.close() }
         val reopened = Room.databaseBuilder(context, NewsDatabase::class.java, name).build()
         try {
             val saved = reopened.articleDao().findByLink("https://t.me/devby/16806")!!
             assertEquals("Offline full body", saved.content)
+            assertTrue(saved.proxyRequired)
             assertTrue(saved.linksJson.contains("devby.io/news/story"))
         } finally { reopened.close(); context.deleteDatabase(name) }
     }
+    @Test fun version4PreservesOfflineArticlesDisabledSourcesSummariesAndCatalog() { migrate(4) }
+    @Test fun version5PreservesSavedLinksAndPersistsProxyChoiceAfterReopen() { migrate(5) }
 }

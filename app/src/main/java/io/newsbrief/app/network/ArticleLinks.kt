@@ -40,9 +40,16 @@ object ArticleLinks {
         if (post.matches(Regex("[A-Za-z0-9_]+/[0-9]+"))) "https://t.me/s/$post" else null
     }.getOrNull()
 
-    /** Prefer publisher articles to Telegram cross-promotions and app-store links. */
-    fun fullArticle(links: List<ArticleLink>): ArticleLink? = links.firstOrNull {
-        val host = URI(it.url).host.lowercase()
-        host in setOf("devby.io", "dev.by") || NewsRouting.requiresProxy(it.url)
+    /** Prefer publisher mirrors, then other article links, over social/app promotions. */
+    fun fullArticle(links: List<ArticleLink>): ArticleLink? {
+        val safe = links.filter { valid(it.url) }
+        return safe.firstOrNull { URI(it.url).host.endsWith(".site") && NewsRouting.requiresProxy(it.url) }
+            ?: safe.firstOrNull { URI(it.url).host.lowercase(java.util.Locale.ROOT) in setOf("devby.io", "dev.by") || NewsRouting.requiresProxy(it.url) }
+            ?: safe.firstOrNull {
+                val uri = URI(it.url)
+                val host = uri.host.lowercase(java.util.Locale.ROOT)
+                val promotions = setOf("t.me", "telegram.me", "apps.apple.com", "play.google.com", "donorbox.org", "x.com", "twitter.com", "www.tiktok.com")
+                host !in promotions && uri.path.orEmpty().trim('/').isNotBlank()
+            }
     }
 }
