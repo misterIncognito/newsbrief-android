@@ -12,6 +12,7 @@ import io.newsbrief.app.ui.ArticleAction
 interface AppFeature {
     val id: String
     val title: String get() = ""
+    val hasSettings: Boolean get() = false
     val order: Int get() = 0
     fun configure(bindings: FeatureBindings) {}
     @Composable fun Screen(vm: NewsViewModel) {}

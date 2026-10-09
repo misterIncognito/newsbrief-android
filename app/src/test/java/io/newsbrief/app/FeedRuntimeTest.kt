@@ -52,6 +52,7 @@ class FeedRuntimeTest {
             compose.onNodeWithText("Главное").assertDoesNotExist()
             compose.onNodeWithText("Источники").assertDoesNotExist()
             compose.onNodeWithText("Каталог").assertDoesNotExist()
+            compose.onNodeWithText("Настройки").assertDoesNotExist()
             compose.onNodeWithText("Сохранить").assertDoesNotExist()
             compose.onNodeWithText("Поделиться").assertDoesNotExist()
             compose.onNodeWithText("Сохранённые").assertDoesNotExist()

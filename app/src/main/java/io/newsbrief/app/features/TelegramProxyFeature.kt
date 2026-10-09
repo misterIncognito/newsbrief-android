@@ -6,6 +6,7 @@ import io.newsbrief.app.runtime.*
 import io.newsbrief.app.ui.*
 
 class TelegramProxyFeature : AppFeature {
+    override val hasSettings = true
     override val id = "telegram-proxy"
     override val title = "Telegram-прокси"
     override val order = 25

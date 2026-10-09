@@ -16,7 +16,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 /** Available screens come from installed features, with no direct feature imports. */
 @Composable fun NewsBriefScreen(vm: NewsViewModel) {
     val pages = vm.features.filter { it.title.isNotEmpty() }.sortedBy { it.order }
-    var selected by rememberSaveable { mutableStateOf(pages.firstOrNull()?.id ?: "home") }
+    val settingsFeatures = vm.features.filter { it.hasSettings }
+    var selected by rememberSaveable { mutableStateOf(pages.firstOrNull()?.id ?: if (settingsFeatures.isNotEmpty()) "settings" else "home") }
     val source by vm.readerSource.collectAsStateWithLifecycle()
     val browser by vm.browserUrl.collectAsStateWithLifecycle()
     val forceProxy by vm.browserForceProxy.collectAsStateWithLifecycle()
@@ -34,7 +35,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }, topBar = {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
+            Column {
+                Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
+                if (pages.size == 1 && settingsFeatures.isEmpty()) Text(pages.single().title, style = MaterialTheme.typography.labelMedium)
+            }
             when {
                 browser != null -> TextButton(onClick = vm::closeBrowser) { Text("← К статье") }
                 source != null -> TextButton(onClick = vm::closeReader) { Text("← Назад") }
@@ -42,10 +46,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
             }
         }
     }, bottomBar = {
-        if (source == null && browser == null && vm.features.isNotEmpty()) NavigationBar {
+        if (source == null && browser == null && (pages.size > 1 || settingsFeatures.isNotEmpty())) NavigationBar {
             pages.forEach { page -> NavigationBarItem(selected == page.id, { selected = page.id },
                 icon = { Text(if (page.id == "feed") "≡" else "+") }, label = { Text(page.title) }) }
-            NavigationBarItem(selected == "settings", { selected = "settings" }, icon = { Text("⚙") }, label = { Text("Настройки") })
+            if (settingsFeatures.isNotEmpty()) NavigationBarItem(selected == "settings", { selected = "settings" }, icon = { Text("⚙") }, label = { Text("Настройки") })
         }
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -55,7 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
                 source != null -> Unit
                 selected == "settings" -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    vm.features.forEach { it.Settings(vm) }
+                    settingsFeatures.forEach { it.Settings(vm) }
                 }
                 else -> screens.SaveableStateProvider(selected) {
                     val page = pages.firstOrNull { it.id == selected }

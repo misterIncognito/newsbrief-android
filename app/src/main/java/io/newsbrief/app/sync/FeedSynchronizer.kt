@@ -14,7 +14,7 @@ class FeedSynchronizer(private val db: FeedStore, private val collector: NewsCol
     companion object { const val SYNC_COOLDOWN_MILLIS = 3 * 60_000L }
     suspend fun refresh(): RefreshResult = refreshMutex.withLock {
         // Fetch newly added sources first so slow existing feeds do not delay them.
-        val sources = db.sourceDao().enabled().sortedByDescending { it.id }
+        val sources = db.sourceDao().enabled().filter(collector::supports).sortedByDescending { it.id }
         val configuration = org.json.JSONArray().apply {
             put(settings.workerUrl()); put(settings.telegramProxyUrl())
             sources.forEach { put(org.json.JSONArray(listOf(it.id, it.kind, it.address))) }
