@@ -13,4 +13,5 @@ interface PrefetchArticleStore {
 interface PrefetchImageStore {
     fun contains(url: String): Boolean
     suspend fun load(url: String, worker: String): ByteArray
+    suspend fun loadForArticle(url: String, worker: String, article: ArticleEntity): ByteArray = load(url, worker)
 }
