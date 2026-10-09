@@ -2,6 +2,7 @@
 
 - `dev`: ongoing development. Source plugins remain enabled. The native article reader
   uses its built-in implementation; the article plugin API/registry/providers are excluded.
+  AI digest generation and its controls are excluded; the start screen is the news feed.
 - `feature/article-plugins`: the full article plugin system, ready to merge into `dev`.
 - `feature/ai`: AI digest generation, its screen and provider settings, ready to merge into `dev`.
 - `release` and `main`: the verified 0.4.12 baseline, unchanged by this extraction.
@@ -29,7 +30,7 @@ Later edits to the same reader/wiring files may need ordinary merge conflict res
 No history rewriting, force pushes or reverse changes on release branches are required.
 Branches and tag are local until explicitly pushed.
 
-## Extraction verification
+## Article extraction verification (before AI separation)
 
 - `dev` removal: `7f573ab`; 152 unit tests pass.
 - `feature/article-plugins` restoration: `8bc1ce4`; 154 unit tests pass.
@@ -73,3 +74,19 @@ PRs use the same source and target branches after publishing them. Cherry-pickin
 individual fixes is also supported. Keep the removal/restoration history; do not
 rewrite it away with squash merges when syncing feature branches. Edits to shared
 UI/repository/settings files may require normal conflict resolution.
+
+### AI extraction verification
+
+- `dev` removal: `04d5783`; 151 unit tests pass, including a Compose regression test
+  covering the feed start screen, absence of AI controls, retained digest rows and
+  untouched provider/model/encrypted-key preferences.
+- `feature/ai` restoration: `90618f5`; 152 unit tests pass. Its application code is
+  identical to the AI-enabled pre-extraction baseline, with article plugins excluded.
+- Both branches build debug and Android test APKs. No paid AI requests or phone
+  deployment were performed.
+- Merge checks cover syncing `dev` into `feature/ai` and restoring AI into `dev`.
+- Release branches, release tag and the existing article-plugin branch are preserved.
+
+See [AI verification](validation/ai-branches-results.json),
+[dev build output](validation/build-dev-without-ai-output.txt), and
+[AI feature build output](validation/build-feature-ai-output.txt).
