@@ -38,12 +38,16 @@ if (file("features/storage.gradle.kts").isFile) {
 }
 
 // Each branch restores its own dependency script along with implementation and tests.
-listOf("networking", "storage", "sources-discovery", "reader-browser", "synchronization").forEach { feature ->
+listOf("networking", "storage", "sources-discovery", "reader-browser", "synchronization", "feed", "ai", "article-plugins", "app-integration").forEach { feature ->
     val script = file("features/$feature.gradle.kts")
     if (script.isFile) apply(from = script)
 }
 
 dependencies {
+    implementation("org.jsoup:jsoup:1.21.2")
+    implementation("androidx.room:room-common:2.8.5")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     implementation(platform("androidx.compose:compose-bom:2025.08.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
