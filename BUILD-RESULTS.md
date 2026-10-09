@@ -1,6 +1,15 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.12**, **154 passing offline tests**, zero failures/errors/skips.
+Current feature extraction: `dev` passes **151 unit tests** with AI and article plugins
+removed. `feature/ai` passes **152** with AI restored and article plugins excluded.
+Both branches build debug and Android test APKs. Saved digests and provider preferences
+survive the removal in a regression test; Room schema 8 is unchanged. See
+[branch workflow](BRANCHES.md) and [AI verification](validation/ai-branches-results.json).
+The earlier article-plugin extraction results remain in
+[article-plugin verification](validation/article-plugin-branches-results.json).
+The deployed release and historical results below are unchanged.
+
+Latest deployed release: **0.4.12**, **154 passing offline tests**, zero failures/errors/skips.
 Debug APK and Android test APK built successfully. The update adds a persistent three-minute
 cooldown between repeated feed-sync attempts (including failures), multi-select publisher
 chips, the browser action above article content, and an explicit original-page WebView mode.

@@ -1,4 +1,11 @@
-# NewsBrief — Android MVP (v0.4.12)
+# NewsBrief Android
+
+`dev` is a minimal Compose shell. The five core areas are preserved on stacked feature
+branches, with AI and article plugins on their existing branches. See
+[BRANCHES.md](BRANCHES.md) for feature ownership, prerequisites and merge-back commands.
+The shell leaves existing offline files and credentials untouched.
+
+## Deployed 0.4.12 history
 
 Локальный агрегатор новостей с ИИ-сводкой на Kotlin + Jetpack Compose, **без backend-сервера**.
 
