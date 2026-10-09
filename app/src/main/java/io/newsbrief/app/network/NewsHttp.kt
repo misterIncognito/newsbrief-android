@@ -7,27 +7,27 @@ import okhttp3.Request
 
 data class DownloadedResource(val bytes: ByteArray, val mimeType: String, val encoding: String?, val finalUrl: String)
 
-/** Every redirect is routed again; required-proxy requests never escape the Worker. */
+/** Every redirect is routed again; required-proxy requests never escape their selected provider. */
 object NewsHttp {
     private val client = OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
         .connectTimeout(15, TimeUnit.SECONDS).readTimeout(25, TimeUnit.SECONDS)
         .callTimeout(35, TimeUnit.SECONDS).build()
 
     internal fun download(resource: String, type: String, worker: String, maxBytes: Int,
-                 forceProxy: Boolean = false, transport: OkHttpClient = client): ByteArray =
-        downloadResource(resource, type, worker, maxBytes, forceProxy, transport).bytes
+                 forceProxy: Boolean = false, transport: OkHttpClient = client, router: PageRouter? = null, preferProxy: Boolean = false): ByteArray =
+        downloadResource(resource, type, worker, maxBytes, forceProxy, transport, router, preferProxy).bytes
 
     internal fun downloadResource(resource: String, type: String, worker: String, maxBytes: Int,
-                 forceProxy: Boolean = false, transport: OkHttpClient = client): DownloadedResource {
+                 forceProxy: Boolean = false, transport: OkHttpClient = client, router: PageRouter? = null, preferProxy: Boolean = false): DownloadedResource {
         var target = resource
         var mustProxy = forceProxy || NewsRouting.requiresProxy(resource)
         repeat(4) { redirect ->
-            val route = NewsRouting.endpoint(target, type, worker, mustProxy)
+            val route = router?.route(PageRequest(target, type, mustProxy, preferProxy), worker) ?: PageRouting.route(target, type, worker, mustProxy, preferProxy)
             transport.newCall(Request.Builder().url(route).header("User-Agent", "NewsBrief/0.4")
                 .header("Accept", "application/json, application/rss+xml, application/atom+xml, text/html, image/*").build())
                 .execute().use { response ->
                     if (response.code in listOf(301, 302, 303, 307, 308)) {
-                        check(!mustProxy) { "Unexpected proxy redirect" }
+                        check(route == target && !mustProxy) { "Unexpected proxy redirect" }
                         check(redirect < 3) { "Too many redirects" }
                         target = response.request.url.resolve(response.header("Location") ?: error("Missing redirect"))
                             ?.toString() ?: error("Invalid redirect")
