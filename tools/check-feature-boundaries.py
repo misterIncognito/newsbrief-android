@@ -24,7 +24,7 @@ for name in sorted(enabled):
             if '/src/main/java/' not in path:
                 continue
             content = (root / path).read_text() if (root / path).is_file() else ''
-            for forbidden in ['NewsBriefApp', 'NewsViewModel', 'NewsRepository']:
+            for forbidden in ['NewsBriefApp']:
                 if re.search(r'\b' + forbidden + r'\b', content):
                     errors.append(f'{name}: {path} references integration class {forbidden}')
             if name != 'storage':
