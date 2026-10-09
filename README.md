@@ -2,6 +2,8 @@
 
 Development branch: article plugin extensibility is isolated on `feature/article-plugins`.
 `dev` retains source plugins and a working built-in article reader. See [BRANCHES.md](BRANCHES.md).
+AI digest generation and provider settings are isolated on `feature/ai`; `dev` opens
+to the feed. Historical summaries and encrypted credentials remain stored.
 The version notes below describe the released 0.4.12 history.
 
 Локальный агрегатор новостей с ИИ-сводкой на Kotlin + Jetpack Compose, **без backend-сервера**.

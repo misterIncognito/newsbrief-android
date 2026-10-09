@@ -42,6 +42,52 @@ class NewsFeedActionsTest {
         val registry = LifecycleRegistry(this)
         override val lifecycle: Lifecycle get() = registry
     }
+    @Test fun devOpensFeedWithoutAiAndRetainsStoredDigestAndProviderPreferences() {
+        val dispatcher = UnconfinedTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
+        var model: NewsViewModel? = null
+        try {
+            val prefs = app.getSharedPreferences("newsbrief_settings", Application.MODE_PRIVATE)
+            prefs.edit().putString("provider", "OpenAI").putString("model_OpenAI", "saved-model")
+                .putString("key_OpenAI", "retained-encrypted-payload").commit()
+            val previous = DigestEntity(date = "2026-10-08", mode = "SHORT", content = "Saved digest",
+                referencesJson = "[]", articleCount = 1)
+            runBlocking { db.digestDao().save(previous) }
+            val settings = SettingsStore(app).apply {
+                markSourcesCatalogV2Seeded(); markSourcesCatalogV3Seeded()
+                markSourcesCatalogV4Seeded(); markSourcesCatalogV5Seeded()
+            }
+            val repo = NewsRepository(db, object : NewsCollector {
+                override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
+            }, settings)
+            lateinit var vm: NewsViewModel
+            compose.runOnIdle { vm = NewsViewModel(app, repo, settings); model = vm }
+            val owner = Owner()
+            compose.setContent { CompositionLocalProvider(LocalLifecycleOwner provides owner) {
+                MaterialTheme { NewsBriefScreen(vm) }
+            } }
+            compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
+            compose.onNodeWithTag("news-feed").assertIsDisplayed()
+            compose.onNodeWithText("Лента").assertIsSelected()
+            compose.onNodeWithText("Главное").assertDoesNotExist()
+            compose.onNodeWithText("Создать ИИ-сводку", substring = true).assertDoesNotExist()
+            compose.onNodeWithText("Настройки").performClick()
+            compose.onNodeWithText("HTTPS URL Cloudflare Worker").assertExists()
+            compose.onNodeWithText("HTTPS URL Telegram-прокси").performScrollTo().assertExists()
+            compose.onNodeWithText("Настройки ИИ").assertDoesNotExist()
+            compose.onNodeWithText("OpenAI").assertDoesNotExist()
+            compose.onNodeWithText("Qwen").assertDoesNotExist()
+            compose.onNodeWithText("Источники").performClick()
+            compose.onNodeWithText("Каталог источников").assertExists()
+            assertEquals(previous, runBlocking { db.digestDao().find(previous.date, previous.mode) })
+            assertEquals("OpenAI", prefs.getString("provider", null))
+            assertEquals("saved-model", prefs.getString("model_OpenAI", null))
+            assertEquals("retained-encrypted-payload", prefs.getString("key_OpenAI", null))
+        } finally { model?.viewModelScope?.cancel(); db.close(); Dispatchers.resetMain() }
+    }
+
     @Test fun readerReturnWithinCooldownPreservesScrollAndShowsSavedItemInSavedFeed() {
         val dispatcher = UnconfinedTestDispatcher()
         Dispatchers.setMain(dispatcher)
