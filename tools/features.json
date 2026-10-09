@@ -18,7 +18,9 @@
     "app/src/main/java/io/newsbrief/app/ui/DateFormatting.kt",
     "app/src/test/java/io/newsbrief/app/TestSettings.kt",
     "app/src/test/java/io/newsbrief/app/NewsRoutingTest.kt",
-    "app/build.gradle.kts"
+    "app/build.gradle.kts",
+    "app/src/main/java/io/newsbrief/app/util/FeedRules.kt",
+    "app/src/test/java/io/newsbrief/app/FeedRulesTest.kt"
   ],
   "features": {
     "networking": {
@@ -61,12 +63,10 @@
         "app/src/main/java/io/newsbrief/app/network/SourcePlugins.kt",
         "app/src/main/java/io/newsbrief/app/network/TelegramProxyClient.kt",
         "app/src/main/java/io/newsbrief/app/network/TelegramArticleContent.kt",
-        "app/src/main/java/io/newsbrief/app/util/FeedRules.kt",
         "app/src/main/java/io/newsbrief/app/ui/SourcesUi.kt",
         "app/src/main/java/io/newsbrief/app/ui/SourcesPage.kt",
         "app/src/main/java/io/newsbrief/app/ui/SourceDirectoryPage.kt",
         "app/src/test/java/io/newsbrief/app/CollectorsTest.kt",
-        "app/src/test/java/io/newsbrief/app/FeedRulesTest.kt",
         "app/src/test/java/io/newsbrief/app/SourceCatalogTest.kt",
         "app/src/test/java/io/newsbrief/app/FeedFiltersTest.kt",
         "app/features/sources-discovery.gradle.kts"
