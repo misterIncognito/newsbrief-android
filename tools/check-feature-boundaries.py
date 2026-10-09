@@ -36,6 +36,16 @@ for path, owner in owners.items():
         # The application shell intentionally keeps its activity/application/manifest.
         if Path(path).name not in ['MainActivity.kt', 'NewsBriefApp.kt', 'AndroidManifest.xml']:
             errors.append(f'{path} exists but its feature {owner} is disabled')
+known = set(plan['foundation']) | set(owners)
+known.update({
+    'app/src/main/java/io/newsbrief/app/ui/NewsBriefShell.kt',
+    'app/src/test/java/io/newsbrief/app/ShellAppTest.kt',
+})
+for folder in ['app/src/main/java', 'app/src/test/java', 'app/src/androidTest']:
+    for file in (root / folder).rglob('*.kt'):
+        path = file.relative_to(root).as_posix()
+        if path not in known:
+            errors.append(f'{path} has no declared owner in tools/features.json')
 if errors:
     print('\n'.join(errors), file=sys.stderr)
     sys.exit(1)
