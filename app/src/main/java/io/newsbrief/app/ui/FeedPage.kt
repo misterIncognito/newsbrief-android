@@ -28,7 +28,7 @@ import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.data.FeedCategory
 
 @Composable
-fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, articleContent: @Composable (ArticleEntity) -> Unit) {
+fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, controls: @Composable () -> Unit = {}, emptyMessage: String? = null, articleContent: @Composable (ArticleEntity) -> Unit) {
     val articles by vm.feedArticles.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
     val category by vm.feedCategory.collectAsStateWithLifecycle()
@@ -38,31 +38,7 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
     val options by vm.feedOptions.collectAsStateWithLifecycle()
     val filtered = category != FeedCategory.ALL || selectedSources.isNotEmpty()
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !savedOnly, onClick = { vm.showSaved(false) }, label = { Text("Все новости") })
-            FilterChip(selected = savedOnly, onClick = { vm.showSaved(true) }, label = { Text("Сохранённые") })
-        }
-        if (!savedOnly) {
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FeedCategory.entries.forEach { choice ->
-                    FilterChip(selected = category == choice, onClick = { vm.filterCategory(choice) },
-                        label = { Text(choice.label) })
-                }
-            }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = selectedSources.isEmpty(), onClick = { vm.filterSource(null) },
-                        label = { Text("Все источники") })
-                    options.forEach { option ->
-                        FilterChip(selected = option.key in selectedSources, onClick = { vm.toggleFeedSource(option.key) },
-                            label = { Text(option.label) })
-                    }
-                }
-                if (filtered) TextButton(onClick = { vm.clearFeedFilter() }) { Text("Сбросить") }
-            }
-        }
+        controls()
         Text("Публикаций: ${articles.size}", modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FeedRefreshContainer(isRefreshing = refreshing, onRefresh = { vm.refresh() },
@@ -71,8 +47,7 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (articles.isEmpty()) item {
-                    Text(if (savedOnly) "Здесь будут сохранённые публикации. Нажми «Сохранить» под новостью."
-                        else if (refreshing) "Загружаем новости…"
+                    Text(emptyMessage ?: if (refreshing) "Загружаем новости…"
                         else if (filtered) "В этом фильтре пока нет публикаций. Выбери другой источник или потяни ленту вниз."
                         else "Потяни ленту вниз, чтобы загрузить новости.",
                         modifier = Modifier.fillParentMaxHeight().padding(22.dp))
