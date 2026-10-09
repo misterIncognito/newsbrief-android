@@ -1,11 +1,15 @@
 # NewsBrief Android
 
-`dev` is a minimal Compose shell with shared feature contracts. Independent feature
-branches contain networking, storage, sources/discovery, reader/browser, synchronization,
-feed UI, AI and article plugins. `feature/app-integration` composes the complete app.
-See [BRANCHES.md](BRANCHES.md) for ownership, dependencies and merge instructions, and
-[BUILD-RESULTS.md](BUILD-RESULTS.md) for the verified build matrix. The old cumulative
-branches are preserved under `archive/stacked/`. The shell preserves existing offline files.
+Merge features into `dev` one at a time; each supplies its own runtime registration.
+`feature/app-integration` is an optional complete assembly, not a startup prerequisite.
+`integration/feed` contains the small working RSS/Atom/Telegram app with offline storage,
+feed-text reading and save/share, without background synchronization, AI or article plugins.
+Without the Storage feature, data/settings are session-only; existing offline files are untouched.
+
+See [BRANCHES.md](BRANCHES.md) for progressive merge commands and real dependencies,
+and [BUILD-RESULTS.md](BUILD-RESULTS.md) for tests and APKs. All feature histories are
+preserved, including the older cumulative branches under `archive/stacked/`. This correction
+was not installed on the phone; the release and tag remain unchanged.
 
 ## Deployed 0.4.12 history
 
