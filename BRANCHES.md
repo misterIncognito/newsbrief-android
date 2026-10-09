@@ -3,6 +3,7 @@
 - `dev`: ongoing development. Source plugins remain enabled. The native article reader
   uses its built-in implementation; the article plugin API/registry/providers are excluded.
 - `feature/article-plugins`: the full article plugin system, ready to merge into `dev`.
+- `feature/ai`: AI digest generation, its screen and provider settings, ready to merge into `dev`.
 - `release` and `main`: the verified 0.4.12 baseline, unchanged by this extraction.
 - `v0.4.12`: the immutable local annotated release tag.
 
@@ -42,3 +43,33 @@ Branches and tag are local until explicitly pushed.
 See [recorded results](validation/article-plugin-branches-results.json),
 [dev build output](validation/build-dev-without-article-plugins-output.txt), and
 [feature build output](validation/build-feature-article-plugins-output.txt).
+
+## AI feature branch
+
+AI follows the same removal/restoration workflow. `dev` opens to the news feed and
+excludes the digest screen, AI client, digest selection logic, provider configuration
+and generation actions. Source catalogs (including AI news topics), proxy settings,
+reader and offline storage stay available. Room schema 8 and historical digest rows
+remain intact; existing encrypted credentials and preference keys are retained.
+
+`feature/ai` restores the AI removal commit. It is independent of article plugins:
+merging it back enables AI with the built-in reader, without restoring article plugins.
+
+Bring ongoing development into either feature branch with a regular merge:
+
+```sh
+git switch feature/ai
+git merge dev
+```
+
+Restore AI when ready:
+
+```sh
+git switch dev
+git merge feature/ai
+```
+
+PRs use the same source and target branches after publishing them. Cherry-picking
+individual fixes is also supported. Keep the removal/restoration history; do not
+rewrite it away with squash merges when syncing feature branches. Edits to shared
+UI/repository/settings files may require normal conflict resolution.
