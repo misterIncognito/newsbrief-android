@@ -1,10 +1,11 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.7**, 94 passing offline tests, including three Compose feed interaction
-checks with native text rendering. Debug APK and Android test APK built successfully.
-Telegram posts now render directly in the feed; their article links inherit strict proxy
-routing in the reader and embedded browser. Phone installation is pending USB reconnection.
-See [TELEGRAM-FEED-FIX.md](TELEGRAM-FEED-FIX.md). Earlier phone migration/gesture results:
+Latest build: **0.4.8**, 104 passing offline tests. Debug APK and Android test APK built
+successfully. Background prefetch downloads pending RSS/Atom articles and Telegram-linked
+articles into Room, with shared offline cover-image caching. Complete Telegram posts stay
+in the feed, and outgoing links retain their proxy requirement in the reader and browser.
+Phone installation is pending USB reconnection. See [ARTICLE-PREFETCH.md](ARTICLE-PREFETCH.md)
+and [TELEGRAM-FEED-FIX.md](TELEGRAM-FEED-FIX.md). Earlier phone migration/gesture results:
 [READER-REFRESH-FIX.md](READER-REFRESH-FIX.md).
 The results below record the original 0.4.0 build.
 

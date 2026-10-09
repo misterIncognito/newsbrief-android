@@ -17,7 +17,8 @@ class NewsRepository(
     private val collector: NewsCollector,
     private val settings: SettingsStore,
     directoryNetwork: io.newsbrief.app.network.DirectoryNetwork = io.newsbrief.app.network.PublicDirectoryNetwork(),
-    private val articleReader: ArticleReader = ArticleReader(settings)
+    private val articleReader: ArticleReader = ArticleReader(settings),
+    private val onFeedUpdated: () -> Unit = {}
 ) {
     private val ai = AiClient(settings)
     private val refreshMutex = Mutex()
@@ -62,7 +63,7 @@ class NewsRepository(
             it.publishedAt <= System.currentTimeMillis() + 5 * 60_000L
         }
         require(items.isNotEmpty()) { "Источник не отдаёт доступных публикаций. Попробуй другой результат." }
-        return db.withTransaction {
+        val added = db.withTransaction {
             val id = db.sourceDao().insert(candidate)
             if (id == -1L) return@withTransaction false
             val articles = items.map { it.copy(sourceId = id, sourceName = candidate.name) }
@@ -75,6 +76,8 @@ class NewsRepository(
             }
             true
         }
+        if (added) onFeedUpdated()
+        return added
     }
 
     suspend fun toggleSource(id: Long, enabled: Boolean) = db.sourceDao().setEnabled(id, enabled)
@@ -111,15 +114,30 @@ class NewsRepository(
             }
         }
         // Do not silently destroy history. A future retention policy can be user-controlled.
+        onFeedUpdated()
         RefreshResult(added = total, sources = sources.size, errors = errors)
     }
 
     suspend fun lookup(url: String): ArticleEntity? = db.articleDao().findByLink(url)
 
-    suspend fun readArticle(article: ArticleEntity, refresh: Boolean = false): ReaderArticle {
+    suspend fun prefetchCandidates(): List<ArticleEntity> =
+        db.articleDao().recent(System.currentTimeMillis() - 48 * 60 * 60_000L, 600)
+
+    suspend fun linkedArticle(parent: ArticleEntity, url: String): ArticleEntity {
+        val saved = lookup(url) ?: ArticleEntity(sourceId = 0, sourceName = parent.sourceName,
+            title = parent.title, excerpt = "", link = url, publishedAt = parent.publishedAt)
+        val linked = saved.copy(proxyRequired = saved.proxyRequired || parent.proxyRequired ||
+            io.newsbrief.app.network.ArticleLinks.telegramPreview(parent.link) != null)
+        if (linked.proxyRequired && !saved.proxyRequired && saved.id != 0L) db.articleDao().requireProxy(url)
+        return linked
+    }
+
+    suspend fun readArticle(article: ArticleEntity, refresh: Boolean = false, preserveLongerText: Boolean = false): ReaderArticle {
         val stored = db.articleDao().findByLink(article.link) ?: article
         val saved = stored.copy(proxyRequired = stored.proxyRequired || article.proxyRequired)
-        val result = articleReader.load(saved, refresh)
+        val loaded = articleReader.load(saved, refresh)
+        val result = if (preserveLongerText && saved.content.length > loaded.text.length)
+            loaded.copy(text = saved.content) else loaded
         if (result.notice == null && result.text.isNotBlank()) {
             db.articleDao().insertAll(listOf(saved))
             if (saved.proxyRequired) db.articleDao().requireProxy(saved.link)

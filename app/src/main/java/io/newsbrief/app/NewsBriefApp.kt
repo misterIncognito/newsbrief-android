@@ -14,12 +14,18 @@ class NewsBriefApp : Application() {
     lateinit var repository: NewsRepository
         private set
 
+    lateinit var prefetcher: io.newsbrief.app.network.ArticlePrefetcher
+        private set
+
     override fun onCreate() {
         super.onCreate()
         settings = SettingsStore(this)
         val database = Room.databaseBuilder(this, NewsDatabase::class.java, "newsbrief.sqlite")
             .addMigrations(io.newsbrief.app.data.NewsMigrations.FROM_1_2, io.newsbrief.app.data.NewsMigrations.FROM_2_3, io.newsbrief.app.data.NewsMigrations.FROM_3_4, io.newsbrief.app.data.NewsMigrations.FROM_4_5, io.newsbrief.app.data.NewsMigrations.FROM_5_6).build()
-        repository = NewsRepository(database, WebCollectors(settings), settings)
+        repository = NewsRepository(database, WebCollectors(settings), settings,
+            onFeedUpdated = { io.newsbrief.app.worker.PrefetchWorker.enqueue(this) })
+        prefetcher = io.newsbrief.app.network.ArticlePrefetcher(repository, settings,
+            io.newsbrief.app.network.ArticleImageCache(java.io.File(filesDir, "reader-images")))
         RefreshWorker.schedule(this)
     }
 }

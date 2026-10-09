@@ -59,7 +59,9 @@ class ArticleReader(private val settings: SettingsStore,
             require(result.text.isNotBlank()) { "Article text unavailable" }
             result.copy(title = result.title.ifBlank { cached.title },
                 imageUrl = result.imageUrl.ifBlank { cached.imageUrl },
-                publishedAt = result.publishedAt ?: cached.publishedAt)
+                publishedAt = result.publishedAt ?: cached.publishedAt,
+                author = result.author.ifBlank { cached.author },
+                images = result.images.ifEmpty { cached.images })
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) {
             cached.copy(notice = "Не удалось загрузить полную статью: ${e.message.orEmpty().take(90)}")

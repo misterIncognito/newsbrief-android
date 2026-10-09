@@ -285,22 +285,15 @@ class NewsViewModel @JvmOverloads constructor(
         }
     }
 
-    private suspend fun linkedArticle(parent: ArticleEntity, url: String): ArticleEntity {
-        val saved = repo.lookup(url) ?: ArticleEntity(sourceId = 0, sourceName = parent.sourceName,
-            title = parent.title, excerpt = "", link = url, publishedAt = parent.publishedAt)
-        return saved.copy(proxyRequired = saved.proxyRequired || parent.proxyRequired ||
-            io.newsbrief.app.network.ArticleLinks.telegramPreview(parent.link) != null)
-    }
-
     fun openFeedLink(post: ArticleEntity, url: String) = viewModelScope.launch {
         if (!io.newsbrief.app.network.ArticleLinks.valid(url)) return@launch
-        openReader(linkedArticle(post, url))
+        openReader(repo.linkedArticle(post, url))
     }
 
     fun openReaderLink(url: String) = viewModelScope.launch {
         if (!io.newsbrief.app.network.ArticleLinks.valid(url)) return@launch
         val parent = _readerSource.value ?: return@launch
-        val linked = linkedArticle(parent, url)
+        val linked = repo.linkedArticle(parent, url)
         if (parent.link == url) return@launch
         val history = readerHistory.toList() + parent
         openReader(linked)
