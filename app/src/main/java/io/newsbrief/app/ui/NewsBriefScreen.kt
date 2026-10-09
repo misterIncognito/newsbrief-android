@@ -1,0 +1,69 @@
+package io.newsbrief.app.ui
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+/** Available screens come from installed features, with no direct feature imports. */
+@Composable fun NewsBriefScreen(vm: NewsViewModel) {
+    val pages = vm.features.filter { it.title.isNotEmpty() }.sortedBy { it.order }
+    var selected by rememberSaveable { mutableStateOf(pages.firstOrNull()?.id ?: "home") }
+    val source by vm.readerSource.collectAsStateWithLifecycle()
+    val browser by vm.browserUrl.collectAsStateWithLifecycle()
+    val forceProxy by vm.browserForceProxy.collectAsStateWithLifecycle()
+    val worker by vm.workerUrl.collectAsStateWithLifecycle()
+    val catalog by vm.catalogOpen.collectAsStateWithLifecycle()
+    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
+    val message by vm.message.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    val screens = rememberSaveableStateHolder()
+    LaunchedEffect(message) {
+        message?.let { vm.clearMessage(); snackbar.showSnackbar(it) }
+    }
+    BackHandler(source != null || browser != null || catalog) {
+        if (browser != null) vm.closeBrowser() else if (source != null) vm.closeReader() else vm.closeCatalog()
+    }
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }, topBar = {
+        Row(Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
+            when {
+                browser != null -> TextButton(onClick = vm::closeBrowser) { Text("← К статье") }
+                source != null -> TextButton(onClick = vm::closeReader) { Text("← Назад") }
+                catalog -> TextButton(onClick = vm::closeCatalog) { Text("← Назад") }
+                selected == "feed" -> TextButton(onClick = { vm.refresh() }, enabled = !refreshing) { Text(if (refreshing) "Загрузка…" else "Обновить") }
+            }
+        }
+    }, bottomBar = {
+        if (source == null && browser == null && !catalog && vm.features.isNotEmpty()) NavigationBar {
+            pages.forEach { page -> NavigationBarItem(selected == page.id, { selected = page.id },
+                icon = { Text(if (page.id == "feed") "≡" else "+") }, label = { Text(page.title) }) }
+            NavigationBarItem(selected == "settings", { selected = "settings" }, icon = { Text("⚙") }, label = { Text("Настройки") })
+        }
+    }) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when {
+                browser != null && vm.presentation != null -> vm.presentation.Browser(browser!!, worker, forceProxy)
+                source != null && vm.presentation != null -> vm.presentation.Reader(vm)
+                source != null -> BasicReader(vm)
+                selected == "settings" -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    vm.features.forEach { it.Settings(vm) }
+                }
+                else -> screens.SaveableStateProvider(selected) {
+                    val page = pages.firstOrNull { it.id == selected }
+                    if (page != null) page.Screen(vm) else Text("Новости в одном месте", Modifier.padding(18.dp))
+                }
+            }
+        }
+    }
+}
