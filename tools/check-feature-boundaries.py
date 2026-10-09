@@ -46,6 +46,23 @@ for folder in ['app/src/main/java', 'app/src/test/java', 'app/src/androidTest']:
         path = file.relative_to(root).as_posix()
         if path not in known:
             errors.append(f'{path} has no declared owner in tools/features.json')
+# The runnable foundation may reference ports, never optional implementations.
+implementation_names = [
+    'NewsHttp', 'NewsDatabase', 'SettingsStore', 'WebCollectors', 'SourcePluginRegistry',
+    'PublicDirectoryNetwork', 'SourceCatalog', 'FeedFilters', 'ArticleReader',
+    'ArticleImageCache', 'FeedSynchronizer', 'ArticlePrefetcher', 'RefreshWorker',
+    'PrefetchWorker', 'FeedPage', 'FeedAutoRefresh', 'AiClient', 'DigestPage',
+    'ArticleFetchRegistry', 'ReaderPage', 'EmbeddedBrowserPage', 'NewsCard',
+]
+for path in plan['foundation']:
+    if not (root / path).is_file():
+        errors.append(f'foundation is missing {path}')
+    elif '/src/main/java/' in path:
+        content = (root / path).read_text()
+        for name in implementation_names:
+            if re.search(r'\b' + name + r'\b', content):
+                errors.append(f'foundation: {path} references optional implementation {name}')
+
 if errors:
     print('\n'.join(errors), file=sys.stderr)
     sys.exit(1)
