@@ -1,7 +1,8 @@
 # NewsBrief plugins (0.4.11)
 
-News ingestion and native article extraction now use separate, injectable Kotlin plugin
-registries. Plugins ship in the APK. The existing source IDs (`RSS`, `TELEGRAM`) are
+On `dev`, news ingestion uses an injectable Kotlin source-plugin registry. Native article
+reading uses a built-in implementation. The article plugin system is isolated on
+`feature/article-plugins`; see [BRANCHES.md](BRANCHES.md). Source plugins ship in the APK. The existing source IDs (`RSS`, `TELEGRAM`) are
 unchanged; there is no conversion or replacement of the user's source list.
 
 ## Source plugins
@@ -28,31 +29,18 @@ and keep its ID stable. The UI and collector require no additional type branches
 Default merges preserve cached reader text; the Telegram proxy merge accepts edited
 post bodies while keeping existing cover references, row identity and bookmarks.
 
-## Article plugins
+## Article reading on dev
 
-`network/ArticleFetchPlugins.kt` defines `ArticleFetchPlugin`, `ArticleFetchRequest`
-and `ArticleFetchRegistry`. Plugins are ordered:
+`ArticleReader` uses its built-in Telegram service/preview, AMP and publisher extraction
+paths. There is no article plugin interface, request type, registry or provider class in
+this branch. Offline selection, native rendering, prefetch, image caching and mandatory
+proxy routing retain their existing behavior. Telegram service failures never fall back
+to public Telegram previews or direct publishers.
 
-1. Telegram service post (`telegram-proxy-post`).
-2. Public Telegram preview post (`telegram-preview-post`).
-3. Discovered AMP article (`amp`).
-4. Worker Readability extraction (`worker-readability`).
-5. Direct publisher HTML (`publisher-html`).
-
-`supports` selects eligible plugins. `fetch` returns a native `ReaderArticle`, returns
-null to decline, or throws a terminal error. A Telegram service failure cannot fall
-through to public Telegram scraping. AMP failure may decline to the appropriate
-publisher extractor. Requests share one original-page download, including failures.
-
-Add an extractor by implementing `ArticleFetchPlugin` and registering it at the desired
-priority. Use `ArticleFetchRequest.download` so original-source proxy requirements
-also apply to alternatives on another host. Meduza, Zerkalo and links opened from
-Telegram retain forced Worker routing. Worker failures never trigger direct requests.
-Images retain the existing `/image` transport and persistent on-device cache.
-
-`ArticleReader` owns offline cache selection, metadata completion and failure notices.
-Both Reader and background prefetch use the same registry. Source plugin identity is
-stored on each article so saved proxy posts remain recognizable after source deletion.
+The separate `feature/article-plugins` branch contains the complete article plugin system
+and its extensibility/fallback-order tests. Merge that branch into `dev` to restore it;
+no revert is required at merge time. Source-plugin IDs remain in Room to preserve source
+identity and saved Telegram posts, independently of the article-fetch implementation.
 
 ## Configure the Telegram service
 
@@ -99,7 +87,7 @@ it from each existing source's `kind`. The additive 7→8 migration preserves ar
 bookmarks, disabled sources, images, summaries and catalog caches. Tests exercise
 upgrade chains from versions 1–7 and reopen the resulting database.
 
-Tests cover registry extension/order/duplicate IDs, RSS/Atom and Telegram preservation,
+Tests cover source-registry extension/duplicate IDs, RSS/Atom and Telegram preservation,
 proxy authentication/rotation/401 retry/redirect denial/bounded responses, entity links,
 numeric posts, edited-post merges, offline reading after source removal, publisher
 proxy propagation and actual Compose plugin/channel/configuration screens. Existing

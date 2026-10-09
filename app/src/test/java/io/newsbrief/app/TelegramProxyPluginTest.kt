@@ -140,7 +140,7 @@ class TelegramProxyPluginTest {
             }
         }
         val article = TelegramProxyClient.parsePost(post(), source, "https://telegram.example/api")!!
-        val reader = ArticleReader(SettingsStore(app), plugins = ArticleFetchRegistry.builtIns(client),
+        val reader = ArticleReader(SettingsStore(app), telegram = client,
             download = { _, _, _, _ -> error("Public network forbidden") }, proxyDownload = { _, _, _, _ -> error("Worker forbidden for proxy post") })
         assertEquals(article.content, reader.load(article).text); assertTrue(requests.isEmpty())
         assertEquals(article.content, reader.load(article, refresh = true).text)
