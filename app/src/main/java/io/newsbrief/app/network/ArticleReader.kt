@@ -20,8 +20,8 @@ class ArticleReader(private val settings: WorkerSettings,
     private val download: (String, String, String, Int) -> ByteArray = { url, type, worker, limit ->
         NewsHttp.download(url, type, worker, limit)
     }
-) {
-    suspend fun load(article: ArticleEntity, refresh: Boolean = false): ReaderArticle = withContext(Dispatchers.IO) {
+) : ArticleLoader {
+    override suspend fun load(article: ArticleEntity, refresh: Boolean): ReaderArticle = withContext(Dispatchers.IO) {
         val cached = ReaderArticle(article.title, article.content.ifBlank { article.excerpt },
             article.imageUrl, article.link, publishedAt = article.publishedAt, author = article.author,
             images = decodeImages(article.imagesJson), links = ArticleLinks.decode(article.linksJson))
