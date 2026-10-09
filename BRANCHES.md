@@ -3,7 +3,9 @@
 `dev` is now a minimal Compose app shell. Networking, Room storage, source ingestion
 and discovery, reader/browser, synchronization, AI and article plugins are excluded.
 The shell does not open or delete the existing database, image cache or credentials.
-`main`, `release` and the annotated `v0.4.12` tag remain on the deployed release.
+`release` is the minimal-shell snapshot promoted from `dev`.
+`main` and the annotated `v0.4.12` tag retain the deployed full application.
+Future dev changes reach release only through another explicit promotion.
 
 | Feature branch | Own implementation | Required feature branch / PR base |
 | --- | --- | --- |

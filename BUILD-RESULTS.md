@@ -1,5 +1,9 @@
 # NewsBrief Android build verification
 
+The `release` branch has now been promoted from `dev` and contains the verified
+minimal shell. `main` and `v0.4.12` still identify the deployed full application.
+This branch promotion does not change the app version, create a tag, push or deploy.
+
 Current `dev` is a minimal shell: **2 passing tests**, debug APK built. Core feature
 branches pass **9 / 18 / 41 / 66 / 151** tests in dependency order. The synced AI and
 article-plugin branches pass **152 / 153**; their temporary combined merge passes
