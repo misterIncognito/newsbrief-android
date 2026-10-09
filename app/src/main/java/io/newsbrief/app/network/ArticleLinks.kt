@@ -3,7 +3,6 @@ package io.newsbrief.app.network
 import java.net.URI
 import org.json.JSONArray
 import org.json.JSONObject
-import org.jsoup.nodes.Element
 
 data class ArticleLink(val label: String, val url: String)
 
@@ -11,9 +10,6 @@ data class ArticleLink(val label: String, val url: String)
 object ArticleLinks {
     fun valid(url: String): Boolean = ProxyUrls.validResource(url)
 
-    fun extract(element: Element): List<ArticleLink> = element.select("a[href]")
-        .map { ArticleLink(it.text().trim().ifBlank { it.absUrl("href") }, it.absUrl("href")) }
-        .filter { valid(it.url) }.distinctBy { it.url }.take(50)
 
     fun encode(links: List<ArticleLink>): String = JSONArray().apply {
         links.filter { valid(it.url) }.distinctBy { it.url }.forEach {

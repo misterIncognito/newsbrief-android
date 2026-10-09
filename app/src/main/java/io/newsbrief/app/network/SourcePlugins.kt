@@ -22,13 +22,13 @@ class SourcePluginRegistry(plugins: List<NewsSourcePlugin>) : NewsCollector {
     init { require(byId.size == plugins.size) { "Duplicate source plugin ID" } }
     fun plugin(id: String): NewsSourcePlugin = byId[id] ?: error("Плагин источника недоступен: $id")
     fun canonicalAddress(input: String, id: String) = plugin(id).canonicalAddress(input)
-    fun merge(existing: ArticleEntity, incoming: ArticleEntity): ArticleEntity =
+    override fun merge(existing: ArticleEntity, incoming: ArticleEntity): ArticleEntity =
         byId[incoming.sourcePluginId]?.merge(existing, incoming) ?: existing
     override suspend fun collect(source: SourceEntity): List<ArticleEntity> = withContext(Dispatchers.IO) {
         plugin(source.kind).collect(source).map { it.copy(sourcePluginId = source.kind) }
     }
     companion object {
-        fun builtIns(settings: SettingsStore? = null, telegram: TelegramProxyClient? = null) = SourcePluginRegistry(listOf(
+        fun builtIns(settings: SourceSettings? = null, telegram: TelegramProxyClient? = null) = SourcePluginRegistry(listOf(
             RssSourcePlugin { url -> NewsHttp.download(url, "fetch", settings?.workerUrl() ?: NewsRouting.DEFAULT_WORKER, 3_000_000).toString(Charsets.UTF_8) },
             TelegramPreviewSourcePlugin { url -> NewsHttp.download(url, "fetch", settings?.workerUrl() ?: NewsRouting.DEFAULT_WORKER, 3_000_000).toString(Charsets.UTF_8) },
             TelegramProxySourcePlugin(telegram ?: TelegramProxyClient { TelegramProxyConfig(settings?.telegramProxyUrl().orEmpty(), settings?.telegramProxyKey().orEmpty()) })

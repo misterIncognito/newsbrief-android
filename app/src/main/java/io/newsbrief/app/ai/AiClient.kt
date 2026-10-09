@@ -3,7 +3,7 @@ package io.newsbrief.app.ai
 import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.data.DigestEntity
 import io.newsbrief.app.data.DigestMode
-import io.newsbrief.app.data.SettingsStore
+import io.newsbrief.app.data.AiSettings
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -13,15 +13,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /** A small OpenAI-compatible chat-completions adapter; providers are selected in Settings. */
-class AiClient(private val store: SettingsStore) {
+class AiClient(private val store: AiSettings) {
     suspend fun generate(articles: List<ArticleEntity>, mode: String): DigestEntity = withContext(Dispatchers.IO) {
         require(articles.isNotEmpty()) { "За последние 24 часа нет публикаций" }
         val config = store.read()
         val apiKey = store.loadApiKey(config.provider)
         require(apiKey.isNotBlank()) { "Добавь API-ключ ${config.provider} в настройках" }
         val endpoint = when (config.provider) {
-            SettingsStore.QWEN -> "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
-            SettingsStore.OPENAI -> "https://api.openai.com/v1/chat/completions"
+            AiSettings.QWEN -> "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
+            AiSettings.OPENAI -> "https://api.openai.com/v1/chat/completions"
             else -> error("Неизвестный ИИ-провайдер")
         }
         // Keep one call below a moderate context size; numbers match the attached references.

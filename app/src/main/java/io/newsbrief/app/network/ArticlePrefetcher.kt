@@ -1,13 +1,12 @@
 package io.newsbrief.app.network
 
 import io.newsbrief.app.data.ArticleEntity
-import io.newsbrief.app.data.NewsRepository
-import io.newsbrief.app.data.SettingsStore
+import io.newsbrief.app.data.WorkerSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
-class ArticlePrefetcher(private val repository: NewsRepository, private val settings: SettingsStore,
+class ArticlePrefetcher(private val repository: PrefetchArticleStore, private val settings: WorkerSettings,
     private val images: PrefetchImageStore) {
     data class Target(val article: ArticleEntity, val originSource: Long)
     data class Result(val articles: Int, val images: Int, val failures: Int)
@@ -40,8 +39,8 @@ class ArticlePrefetcher(private val repository: NewsRepository, private val sett
         !ArticleLinks.isTelegramPost(article) && (!article.readerLoaded || article.content.isBlank())
 
     private fun leadImage(article: ArticleEntity): String = article.imageUrl.ifBlank {
-        ArticleReader.decodeImages(article.imagesJson).firstOrNull().orEmpty()
-    }.let { if (it.isBlank()) it else ArticleImageCache.originalUrl(it, settings.workerUrl()) }
+        ArticleImages.decode(article.imagesJson).firstOrNull().orEmpty()
+    }.let { if (it.isBlank()) it else ArticleImages.originalUrl(it, settings.workerUrl()) }
 
     private suspend fun download(article: ArticleEntity): Result {
         var savedText = 0
@@ -50,12 +49,12 @@ class ArticlePrefetcher(private val repository: NewsRepository, private val sett
         try {
             val result = if (needsText(article)) repository.readArticle(article, refresh = true, preserveLongerText = true)
                 else ReaderArticle(article.title, article.content, article.imageUrl, article.link,
-                    images = ArticleReader.decodeImages(article.imagesJson))
+                    images = ArticleImages.decode(article.imagesJson))
             if (result.notice == null && needsText(article)) savedText++
             else if (result.notice != null) failures++
             val image = result.imageUrl.ifBlank { result.images.firstOrNull().orEmpty() }
             if (image.isNotBlank()) {
-                val resource = ArticleImageCache.originalUrl(image, settings.workerUrl())
+                val resource = ArticleImages.originalUrl(image, settings.workerUrl())
                 if (!images.contains(resource)) {
                     images.load(resource, settings.workerUrl())
                     savedImages++

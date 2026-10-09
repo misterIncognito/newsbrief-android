@@ -43,7 +43,7 @@ class ArticleReaderTest {
         val article = io.newsbrief.app.data.ArticleEntity(sourceId = 1, sourceName = "Source", title = "Short",
             excerpt = "Summary", content = "Saved short text.", readerLoaded = true,
             link = "https://meduza.io/story", publishedAt = 123, author = "Author")
-        val result = ArticleReader(io.newsbrief.app.data.SettingsStore(context)).load(article)
+        val result = ArticleReader(TestSettings(context)).load(article)
         assertEquals("Saved short text.", result.text)
         assertNull(result.notice)
         assertEquals("Author", result.author)

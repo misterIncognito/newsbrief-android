@@ -1,5 +1,7 @@
 package io.newsbrief.app
 
+import io.newsbrief.app.TestSettings as SettingsStore
+
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.*
@@ -35,7 +37,7 @@ class TelegramReaderLinksTest {
     }
     @Test fun oldSavedTelegramPostHydratesExactPostWithoutReplacingOfflineText() = runBlocking {
         var calls = 0
-        val reader = ArticleReader(settings) { url, type, _, _ ->
+        val reader = ArticleReader(settings, telegram = TelegramArticleContent(settings)) { url, type, _, _ ->
             calls++
             assertEquals("https://t.me/s/devby/16806", url)
             assertEquals("fetch", type)
@@ -49,14 +51,14 @@ class TelegramReaderLinksTest {
     }
     @Test fun hydratedPostAndLinksOpenOfflineWithoutNetwork() = runBlocking {
         val links = listOf(ArticleLink("Подробнее", "https://devby.io/news/right"))
-        val result = ArticleReader(settings) { _, _, _, _ -> error("Must not fetch") }
+        val result = ArticleReader(settings, telegram = TelegramArticleContent(settings)) { _, _, _, _ -> error("Must not fetch") }
             .load(post.copy(linksJson = ArticleLinks.encode(links)))
         assertEquals(links, result.links)
         assertEquals(post.content, result.text)
         assertNull(result.notice)
     }
     @Test fun unavailableTelegramPostKeepsOfflineBodyAndNeverUsesNeighbour() = runBlocking {
-        val result = ArticleReader(settings) { _, _, _, _ ->
+        val result = ArticleReader(settings, telegram = TelegramArticleContent(settings)) { _, _, _, _ ->
             preview.substringBefore("<div class=\"tgme_widget_message\" data-post=\"devby/16806\"").toByteArray()
         }.load(post)
         assertEquals(post.content, result.text)
@@ -65,7 +67,7 @@ class TelegramReaderLinksTest {
     }
     @Test fun refreshingHydratedPostActuallyFetches() = runBlocking {
         var calls = 0
-        val result = ArticleReader(settings) { _, _, _, _ -> calls++; preview.toByteArray() }
+        val result = ArticleReader(settings, telegram = TelegramArticleContent(settings)) { _, _, _, _ -> calls++; preview.toByteArray() }
             .load(post.copy(linksJson = "[{\"label\":\"Old\",\"url\":\"https://devby.io/news/old\"}]"), true)
         assertEquals(1, calls)
         assertEquals("https://devby.io/news/right", result.links.single().url)

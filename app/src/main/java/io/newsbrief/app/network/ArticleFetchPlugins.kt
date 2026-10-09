@@ -32,7 +32,11 @@ class ArticleFetchRequest(val article: ArticleEntity, val cached: ReaderArticle,
     }
 }
 
-class ArticleFetchRegistry(val plugins: List<ArticleFetchPlugin>) {
+class ArticleFetchRegistry(val plugins: List<ArticleFetchPlugin>) : ArticleExtractor {
+    override suspend fun fetch(article: ArticleEntity, cached: ReaderArticle, worker: String,
+        direct: (String, String, String, Int) -> ByteArray,
+        proxy: (String, String, String, Int) -> ByteArray): ReaderArticle =
+        fetch(ArticleFetchRequest(article, cached, worker, direct, proxy))
     init { require(plugins.map { it.id }.distinct().size == plugins.size) { "Duplicate article plugin ID" } }
     suspend fun fetch(request: ArticleFetchRequest): ReaderArticle {
         for (plugin in plugins) if (plugin.supports(request)) {

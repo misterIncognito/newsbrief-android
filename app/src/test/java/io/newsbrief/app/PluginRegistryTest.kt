@@ -1,5 +1,7 @@
 package io.newsbrief.app
 
+import io.newsbrief.app.TestSettings as SettingsStore
+
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.*

@@ -8,17 +8,18 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.WorkManager
-import io.newsbrief.app.NewsBriefApp
+import io.newsbrief.app.sync.BackgroundTasksOwner
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        val app = applicationContext as NewsBriefApp
+        val tasks = (applicationContext as? BackgroundTasksOwner)?.backgroundTasks ?: return Result.failure()
         return try {
-            val response = app.repository.refresh()
+            val response = tasks.refresh()
             if (response.errors.isNotEmpty() && response.errors.size == response.sources) Result.retry()
             else Result.success()
-        } catch (_: Exception) {
+        } catch (e: CancellationException) { throw e } catch (_: Exception) {
             Result.retry()
         }
     }

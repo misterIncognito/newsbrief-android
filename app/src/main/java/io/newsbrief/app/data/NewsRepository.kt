@@ -8,8 +8,6 @@ import androidx.room.withTransaction
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 class NewsRepository(
     private val db: NewsDatabase,
@@ -18,16 +16,13 @@ class NewsRepository(
     directoryNetwork: io.newsbrief.app.network.DirectoryNetwork = io.newsbrief.app.network.PublicDirectoryNetwork(),
     val sourcePlugins: io.newsbrief.app.network.SourcePluginRegistry = (collector as? io.newsbrief.app.network.WebCollectors)?.plugins
         ?: (collector as? io.newsbrief.app.network.SourcePluginRegistry) ?: io.newsbrief.app.network.SourcePluginRegistry.builtIns(settings),
-    private val articleReader: ArticleReader = ArticleReader(settings),
+    private val articleReader: ArticleReader = ArticleReader(settings, telegram = io.newsbrief.app.network.TelegramArticleContent(settings)),
     private val clock: () -> Long = System::currentTimeMillis,
     private val onFeedUpdated: () -> Unit = {}
-) {
+) : io.newsbrief.app.network.PrefetchArticleStore {
     private val ai = AiClient(settings)
-    private val refreshMutex = Mutex()
 
-    data class RefreshResult(val added: Int, val sources: Int, val errors: List<String>,
-        val skipped: Boolean = false, val retryAfterMillis: Long = 0)
-    companion object { const val SYNC_COOLDOWN_MILLIS = 3 * 60_000L }
+    companion object { const val SYNC_COOLDOWN_MILLIS = io.newsbrief.app.sync.FeedSynchronizer.SYNC_COOLDOWN_MILLIS }
 
     fun observeSources(): Flow<List<SourceEntity>> = db.sourceDao().observe()
     fun observeLatest(): Flow<List<ArticleEntity>> = db.articleDao().observeRecent(0)
@@ -103,53 +98,10 @@ class NewsRepository(
     suspend fun toggleSource(id: Long, enabled: Boolean) = db.sourceDao().setEnabled(id, enabled)
     suspend fun removeSource(id: Long) = db.sourceDao().delete(id)
 
-    suspend fun refresh(): RefreshResult = refreshMutex.withLock {
+    private val synchronizer = io.newsbrief.app.sync.FeedSynchronizer(db, collector, settings, clock, onFeedUpdated)
+    suspend fun refresh(): io.newsbrief.app.sync.FeedSynchronizer.RefreshResult {
         seedDefaults()
-        // Fetch newly added sources first so slow existing feeds do not delay them.
-        val sources = db.sourceDao().enabled().sortedByDescending { it.id }
-        val configuration = org.json.JSONArray().apply {
-            put(settings.workerUrl()); put(settings.telegramProxyUrl())
-            sources.forEach { put(org.json.JSONArray(listOf(it.id, it.kind, it.address))) }
-        }.toString()
-        val now = clock()
-        val previous = settings.feedSyncAttempt()
-        val elapsed = previous?.let { now - it.time }
-        if (previous?.configuration == configuration && elapsed != null && elapsed in 0 until SYNC_COOLDOWN_MILLIS)
-            return@withLock RefreshResult(0, sources.size, emptyList(), skipped = true,
-                retryAfterMillis = SYNC_COOLDOWN_MILLIS - elapsed)
-        // Record attempts, not successes, before any requests. Source-list changes remain immediate.
-        settings.recordFeedSyncAttempt(now, configuration)
-        var total = 0
-        val errors = mutableListOf<String>()
-        for (source in sources) {
-            try {
-                val items = collector.collect(source).filter {
-                    // Reject broken/future timestamps (5 min of clock skew allowed).
-                    it.publishedAt <= System.currentTimeMillis() + 5 * 60_000L
-                }
-                // Cross-feed duplicate links are ignored by unique SQLite index.
-                val results = db.articleDao().insertAll(items)
-                total += results.count { it != -1L }
-                // Existing v0.3 articles had no image/full-text columns. Backfill
-                // metadata from refreshed feeds without overwriting saved reader text.
-                items.zip(results).forEach { (item, id) ->
-                    if (id == -1L) {
-                        db.articleDao().fillSourcePlugin(item.link, item.sourcePluginId)
-                        db.articleDao().associateEnabledSource(item.link, item.sourceId, item.sourceName, item.sourcePluginId)
-                        mergePluginPost(item)
-                        if (item.content.isNotBlank() || item.imageUrl.isNotBlank() || item.linksJson != "[]") {
-                            db.articleDao().fillMissingPreview(item.link, item.content, item.imageUrl, item.linksJson)
-                        }
-                    }
-                }
-            } catch (e: CancellationException) { throw e
-            } catch (e: Exception) {
-                errors += "${source.name}: ${e.message.orEmpty().take(120)}"
-            }
-        }
-        // Do not silently destroy history. A future retention policy can be user-controlled.
-        onFeedUpdated()
-        RefreshResult(added = total, sources = sources.size, errors = errors)
+        return synchronizer.refresh()
     }
 
     private suspend fun mergePluginPost(incoming: ArticleEntity) {
@@ -159,12 +111,12 @@ class NewsRepository(
         if (merged != existing) db.articleDao().updateArticle(merged)
     }
 
-    suspend fun lookup(url: String): ArticleEntity? = db.articleDao().findByLink(url)
+    override suspend fun lookup(url: String): ArticleEntity? = db.articleDao().findByLink(url)
 
-    suspend fun prefetchCandidates(): List<ArticleEntity> =
+    override suspend fun prefetchCandidates(): List<ArticleEntity> =
         db.articleDao().recent(System.currentTimeMillis() - 48 * 60 * 60_000L, 600)
 
-    suspend fun linkedArticle(parent: ArticleEntity, url: String): ArticleEntity {
+    override suspend fun linkedArticle(parent: ArticleEntity, url: String): ArticleEntity {
         val saved = lookup(url) ?: ArticleEntity(sourceId = 0, sourceName = parent.sourceName,
             title = parent.title, excerpt = "", link = url, publishedAt = parent.publishedAt)
         val linked = saved.copy(proxyRequired = saved.proxyRequired || parent.proxyRequired ||
@@ -173,7 +125,7 @@ class NewsRepository(
         return linked
     }
 
-    suspend fun readArticle(article: ArticleEntity, refresh: Boolean = false, preserveLongerText: Boolean = false): ReaderArticle {
+    override suspend fun readArticle(article: ArticleEntity, refresh: Boolean, preserveLongerText: Boolean): ReaderArticle {
         val stored = db.articleDao().findByLink(article.link) ?: article
         val saved = stored.copy(proxyRequired = stored.proxyRequired || article.proxyRequired)
         val loaded = articleReader.load(saved, refresh)

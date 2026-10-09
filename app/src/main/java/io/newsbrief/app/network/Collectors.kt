@@ -3,7 +3,7 @@ package io.newsbrief.app.network
 import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.data.SourceEntity
 import io.newsbrief.app.data.SourceKind
-import io.newsbrief.app.data.SettingsStore
+import io.newsbrief.app.data.SourceSettings
 import io.newsbrief.app.util.FeedRules
 import org.jsoup.Jsoup
 import org.xmlpull.v1.XmlPullParser
@@ -15,14 +15,12 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-interface NewsCollector {
-    suspend fun collect(source: SourceEntity): List<ArticleEntity>
-}
 
 /** Compatibility entry point; all ingestion dispatches through the source registry. */
-class WebCollectors(settings: SettingsStore? = null,
+class WebCollectors(settings: SourceSettings? = null,
     val plugins: SourcePluginRegistry = SourcePluginRegistry.builtIns(settings)) : NewsCollector {
     override suspend fun collect(source: SourceEntity) = plugins.collect(source)
+    override fun merge(existing: ArticleEntity, incoming: ArticleEntity) = plugins.merge(existing, incoming)
     internal fun parseFeed(xml: String, source: SourceEntity) = FeedParsers().parseFeed(xml, source)
     internal fun parseTelegramPreview(html: String, source: SourceEntity) = FeedParsers().parseTelegramPreview(html, source)
 }

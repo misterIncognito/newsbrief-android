@@ -17,7 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.network.*
 
 @Composable
-fun SourceDirectoryPage(vm: NewsViewModel) {
+fun SourceDirectoryPage(vm: SourcesUi) {
     val state by vm.directoryState.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
     val existing = sources.map { it.address.lowercase(java.util.Locale.ROOT) }.toSet()

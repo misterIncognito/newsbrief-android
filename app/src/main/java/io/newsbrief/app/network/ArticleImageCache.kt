@@ -7,11 +7,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
-interface PrefetchImageStore {
-    fun contains(url: String): Boolean
-    suspend fun load(url: String, worker: String): ByteArray
-}
-
 /** Shared by background prefetch and the visible reader, using the existing cache location. */
 class ArticleImageCache(private val directory: File,
     private val download: (String, String) -> ByteArray = { url, worker ->

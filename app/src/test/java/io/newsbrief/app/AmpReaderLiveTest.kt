@@ -3,7 +3,7 @@ package io.newsbrief.app
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.ArticleEntity
-import io.newsbrief.app.data.SettingsStore
+import io.newsbrief.app.TestSettings as SettingsStore
 import io.newsbrief.app.network.*
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*

@@ -29,20 +29,18 @@ class NewsViewModel @JvmOverloads constructor(
     application: Application,
     private val repo: io.newsbrief.app.data.NewsRepository = (application as NewsBriefApp).repository,
     private val store: SettingsStore = (application as NewsBriefApp).settings
-) : AndroidViewModel(application) {
+) : AndroidViewModel(application), SourcesUi, ReaderUi, FeedUi, AiUi {
 
-    val sourcePlugins = repo.sourcePlugins.available
+    override val sourcePlugins = repo.sourcePlugins.available
     private val _telegramProxyUrl = MutableStateFlow(store.telegramProxyUrl())
     val telegramProxyUrl = _telegramProxyUrl.asStateFlow()
     private val _hasTelegramProxyKey = MutableStateFlow(store.hasTelegramProxyKey())
     val hasTelegramProxyKey = _hasTelegramProxyKey.asStateFlow()
-    data class ProxyChannelsState(val open: Boolean = false, val busy: Boolean = false,
-        val channels: List<io.newsbrief.app.data.SourceEntity> = emptyList(), val error: String? = null)
     private val _proxyChannels = MutableStateFlow(ProxyChannelsState())
-    val proxyChannels = _proxyChannels.asStateFlow()
+    override val proxyChannels = _proxyChannels.asStateFlow()
     private var proxyChannelsJob: Job? = null
-    fun closeProxyChannels() { proxyChannelsJob?.cancel(); _proxyChannels.value = ProxyChannelsState() }
-    fun openProxyChannels() {
+    override fun closeProxyChannels() { proxyChannelsJob?.cancel(); _proxyChannels.value = ProxyChannelsState() }
+    override fun openProxyChannels() {
         proxyChannelsJob?.cancel()
         _proxyChannels.value = ProxyChannelsState(open = true, busy = true)
         proxyChannelsJob = viewModelScope.launch {
@@ -70,14 +68,14 @@ class NewsViewModel @JvmOverloads constructor(
         report("Ключ Telegram-прокси удалён")
     }
 
-    val sources = repo.observeSources().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-    val articles = repo.observeLatest().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-    val savedUrls = repo.observeSavedUrls().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    override val sources = repo.observeSources().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    override val articles = repo.observeLatest().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    override val savedUrls = repo.observeSavedUrls().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     private val _savedOnly = MutableStateFlow(false)
-    val savedOnly = _savedOnly.asStateFlow()
-    fun showSaved(value: Boolean) { _savedOnly.value = value }
+    override val savedOnly = _savedOnly.asStateFlow()
+    override fun showSaved(value: Boolean) { _savedOnly.value = value }
     private val saving = mutableSetOf<String>()
-    fun toggleSaved(article: ArticleEntity) = viewModelScope.launch {
+    override fun toggleSaved(article: ArticleEntity) = viewModelScope.launch {
         if (!saving.add(article.link)) return@launch
         try {
             report(if (repo.toggleSaved(article)) "Публикация сохранена" else "Публикация убрана из сохранённых")
@@ -87,50 +85,53 @@ class NewsViewModel @JvmOverloads constructor(
     }
 
     private val _feedCategory = MutableStateFlow(FeedCategory.ALL)
-    val feedCategory = _feedCategory.asStateFlow()
+    override val feedCategory = _feedCategory.asStateFlow()
     private val _feedSources = MutableStateFlow<Set<String>>(emptySet())
-    val feedSources = _feedSources.asStateFlow()
+    override val feedSources = _feedSources.asStateFlow()
+    override val feedOptions = combine(repo.observeSources(), _feedCategory) { sources, category ->
+        FeedFilters.options(sources, category)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val feedArticles = combine(repo.observeSources(), _feedCategory, _feedSources, _savedOnly) { sources, category, source, saved ->
+    override val feedArticles = combine(repo.observeSources(), _feedCategory, _feedSources, _savedOnly) { sources, category, source, saved ->
         saved to FeedFilters.sourceIds(sources, category, source)
     }.distinctUntilChanged().flatMapLatest { (saved, ids) -> if (saved) repo.observeSaved() else repo.observeFeed(ids) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun filterCategory(category: FeedCategory) {
+    override fun filterCategory(category: FeedCategory) {
         _feedSources.value = emptySet()
         _feedCategory.value = category
     }
-    fun filterSource(key: String?) { _feedSources.value = key?.let { setOf(it) }.orEmpty() }
-    fun toggleFeedSource(key: String) {
+    override fun filterSource(key: String?) { _feedSources.value = key?.let { setOf(it) }.orEmpty() }
+    override fun toggleFeedSource(key: String) {
         val current = _feedSources.value
         _feedSources.value = if (key in current) current - key else current + key
     }
-    fun clearFeedFilter() { filterCategory(FeedCategory.ALL) }
+    override fun clearFeedFilter() { filterCategory(FeedCategory.ALL) }
 
     private val _mode = MutableStateFlow(DigestMode.SHORT)
-    val mode = _mode.asStateFlow()
+    override val mode = _mode.asStateFlow()
     private val _digest = MutableStateFlow<DigestEntity?>(null)
-    val digest = _digest.asStateFlow()
+    override val digest = _digest.asStateFlow()
     private val _refreshing = MutableStateFlow(false)
-    val refreshing = _refreshing.asStateFlow()
+    override val refreshing = _refreshing.asStateFlow()
     private val _generating = MutableStateFlow(false)
-    val generating = _generating.asStateFlow()
+    override val generating = _generating.asStateFlow()
     private val _message = MutableStateFlow<String?>(null)
     val message = _message.asStateFlow()
     private val _config = MutableStateFlow(store.read())
     val config = _config.asStateFlow()
     private val _hasKey = MutableStateFlow(store.hasApiKey(store.read().provider))
-    val hasKey = _hasKey.asStateFlow()
+    override val hasKey = _hasKey.asStateFlow()
     private val _workerUrl = MutableStateFlow(store.workerUrl())
-    val workerUrl = _workerUrl.asStateFlow()
+    override val workerUrl = _workerUrl.asStateFlow()
     private val _readerSource = MutableStateFlow<ArticleEntity?>(null)
-    val readerSource = _readerSource.asStateFlow()
+    override val readerSource = _readerSource.asStateFlow()
     private val _browserUrl = MutableStateFlow<String?>(null)
     val browserUrl = _browserUrl.asStateFlow()
     private val _browserForceProxy = MutableStateFlow(false)
     val browserForceProxy = _browserForceProxy.asStateFlow()
-    fun openBrowser(url: String, forceProxy: Boolean = false) {
+    override fun openBrowser(url: String, forceProxy: Boolean) {
         if (io.newsbrief.app.network.ArticleLinks.valid(url)) {
             _browserForceProxy.value = forceProxy
             _browserUrl.value = url
@@ -138,25 +139,18 @@ class NewsViewModel @JvmOverloads constructor(
     }
     fun closeBrowser() { _browserUrl.value = null }
     private val _reader = MutableStateFlow<ReaderArticle?>(null)
-    val reader = _reader.asStateFlow()
+    override val reader = _reader.asStateFlow()
     private val _readerBusy = MutableStateFlow(false)
-    val readerBusy = _readerBusy.asStateFlow()
+    override val readerBusy = _readerBusy.asStateFlow()
 
-    data class DirectoryState(
-        val provider: io.newsbrief.app.network.DirectoryProvider = io.newsbrief.app.network.DirectoryProvider.RSS,
-        val query: String = "technology", val searchedQuery: String = "",
-        val results: io.newsbrief.app.network.DirectoryResults? = null, val busy: Boolean = false,
-        val error: String? = null, val addingAddress: String? = null, val addMessage: String? = null,
-        val hidePromotions: Boolean = true
-    )
     private val _catalogOpen = MutableStateFlow(false)
     val catalogOpen = _catalogOpen.asStateFlow()
     private val _directoryState = MutableStateFlow(DirectoryState())
-    val directoryState = _directoryState.asStateFlow()
+    override val directoryState = _directoryState.asStateFlow()
     private var directoryJob: Job? = null
     private var directoryGeneration = 0
 
-    fun openCatalog() {
+    override fun openCatalog() {
         _catalogOpen.value = true
         if (_directoryState.value.results == null) searchDirectory()
     }
@@ -166,15 +160,15 @@ class NewsViewModel @JvmOverloads constructor(
         directoryJob?.cancel()
         _directoryState.value = _directoryState.value.copy(busy = false)
     }
-    fun directoryQuery(query: String) {
+    override fun directoryQuery(query: String) {
         _directoryState.value = _directoryState.value.copy(query = query.take(120))
         if (_directoryState.value.provider == io.newsbrief.app.network.DirectoryProvider.CURATED) searchDirectory()
     }
-    fun directoryProvider(provider: io.newsbrief.app.network.DirectoryProvider) {
+    override fun directoryProvider(provider: io.newsbrief.app.network.DirectoryProvider) {
         _directoryState.value = _directoryState.value.copy(provider = provider, results = null, error = null)
         searchDirectory()
     }
-    fun searchDirectory() {
+    override fun searchDirectory() {
         directoryJob?.cancel()
         val generation = ++directoryGeneration
         val request = _directoryState.value
@@ -191,10 +185,10 @@ class NewsViewModel @JvmOverloads constructor(
             }
         }
     }
-    fun hideDirectoryPromotions(value: Boolean) {
+    override fun hideDirectoryPromotions(value: Boolean) {
         _directoryState.value = _directoryState.value.copy(hidePromotions = value)
     }
-    fun loadMoreDirectory() {
+    override fun loadMoreDirectory() {
         val request = _directoryState.value
         val previous = request.results ?: return
         val offset = previous.nextOffset ?: return
@@ -214,7 +208,7 @@ class NewsViewModel @JvmOverloads constructor(
             }
         }
     }
-    fun addDirectorySource(source: io.newsbrief.app.network.DirectorySource) {
+    override fun addDirectorySource(source: io.newsbrief.app.network.DirectorySource) {
         if (_directoryState.value.addingAddress != null) return
         _directoryState.value = _directoryState.value.copy(addingAddress = source.address, addMessage = null)
         viewModelScope.launch {
@@ -246,7 +240,7 @@ class NewsViewModel @JvmOverloads constructor(
         if (!_refreshing.value) refresh(quiet = true)
     }
 
-    fun refresh(quiet: Boolean = false) {
+    override fun refresh(quiet: Boolean) {
         // Source changes during a refresh require another pass with the current source list.
         refreshRequested = true
         if (_refreshing.value) return
@@ -267,7 +261,7 @@ class NewsViewModel @JvmOverloads constructor(
         }
     }
 
-    fun changeMode(newMode: String) {
+    override fun changeMode(newMode: String) {
         _mode.value = newMode
         viewModelScope.launch { loadDigest() }
     }
@@ -276,7 +270,7 @@ class NewsViewModel @JvmOverloads constructor(
         _digest.value = repo.digest(_mode.value)
     }
 
-    fun generate() = viewModelScope.launch {
+    override fun generate() = viewModelScope.launch {
         if (_generating.value) return@launch
         _generating.value = true
         try {
@@ -287,7 +281,7 @@ class NewsViewModel @JvmOverloads constructor(
         } finally { _generating.value = false }
     }
 
-    fun addSource(name: String, kind: String, address: String) = viewModelScope.launch {
+    override fun addSource(name: String, kind: String, address: String) = viewModelScope.launch {
         try {
             val added = repo.addSource(name, kind, address)
             report(if (added) "Источник добавлен" else "Такой источник уже подключён")
@@ -295,12 +289,12 @@ class NewsViewModel @JvmOverloads constructor(
         } catch (e: Exception) { report(e.message ?: "Не удалось добавить источник") }
     }
 
-    fun toggleSource(id: Long, value: Boolean) = viewModelScope.launch {
+    override fun toggleSource(id: Long, value: Boolean) = viewModelScope.launch {
         repo.toggleSource(id, value)
         if (value) refresh()
     }
 
-    fun deleteSource(id: Long) = viewModelScope.launch {
+    override fun deleteSource(id: Long) = viewModelScope.launch {
         repo.removeSource(id)
         report("Источник удалён")
     }
@@ -308,7 +302,7 @@ class NewsViewModel @JvmOverloads constructor(
     private var readerJob: Job? = null
     private val readerHistory = ArrayDeque<ArticleEntity>()
 
-    fun openReader(article: ArticleEntity, refresh: Boolean = false) {
+    override fun openReader(article: ArticleEntity, refresh: Boolean) {
         if (!refresh && _readerSource.value?.link != article.link) readerHistory.clear()
         readerJob?.cancel()
         _readerSource.value = article
@@ -325,14 +319,14 @@ class NewsViewModel @JvmOverloads constructor(
         }
     }
 
-    fun openLink(url: String, sourceName: String, title: String) = viewModelScope.launch {
+    override fun openLink(url: String, sourceName: String, title: String) = viewModelScope.launch {
         val article = repo.lookup(url) ?: ArticleEntity(sourceId = 0, sourceName = sourceName,
             title = title, excerpt = "", link = url, publishedAt = System.currentTimeMillis())
         openReader(article)
     }
 
     private val resolvedPostLinks = mutableSetOf<String>()
-    fun resolvePostLinks(post: ArticleEntity) {
+    override fun resolvePostLinks(post: ArticleEntity) {
         if (!resolvedPostLinks.add(post.link)) return
         viewModelScope.launch {
             try {
@@ -346,12 +340,12 @@ class NewsViewModel @JvmOverloads constructor(
         }
     }
 
-    fun openFeedLink(post: ArticleEntity, url: String) = viewModelScope.launch {
+    override fun openFeedLink(post: ArticleEntity, url: String) = viewModelScope.launch {
         if (!io.newsbrief.app.network.ArticleLinks.valid(url)) return@launch
         openReader(repo.linkedArticle(post, url))
     }
 
-    fun openReaderLink(url: String) = viewModelScope.launch {
+    override fun openReaderLink(url: String) = viewModelScope.launch {
         if (!io.newsbrief.app.network.ArticleLinks.valid(url)) return@launch
         val parent = _readerSource.value ?: return@launch
         val linked = repo.linkedArticle(parent, url)

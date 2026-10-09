@@ -1,1 +1,2 @@
-check(file("features/sources-discovery.gradle.kts").isFile) { "Reader/browser requires feature/sources-discovery" }
+check(file("features/networking.gradle.kts").isFile) { "Reader requires networking transport" }
+dependencies { add("implementation", "androidx.lifecycle:lifecycle-runtime-compose:2.9.4") }

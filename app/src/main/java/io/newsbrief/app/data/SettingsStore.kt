@@ -11,7 +11,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** API keys are encrypted with non-exportable Android Keystore AES key, never bundled into APK. */
-class SettingsStore(context: Context) {
+class SettingsStore(context: Context) : SourceSettings, SyncSettings, AiSettings {
     private val prefs = context.getSharedPreferences("newsbrief_settings", Context.MODE_PRIVATE)
 
     companion object {
@@ -20,13 +20,12 @@ class SettingsStore(context: Context) {
         private const val ALIAS = "newsbrief_api_keys_v1"
     }
 
-    data class Config(val provider: String, val model: String)
 
-    fun read(): Config {
+    override fun read(): AiConfig {
         val provider = prefs.getString("provider", QWEN) ?: QWEN
         val model = prefs.getString("model_$provider", null)
             ?: if (provider == QWEN) "qwen3.5-flash" else "gpt-5.4-mini"
-        return Config(provider, model)
+        return AiConfig(provider, model)
     }
 
     fun setProvider(provider: String) {
@@ -64,7 +63,7 @@ class SettingsStore(context: Context) {
 
     fun hasApiKey(provider: String): Boolean = prefs.contains("key_$provider")
 
-    fun loadApiKey(provider: String): String {
+    override fun loadApiKey(provider: String): String {
         val encoded = prefs.getString("key_$provider", null) ?: return ""
         return try {
             val bytes = Base64.decode(encoded, Base64.DEFAULT)
@@ -74,7 +73,7 @@ class SettingsStore(context: Context) {
         } catch (_: Exception) { "" } // e.g. keys invalidated after OS restore
     }
 
-    fun workerUrl(): String = prefs.getString("worker_url", io.newsbrief.app.network.NewsRouting.DEFAULT_WORKER)
+    override fun workerUrl(): String = prefs.getString("worker_url", io.newsbrief.app.network.NewsRouting.DEFAULT_WORKER)
         ?: io.newsbrief.app.network.NewsRouting.DEFAULT_WORKER
 
     fun setWorkerUrl(url: String) {
@@ -84,16 +83,15 @@ class SettingsStore(context: Context) {
         prefs.edit().putString("worker_url", normalized).apply()
     }
 
-    data class FeedSyncAttempt(val time: Long, val configuration: String)
-    fun feedSyncAttempt(): FeedSyncAttempt? = if (prefs.contains("feed_sync_attempt_time"))
+    override fun feedSyncAttempt(): FeedSyncAttempt? = if (prefs.contains("feed_sync_attempt_time"))
         FeedSyncAttempt(prefs.getLong("feed_sync_attempt_time", 0), prefs.getString("feed_sync_configuration", "").orEmpty()) else null
-    fun recordFeedSyncAttempt(time: Long, configuration: String) {
+    override fun recordFeedSyncAttempt(time: Long, configuration: String) {
         prefs.edit().putLong("feed_sync_attempt_time", time).putString("feed_sync_configuration", configuration).commit()
     }
 
-    fun telegramProxyUrl(): String = prefs.getString("telegram_proxy_url", "").orEmpty()
+    override fun telegramProxyUrl(): String = prefs.getString("telegram_proxy_url", "").orEmpty()
     fun hasTelegramProxyKey(): Boolean = hasApiKey("TelegramProxy")
-    fun telegramProxyKey(): String = loadApiKey("TelegramProxy")
+    override fun telegramProxyKey(): String = loadApiKey("TelegramProxy")
     fun saveTelegramProxyKey(value: String) = saveApiKey("TelegramProxy", value)
     fun setTelegramProxyUrl(value: String) {
         val url = value.trim().trimEnd('/')

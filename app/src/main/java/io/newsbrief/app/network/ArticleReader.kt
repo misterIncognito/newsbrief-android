@@ -1,7 +1,7 @@
 package io.newsbrief.app.network
 
 import io.newsbrief.app.data.ArticleEntity
-import io.newsbrief.app.data.SettingsStore
+import io.newsbrief.app.data.WorkerSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,13 +11,12 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.time.Instant
 
-class ArticleReader(private val settings: SettingsStore,
+class ArticleReader(private val settings: WorkerSettings,
     private val proxyDownload: (String, String, String, Int) -> ByteArray = { url, type, worker, limit ->
         NewsHttp.download(url, type, worker, limit, forceProxy = true)
     },
-    val plugins: ArticleFetchRegistry = ArticleFetchRegistry.builtIns(TelegramProxyClient {
-        TelegramProxyConfig(settings.telegramProxyUrl(), settings.telegramProxyKey())
-    }),
+    val plugins: ArticleExtractor? = null,
+    private val telegram: TelegramContent? = null,
     private val download: (String, String, String, Int) -> ByteArray = { url, type, worker, limit ->
         NewsHttp.download(url, type, worker, limit)
     }
@@ -32,7 +31,14 @@ class ArticleReader(private val settings: SettingsStore,
             else if (telegramPreview != null) cached.links.isNotEmpty()
             else article.readerLoaded || article.content.isNotBlank()) return@withContext cached
         try {
-            val result = plugins.fetch(ArticleFetchRequest(article, cached, settings.workerUrl(), download, proxyDownload))
+            val mustProxy = article.proxyRequired || NewsRouting.requiresProxy(article.link)
+            val fetch = if (mustProxy) proxyDownload else download
+            // App integration can inject extraction plugins; the reader also works with built-in extraction.
+            val result = plugins?.fetch(article, cached, settings.workerUrl(), download, proxyDownload) ?: when {
+                article.sourcePluginId == io.newsbrief.app.data.SourceKind.TELEGRAM_PROXY || telegramPreview != null ->
+                    (telegram ?: error("Telegram content provider unavailable")).load(article, cached, telegramPreview, fetch)
+                else -> loadWebArticle(article.link, mustProxy, fetch)
+            }
             require(result.text.isNotBlank()) { "Article text unavailable" }
             result.copy(title = result.title.ifBlank { cached.title },
                 imageUrl = result.imageUrl.ifBlank { cached.imageUrl },
@@ -44,6 +50,50 @@ class ArticleReader(private val settings: SettingsStore,
             cached.copy(notice = "Не удалось загрузить полную статью: ${e.message.orEmpty().take(90)}")
         }
     }
+
+    private fun loadWebArticle(original: String, mustProxy: Boolean,
+        fetch: (String, String, String, Int) -> ByteArray): ReaderArticle {
+        var originalFailure: Exception? = null
+        val raw = try {
+            fetch(original, "fetch", settings.workerUrl(), 2_500_000).toString(Charsets.UTF_8)
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) { originalFailure = e; null }
+        if (raw != null) {
+            // Accept JSON transports too; public publisher pages normally return HTML.
+            if (raw.trimStart().startsWith("{")) return parseArticle(raw, original)
+            val originalReader = try { parseArticle(raw, original) }
+                catch (e: CancellationException) { throw e }
+                catch (_: Exception) { ReaderArticle("", "", "", original) }
+            val amp = AmpDiscovery.alternative(raw, original)
+            if (amp != null) {
+                try {
+                    val ampRaw = fetch(amp, "fetch", settings.workerUrl(), 2_500_000).toString(Charsets.UTF_8)
+                    val document = Jsoup.parse(ampRaw, amp)
+                    // Do not replace an article with an empty AMP shell or an error page.
+                    require(document.selectFirst("article p,main p,[itemprop=articleBody] p") != null ||
+                        document.selectFirst("html[amp],html[⚡]") != null && document.selectFirst("body p") != null) {
+                        "AMP article text unavailable"
+                    }
+                    val reader = parseArticle(ampRaw, amp)
+                    require(reader.text.isNotBlank()) { "AMP article text unavailable" }
+                    return withMetadata(reader.copy(originalUrl = original), originalReader)
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { /* Use the original article through the same routing policy. */ }
+            }
+            if (!mustProxy) return originalReader
+            return withMetadata(parseArticle(fetch(original, "article", settings.workerUrl(), 2_500_000)
+                .toString(Charsets.UTF_8), original), originalReader)
+        }
+        // Worker extraction stays the fallback for protected/Telegram publishers.
+        if (mustProxy) return parseArticle(fetch(original, "article", settings.workerUrl(), 2_500_000)
+            .toString(Charsets.UTF_8), original)
+        throw originalFailure ?: IllegalStateException("Article unavailable")
+    }
+
+    private fun withMetadata(reader: ReaderArticle, fallback: ReaderArticle) = reader.copy(
+        title = reader.title.ifBlank { fallback.title }, imageUrl = reader.imageUrl.ifBlank { fallback.imageUrl },
+        author = reader.author.ifBlank { fallback.author }, publishedAt = reader.publishedAt ?: fallback.publishedAt,
+        images = reader.images.ifEmpty { fallback.images })
 
     companion object {
         fun decodeImages(raw: String): List<String> = runCatching {
