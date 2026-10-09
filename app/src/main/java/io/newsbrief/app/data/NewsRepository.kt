@@ -32,17 +32,8 @@ class NewsRepository(
     fun observeSaved(): Flow<List<ArticleEntity>> = db.articleDao().observeSaved()
     fun observeSavedUrls(): Flow<List<String>> = db.savedArticleDao().observeUrls()
 
-    suspend fun toggleSaved(article: ArticleEntity): Boolean = db.transaction {
-        if (db.savedArticleDao().contains(article.link)) {
-            db.savedArticleDao().remove(article.link)
-            false
-        } else {
-            // Never replace richer cached reader content with an older feed preview.
-            db.articleDao().insertAll(listOf(article))
-            db.savedArticleDao().insert(SavedArticleEntity(article.link))
-            true
-        }
-    }
+    suspend fun toggleSaved(article: ArticleEntity): Boolean =
+        (extensions.saveArticle ?: error("Сохранение статей не подключено"))(db, article)
     fun observeFeed(sourceIds: List<Long>?): Flow<List<ArticleEntity>> =
         db.articleDao().observeFiltered(sourceIds.orEmpty(), sourceIds != null)
 

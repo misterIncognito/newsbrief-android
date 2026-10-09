@@ -17,7 +17,6 @@
     "app/src/main/java/io/newsbrief/app/network/LinkMarkup.kt",
     "app/src/main/java/io/newsbrief/app/ui/DateFormatting.kt",
     "app/src/test/java/io/newsbrief/app/TestSettings.kt",
-    "app/src/test/java/io/newsbrief/app/NewsRoutingTest.kt",
     "app/build.gradle.kts",
     "app/src/main/java/io/newsbrief/app/util/FeedRules.kt",
     "app/src/test/java/io/newsbrief/app/FeedRulesTest.kt",
@@ -30,10 +29,8 @@
     "app/src/main/java/io/newsbrief/app/ui/ReaderUi.kt",
     "app/src/main/java/io/newsbrief/app/ui/FeedUi.kt",
     "app/src/main/java/io/newsbrief/app/ui/AiUi.kt",
-    "app/src/main/java/io/newsbrief/app/ui/ArticleActions.kt",
     "app/src/main/java/io/newsbrief/app/data/DigestMode.kt",
     "app/src/main/java/io/newsbrief/app/sync/BackgroundTasks.kt",
-    "app/src/main/java/io/newsbrief/app/ui/BasicArticleUi.kt",
     "app/src/main/java/io/newsbrief/app/network/DirectoryContracts.kt",
     "app/src/main/java/io/newsbrief/app/network/ArticleLoader.kt",
     "app/src/main/java/io/newsbrief/app/network/SourceContracts.kt",
@@ -43,23 +40,49 @@
     "app/src/main/java/io/newsbrief/app/data/AppSettings.kt",
     "app/src/main/java/io/newsbrief/app/data/ManualFeedLoader.kt",
     "app/src/main/java/io/newsbrief/app/data/MemorySettings.kt",
-    "app/src/test/java/io/newsbrief/app/ArticleActionsTest.kt",
     "app/src/main/java/io/newsbrief/app/ui/NewsBriefShell.kt",
     "app/src/test/java/io/newsbrief/app/ShellAppTest.kt",
-    "app/src/test/java/io/newsbrief/app/MemoryNewsStoreTest.kt"
+    "app/src/test/java/io/newsbrief/app/MemoryNewsStoreTest.kt",
+    "app/src/main/java/io/newsbrief/app/ui/ArticleContributions.kt",
+    "app/src/main/java/io/newsbrief/app/ui/ArticleNavigation.kt",
+    "app/src/main/java/io/newsbrief/app/network/PageProxy.kt",
+    "app/src/main/java/io/newsbrief/app/network/ArticleFetchContracts.kt"
   ],
   "features": {
     "networking": {
       "requires": [],
       "files": [
         "app/src/main/java/io/newsbrief/app/network/NewsHttp.kt",
-        "app/src/test/java/io/newsbrief/app/NewsHttpTest.kt",
-        "app/features/networking.gradle.kts",
-        "app/src/main/AndroidManifest.xml",
         "app/src/main/java/io/newsbrief/app/features/NetworkingFeature.kt",
-        "app/src/main/java/io/newsbrief/app/ui/WorkerSettingsSection.kt"
+        "app/src/test/java/io/newsbrief/app/NewsHttpDirectTest.kt",
+        "app/features/networking.gradle.kts",
+        "app/src/main/AndroidManifest.xml"
       ],
       "binding": "io.newsbrief.app.features.NetworkingFeature"
+    },
+    "page-proxy": {
+      "requires": [],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/network/PageProxyRegistry.kt",
+        "app/src/main/java/io/newsbrief/app/features/PageProxyFeature.kt",
+        "app/src/test/java/io/newsbrief/app/PageProxyRegistryTest.kt",
+        "app/features/page-proxy.gradle.kts"
+      ],
+      "binding": "io.newsbrief.app.features.PageProxyFeature"
+    },
+    "news-proxy": {
+      "requires": [
+        "page-proxy"
+      ],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/network/CloudflarePageProxy.kt",
+        "app/src/main/java/io/newsbrief/app/network/WorkerArticlePlugin.kt",
+        "app/src/main/java/io/newsbrief/app/features/NewsProxyFeature.kt",
+        "app/src/main/java/io/newsbrief/app/ui/WorkerSettingsSection.kt",
+        "app/src/test/java/io/newsbrief/app/NewsRoutingTest.kt",
+        "app/features/news-proxy.gradle.kts"
+      ],
+      "binding": "io.newsbrief.app.features.NewsProxyFeature"
     },
     "storage": {
       "requires": [],
@@ -81,55 +104,132 @@
       ],
       "binding": "io.newsbrief.app.features.StorageFeature"
     },
-    "sources-discovery": {
+    "source-providers": {
+      "requires": [],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/network/SourcePlugins.kt",
+        "app/src/main/java/io/newsbrief/app/network/Collectors.kt",
+        "app/src/main/java/io/newsbrief/app/features/SourceProvidersFeature.kt",
+        "app/features/source-providers.gradle.kts",
+        "app/src/test/java/io/newsbrief/app/SourceProviderRegistryTest.kt"
+      ],
+      "binding": "io.newsbrief.app.features.SourceProvidersFeature"
+    },
+    "rss-source": {
+      "requires": [
+        "networking",
+        "source-providers"
+      ],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/network/RssSourcePlugin.kt",
+        "app/src/main/java/io/newsbrief/app/network/RssFeedParser.kt",
+        "app/src/main/java/io/newsbrief/app/features/RssSourceFeature.kt",
+        "app/src/test/java/io/newsbrief/app/RssParsingTest.kt",
+        "app/src/test/java/io/newsbrief/app/SourcesManualLoadingTest.kt",
+        "app/features/rss-source.gradle.kts"
+      ],
+      "binding": "io.newsbrief.app.features.RssSourceFeature"
+    },
+    "telegram-source": {
+      "requires": [
+        "networking",
+        "source-providers"
+      ],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/network/TelegramPreviewSourcePlugin.kt",
+        "app/src/main/java/io/newsbrief/app/network/TelegramPreviewParser.kt",
+        "app/src/main/java/io/newsbrief/app/network/TelegramArticleContent.kt",
+        "app/src/main/java/io/newsbrief/app/features/TelegramSourceFeature.kt",
+        "app/src/test/java/io/newsbrief/app/TelegramParsingTest.kt",
+        "app/features/telegram-source.gradle.kts"
+      ],
+      "binding": "io.newsbrief.app.features.TelegramSourceFeature"
+    },
+    "telegram-proxy": {
+      "requires": [
+        "networking",
+        "source-providers"
+      ],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/network/TelegramProxySourcePlugin.kt",
+        "app/src/main/java/io/newsbrief/app/network/TelegramProxyClient.kt",
+        "app/src/main/java/io/newsbrief/app/network/TelegramProxyContent.kt",
+        "app/src/main/java/io/newsbrief/app/features/TelegramProxyFeature.kt",
+        "app/src/main/java/io/newsbrief/app/ui/TelegramSettingsSection.kt",
+        "app/src/main/java/io/newsbrief/app/ui/TelegramProxyChannelsPage.kt",
+        "app/features/telegram-proxy.gradle.kts",
+        "app/src/test/java/io/newsbrief/app/TelegramProxyServiceTest.kt"
+      ],
+      "binding": "io.newsbrief.app.features.TelegramProxyFeature"
+    },
+    "source-management": {
+      "requires": [],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/ui/SourcesPage.kt",
+        "app/src/main/java/io/newsbrief/app/features/SourceManagementFeature.kt",
+        "app/features/source-management.gradle.kts"
+      ],
+      "binding": "io.newsbrief.app.features.SourceManagementFeature"
+    },
+    "source-discovery": {
       "requires": [
         "networking"
       ],
       "files": [
         "app/src/main/java/io/newsbrief/app/data/SourceCatalog.kt",
-        "app/src/main/java/io/newsbrief/app/data/FeedFilters.kt",
         "app/src/main/java/io/newsbrief/app/data/SourceDirectoryRepository.kt",
-        "app/src/main/java/io/newsbrief/app/network/Collectors.kt",
         "app/src/main/java/io/newsbrief/app/network/SourceDirectory.kt",
-        "app/src/main/java/io/newsbrief/app/network/SourcePlugins.kt",
-        "app/src/main/java/io/newsbrief/app/network/TelegramProxyClient.kt",
-        "app/src/main/java/io/newsbrief/app/network/TelegramArticleContent.kt",
-        "app/src/main/java/io/newsbrief/app/ui/SourcesPage.kt",
         "app/src/main/java/io/newsbrief/app/ui/SourceDirectoryPage.kt",
-        "app/src/test/java/io/newsbrief/app/CollectorsTest.kt",
+        "app/src/main/java/io/newsbrief/app/features/SourceDiscoveryFeature.kt",
         "app/src/test/java/io/newsbrief/app/SourceCatalogTest.kt",
-        "app/src/test/java/io/newsbrief/app/FeedFiltersTest.kt",
-        "app/features/sources-discovery.gradle.kts",
-        "app/src/main/java/io/newsbrief/app/features/SourcesFeature.kt",
-        "app/src/main/java/io/newsbrief/app/ui/TelegramSettingsSection.kt",
-        "app/src/test/java/io/newsbrief/app/SourcesManualLoadingTest.kt"
+        "app/features/source-discovery.gradle.kts"
       ],
-      "binding": "io.newsbrief.app.features.SourcesFeature"
+      "binding": "io.newsbrief.app.features.SourceDiscoveryFeature"
     },
-    "reader-browser": {
+    "feed-filters": {
+      "requires": [],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/data/FeedFilters.kt",
+        "app/src/main/java/io/newsbrief/app/ui/FeedFilterControls.kt",
+        "app/src/main/java/io/newsbrief/app/features/FeedFiltersFeature.kt",
+        "app/src/test/java/io/newsbrief/app/FeedFiltersTest.kt",
+        "app/features/feed-filters.gradle.kts"
+      ],
+      "binding": "io.newsbrief.app.features.FeedFiltersFeature"
+    },
+    "native-reader": {
       "requires": [
         "networking"
       ],
       "files": [
         "app/src/main/java/io/newsbrief/app/network/ArticleReader.kt",
         "app/src/main/java/io/newsbrief/app/network/AmpDiscovery.kt",
-        "app/src/main/java/io/newsbrief/app/network/BrowserRouting.kt",
         "app/src/main/java/io/newsbrief/app/network/ArticleImageCache.kt",
-        "app/src/main/java/io/newsbrief/app/ui/EmbeddedBrowserPage.kt",
         "app/src/main/java/io/newsbrief/app/ui/NewsImage.kt",
         "app/src/main/java/io/newsbrief/app/ui/TelegramFeedPost.kt",
         "app/src/main/java/io/newsbrief/app/ui/ReaderPage.kt",
         "app/src/main/java/io/newsbrief/app/ui/NewsCard.kt",
+        "app/src/main/java/io/newsbrief/app/features/ReaderFeature.kt",
         "app/src/test/java/io/newsbrief/app/ArticleReaderTest.kt",
         "app/src/test/java/io/newsbrief/app/ArticleImageCacheTest.kt",
-        "app/src/test/java/io/newsbrief/app/BrowserRoutingTest.kt",
-        "app/src/test/java/io/newsbrief/app/OriginalBrowserModeTest.kt",
         "app/src/test/java/io/newsbrief/app/TelegramFeedPostTest.kt",
-        "app/src/test/java/io/newsbrief/app/AmpReaderLiveTest.kt",
-        "app/features/reader-browser.gradle.kts",
-        "app/src/main/java/io/newsbrief/app/features/ReaderFeature.kt"
+        "app/features/native-reader.gradle.kts"
       ],
       "binding": "io.newsbrief.app.features.ReaderFeature"
+    },
+    "embedded-browser": {
+      "requires": [
+        "networking"
+      ],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/network/BrowserRouting.kt",
+        "app/src/main/java/io/newsbrief/app/ui/EmbeddedBrowserPage.kt",
+        "app/src/main/java/io/newsbrief/app/features/EmbeddedBrowserFeature.kt",
+        "app/src/test/java/io/newsbrief/app/OriginalBrowserModeTest.kt",
+        "app/features/embedded-browser.gradle.kts",
+        "app/src/test/java/io/newsbrief/app/BrowserPolicyTest.kt"
+      ],
+      "binding": "io.newsbrief.app.features.EmbeddedBrowserFeature"
     },
     "synchronization": {
       "requires": [],
@@ -153,9 +253,31 @@
         "app/src/test/java/io/newsbrief/app/FeedAutoRefreshTest.kt",
         "app/features/feed.gradle.kts",
         "app/src/main/java/io/newsbrief/app/features/FeedFeature.kt",
-        "app/src/test/java/io/newsbrief/app/FeedRuntimeTest.kt"
+        "app/src/test/java/io/newsbrief/app/FeedRuntimeTest.kt",
+        "app/src/main/java/io/newsbrief/app/ui/FeedCard.kt"
       ],
       "binding": "io.newsbrief.app.features.FeedFeature"
+    },
+    "save-articles": {
+      "requires": [],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/data/SaveArticleService.kt",
+        "app/src/main/java/io/newsbrief/app/ui/SaveArticleAction.kt",
+        "app/src/main/java/io/newsbrief/app/features/SaveArticlesFeature.kt",
+        "app/src/test/java/io/newsbrief/app/SaveArticleTest.kt",
+        "app/features/save-articles.gradle.kts"
+      ],
+      "binding": "io.newsbrief.app.features.SaveArticlesFeature"
+    },
+    "share-articles": {
+      "requires": [],
+      "files": [
+        "app/src/main/java/io/newsbrief/app/ui/ShareArticleAction.kt",
+        "app/src/main/java/io/newsbrief/app/features/ShareArticlesFeature.kt",
+        "app/src/test/java/io/newsbrief/app/ShareArticleTest.kt",
+        "app/features/share-articles.gradle.kts"
+      ],
+      "binding": "io.newsbrief.app.features.ShareArticlesFeature"
     },
     "ai": {
       "requires": [],
@@ -172,15 +294,13 @@
     },
     "article-plugins": {
       "requires": [
-        "reader-browser",
-        "sources-discovery"
+        "native-reader"
       ],
       "files": [
         "app/src/main/java/io/newsbrief/app/network/ArticleFetchPlugins.kt",
-        "app/src/test/java/io/newsbrief/app/PluginRegistryTest.kt",
-        "app/src/test/java/io/newsbrief/app/TelegramReaderLinksTest.kt",
+        "app/src/main/java/io/newsbrief/app/features/ArticlePluginsFeature.kt",
         "app/features/article-plugins.gradle.kts",
-        "app/src/main/java/io/newsbrief/app/features/ArticlePluginsFeature.kt"
+        "app/src/test/java/io/newsbrief/app/ArticlePluginRegistryTest.kt"
       ],
       "binding": "io.newsbrief.app.features.ArticlePluginsFeature"
     },
@@ -205,15 +325,31 @@
         "app/features/app-integration.gradle.kts",
         "app/src/androidTest/java/io/newsbrief/app/FeedPullRefreshTest.kt",
         "app/src/androidTest/java/io/newsbrief/app/OriginalPageLiveTest.kt",
-        "app/src/androidTest/java/io/newsbrief/app/TelegramReaderLiveTest.kt"
+        "app/src/androidTest/java/io/newsbrief/app/TelegramReaderLiveTest.kt",
+        "app/src/test/java/io/newsbrief/app/NewsHttpTest.kt",
+        "app/src/test/java/io/newsbrief/app/BrowserRoutingTest.kt",
+        "app/src/test/java/io/newsbrief/app/PluginRegistryTest.kt",
+        "app/src/test/java/io/newsbrief/app/TelegramReaderLinksTest.kt",
+        "app/src/test/java/io/newsbrief/app/AmpReaderLiveTest.kt"
       ],
       "testRequires": [
         "networking",
+        "page-proxy",
+        "news-proxy",
         "storage",
-        "sources-discovery",
-        "reader-browser",
+        "source-providers",
+        "rss-source",
+        "telegram-source",
+        "telegram-proxy",
+        "source-management",
+        "source-discovery",
+        "feed-filters",
+        "native-reader",
+        "embedded-browser",
         "synchronization",
         "feed",
+        "save-articles",
+        "share-articles",
         "ai",
         "article-plugins"
       ]

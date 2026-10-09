@@ -18,7 +18,7 @@ class TestSettings(@Suppress("UNUSED_PARAMETER") context: android.content.Contex
     override fun read() = AiConfig(AiSettings.QWEN, "test-model")
     override fun loadApiKey(provider: String) = ""
     fun setWorkerUrl(value: String) {
-        NewsRouting.endpoint("https://meduza.io/rss/all", "fetch", value)
+        io.newsbrief.app.network.ProxyUrls.workerService(value)
         worker = value.trim().trimEnd('/')
     }
     fun setTelegramProxyUrl(value: String) {
