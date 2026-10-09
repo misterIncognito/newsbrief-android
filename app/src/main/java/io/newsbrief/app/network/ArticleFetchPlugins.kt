@@ -4,39 +4,11 @@ import io.newsbrief.app.data.*
 import kotlinx.coroutines.CancellationException
 import org.jsoup.Jsoup
 
-/** Returning null declines extraction; throwing is terminal. Routing is fixed by the request. */
-interface ArticleFetchPlugin {
-    val id: String
-    fun supports(request: ArticleFetchRequest): Boolean
-    suspend fun fetch(request: ArticleFetchRequest): ReaderArticle?
-}
-
-class ArticleFetchRequest(val article: ArticleEntity, val cached: ReaderArticle,
-    private val worker: String, private val direct: (String, String, String, Int) -> ByteArray,
-    private val proxy: (String, String, String, Int) -> ByteArray) {
-    val mustProxy = article.proxyRequired || NewsRouting.requiresProxy(article.link)
-    fun download(url: String, type: String = "fetch"): String =
-        (if (mustProxy) proxy else direct)(url, type, worker, 2_500_000).toString(Charsets.UTF_8)
-    // Both successes and failures are shared between extractors: one original-page request.
-    val original: Result<String> by lazy {
-        try { Result.success(download(article.link)) }
-        catch (e: CancellationException) { throw e }
-        catch (e: Exception) { Result.failure(e) }
-    }
-    val originalReader: ReaderArticle by lazy {
-        original.getOrNull()?.let { raw ->
-            try { ArticleReader.parseArticle(raw, article.link) }
-            catch (e: CancellationException) { throw e }
-            catch (_: Exception) { null }
-        } ?: ReaderArticle("", "", "", article.link)
-    }
-}
-
 class ArticleFetchRegistry(val plugins: List<ArticleFetchPlugin>) : ArticleExtractor {
     override suspend fun fetch(article: ArticleEntity, cached: ReaderArticle, worker: String,
         direct: (String, String, String, Int) -> ByteArray,
         proxy: (String, String, String, Int) -> ByteArray): ReaderArticle =
-        fetch(ArticleFetchRequest(article, cached, worker, direct, proxy))
+        fetch(ArticleFetchRequest(article, cached, worker, direct, proxy, ArticleReader::parseArticle))
     init { require(plugins.map { it.id }.distinct().size == plugins.size) { "Duplicate article plugin ID" } }
     suspend fun fetch(request: ArticleFetchRequest): ReaderArticle {
         for (plugin in plugins) if (plugin.supports(request)) {
@@ -45,33 +17,19 @@ class ArticleFetchRegistry(val plugins: List<ArticleFetchPlugin>) : ArticleExtra
         error("Нет подходящего плагина для статьи")
     }
     companion object {
-        fun builtIns(telegram: TelegramProxyClient) = ArticleFetchRegistry(listOf(
-            TelegramProxyArticlePlugin(telegram), TelegramPreviewArticlePlugin(),
-            AmpArticlePlugin(), WorkerArticlePlugin(), HtmlArticlePlugin()
-        ))
+        fun builtIns(telegram: TelegramContent? = io.newsbrief.app.runtime.FeatureBindings.create().telegramContent(MemorySettings()),
+            extra: List<ArticleFetchPlugin> = io.newsbrief.app.runtime.FeatureBindings.create().articlePlugins.map { it(MemorySettings()) }) = ArticleFetchRegistry(
+            listOfNotNull(telegram?.let { TelegramContentArticlePlugin(it) }) +
+                listOf(AmpArticlePlugin()) + extra + HtmlArticlePlugin()
+        )
     }
 }
-
-class TelegramProxyArticlePlugin(private val client: TelegramProxyClient) : ArticleFetchPlugin {
-    override val id = "telegram-proxy-post"
-    override fun supports(request: ArticleFetchRequest) = request.article.sourcePluginId == SourceKind.TELEGRAM_PROXY
-    override suspend fun fetch(request: ArticleFetchRequest) = client.post(request.article)
-}
-
-class TelegramPreviewArticlePlugin : ArticleFetchPlugin {
-    override val id = "telegram-preview-post"
-    override fun supports(request: ArticleFetchRequest) = ArticleLinks.telegramPreview(request.article.link) != null
-    override suspend fun fetch(request: ArticleFetchRequest): ReaderArticle {
-        val article = request.article
-        val preview = ArticleLinks.telegramPreview(article.link)!!
-        val post = FeedParsers().parseTelegramPreview(request.download(preview), SourceEntity(
-            id = article.sourceId, name = article.sourceName, address = preview, kind = SourceKind.TELEGRAM))
-            .firstOrNull { it.link == article.link } ?: error("Публикация Telegram недоступна")
-        return request.cached.copy(text = article.content.ifBlank { post.content },
-            imageUrl = request.cached.imageUrl.ifBlank { post.imageUrl },
-            images = request.cached.images.ifEmpty { ArticleReader.decodeImages(post.imagesJson) },
-            links = ArticleLinks.decode(post.linksJson))
-    }
+class TelegramContentArticlePlugin(private val content: TelegramContent) : ArticleFetchPlugin {
+    override val id = "telegram-content"
+    override fun supports(request: ArticleFetchRequest) = content.supports(request.article)
+    override suspend fun fetch(request: ArticleFetchRequest): ReaderArticle = content.load(
+        request.article, request.cached, ArticleLinks.telegramPreview(request.article.link)
+    ) { url, type, _, _ -> request.download(url, type).toByteArray(Charsets.UTF_8) }
 }
 
 class AmpArticlePlugin : ArticleFetchPlugin {
@@ -94,12 +52,6 @@ class AmpArticlePlugin : ArticleFetchPlugin {
     }
 }
 
-class WorkerArticlePlugin : ArticleFetchPlugin {
-    override val id = "worker-readability"
-    override fun supports(request: ArticleFetchRequest) = request.mustProxy && !ArticleLinks.isTelegramPost(request.article)
-    override suspend fun fetch(request: ArticleFetchRequest): ReaderArticle = articleMetadata(
-        ArticleReader.parseArticle(request.download(request.article.link, "article"), request.article.link), request.originalReader)
-}
 
 class HtmlArticlePlugin : ArticleFetchPlugin {
     override val id = "publisher-html"
