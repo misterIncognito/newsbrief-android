@@ -82,7 +82,8 @@ fun SourceDirectoryPage(vm: SourcesUi) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(source.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                                 val added = source.address.lowercase(java.util.Locale.ROOT) in existing
-                                TextButton(enabled = !added && state.addingAddress == null,
+                                val supported = vm.sourcePlugins.any { it.id == source.kind }
+                                TextButton(enabled = supported && !added && state.addingAddress == null,
                                     onClick = { vm.addDirectorySource(source) }) {
                                     Text(if (added) "Добавлен" else if (state.addingAddress == source.address) "Проверка…" else "Добавить")
                                 }

@@ -27,7 +27,7 @@ class TelegramReaderLinksTest {
         <a href="javascript:alert(1)">Unsafe</a></div><time datetime="2026-10-08T12:00:00Z"></time></div>"""
 
     @Test fun collectorRetainsLabelsTargetsAndExactPostIds() {
-        val items = WebCollectors().parseTelegramPreview(preview,
+        val items = TelegramPreviewParser().parse(preview,
             SourceEntity(name = "dev.by", address = "https://t.me/s/devby", kind = SourceKind.TELEGRAM))
         val correct = items.single { it.link == post.link }
         val link = ArticleLinks.decode(correct.linksJson).single()

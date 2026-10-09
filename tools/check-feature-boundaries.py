@@ -53,6 +53,9 @@ implementation_names = [
     'ArticleImageCache', 'FeedSynchronizer', 'ArticlePrefetcher', 'RefreshWorker',
     'PrefetchWorker', 'FeedPage', 'FeedAutoRefresh', 'AiClient', 'DigestPage',
     'ArticleFetchRegistry', 'ReaderPage', 'EmbeddedBrowserPage', 'NewsCard',
+    'SaveArticleService', 'SaveArticleAction', 'ShareArticleAction', 'CloudflarePageProxy',
+    'TelegramProxyClient', 'RssSourcePlugin', 'TelegramPreviewSourcePlugin', 'SourcesPage',
+    'SourceDirectoryPage', 'FeedFilterControls', 'PageProxyRegistry',
 ]
 for path in plan['foundation']:
     if not (root / path).is_file():

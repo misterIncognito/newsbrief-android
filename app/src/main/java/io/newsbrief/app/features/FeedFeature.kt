@@ -14,8 +14,9 @@ class FeedFeature : AppFeature {
     @Composable override fun Screen(vm: NewsViewModel) {
         val reader by vm.readerSource.collectAsStateWithLifecycle()
         val browser by vm.browserUrl.collectAsStateWithLifecycle()
+        val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
         FeedAutoRefresh(reader == null && browser == null) { vm.feedBecameVisible() }
-        FeedPage(vm, rememberLazyListState(), rememberLazyListState()) { article ->
+        FeedPage(vm, rememberLazyListState(), rememberLazyListState(), controls = { vm.bindings.feedControls.forEach { it(vm) } }, emptyMessage = if (savedOnly) vm.bindings.feedEmptyMessage(vm) else null) { article ->
             val presentation = vm.presentation
             if (presentation != null) presentation.Card(article, vm) else BasicNewsCard(article, vm)
         }

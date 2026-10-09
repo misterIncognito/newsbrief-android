@@ -24,7 +24,6 @@ import io.newsbrief.app.data.ArticleEntity
 @Composable
 fun NewsCard(article: ArticleEntity, vm: ReaderUi) {
     val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
-    val savedUrls by vm.savedUrls.collectAsStateWithLifecycle()
     if (ArticleLinks.isTelegramPost(article)) {
         LaunchedEffect(article.link) {
             if (ArticleLinks.decode(article.linksJson).isEmpty()) vm.resolvePostLinks(article)
@@ -32,12 +31,12 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi) {
         TelegramFeedPost(article, workerUrl,
             onLink = { vm.openFeedLink(article, it) },
             onBrowser = { vm.openBrowser(it, forceProxy = true) },
-            actions = { ArticleActions(article, article.link in savedUrls) { vm.toggleSaved(article) } })
+            actions = { ArticleActionRow(article, vm) })
         return
     }
     Card(Modifier.fillMaxWidth().clickable { vm.openReader(article) }) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            if (article.imageUrl.isNotBlank()) NewsImage(article.imageUrl, article.link, workerUrl, 145)
+            if (article.imageUrl.isNotBlank()) NewsImage(article.imageUrl, article.link, workerUrl, 145, article.proxyRequired)
             Text("${article.sourceName} · ${formatDate(article.publishedAt)}",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             Text(article.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -45,7 +44,7 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi) {
                 style = MaterialTheme.typography.bodyMedium)
             Text("Читать в NewsBrief →", style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary)
-            ArticleActions(article, article.link in savedUrls) { vm.toggleSaved(article) }
+            ArticleActionRow(article, vm)
         }
     }
 }

@@ -40,12 +40,10 @@ fun SourcesPage(vm: SourcesUi) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Мои источники", style = MaterialTheme.typography.headlineSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { vm.openCatalog() }) { Text("Каталог источников") }
-                OutlinedButton(onClick = { dialogVisible = true }) { Text("Своя ссылка") }
+                if (vm.sourcePlugins.isNotEmpty()) OutlinedButton(onClick = { dialogVisible = true }) { Text("Своя ссылка") }
             }
-            TextButton(onClick = { vm.openProxyChannels() }) { Text("Каналы Telegram-прокси") }
         }
-        Text("Подключай нужные источники из каталога или добавляй свои RSS и публичные Telegram-каналы.",
+        Text("Добавляй ссылки для подключённых провайдеров источников.",
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -70,8 +68,6 @@ fun SourcesPage(vm: SourcesUi) {
             }
         }
     }
-    val proxyChannels by vm.proxyChannels.collectAsStateWithLifecycle()
-    if (proxyChannels.open) ProxyChannelsDialog(vm, proxyChannels)
     if (dialogVisible) AddSourceDialog(vm.sourcePlugins, onClose = { dialogVisible = false }) { name, kind, url ->
         vm.addSource(name, kind, url)
         dialogVisible = false
@@ -107,32 +103,4 @@ private fun AddSourceDialog(plugins: List<io.newsbrief.app.network.SourcePluginI
         },
         dismissButton = { TextButton(onClick = onClose) { Text("Отмена") } }
     )
-}
-
-@Composable
-private fun ProxyChannelsDialog(vm: SourcesUi, state: ProxyChannelsState) {
-    var search by rememberSaveable { mutableStateOf("") }
-    val sources by vm.sources.collectAsStateWithLifecycle()
-    AlertDialog(onDismissRequest = { vm.closeProxyChannels() }, title = { Text("Каналы Telegram-прокси") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Доступные каналы, которые уже собирает сервис. Подключение добавляет их в ленту.")
-                OutlinedTextField(value = search, onValueChange = { search = it }, singleLine = true, label = { Text("Поиск канала") })
-                if (state.busy) CircularProgressIndicator()
-                state.error?.let { Text(it) }
-                if (!state.busy && state.error == null && state.channels.isEmpty()) Text("На сервисе пока нет доступных каналов")
-                LazyColumn(Modifier.heightIn(max = 350.dp)) {
-                    items(state.channels.filter { it.name.contains(search, true) || it.address.contains(search, true) }, key = { it.address }) { source ->
-                        val added = sources.any { it.address == source.address }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(source.name, Modifier.weight(1f))
-                            TextButton(onClick = { vm.addSource(source.name, source.kind, source.address) }, enabled = !added) {
-                                Text(if (added) "Подключён" else "Добавить")
-                            }
-                        }
-                    }
-                }
-            }
-        }, confirmButton = { TextButton(onClick = { vm.closeProxyChannels() }) { Text("Закрыть") } },
-        dismissButton = { TextButton(onClick = { vm.openProxyChannels() }) { Text("Обновить") } })
 }

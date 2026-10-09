@@ -1,14 +1,11 @@
 package io.newsbrief.app.features
 
-import io.newsbrief.app.runtime.*
 import io.newsbrief.app.network.*
+import io.newsbrief.app.runtime.*
 
 class ArticlePluginsFeature : AppFeature {
     override val id = "article-plugins"
-    override val order = 50
     override fun configure(bindings: FeatureBindings) {
-        bindings.extractor = { settings -> ArticleFetchRegistry.builtIns(TelegramProxyClient {
-            TelegramProxyConfig(settings.telegramProxyUrl(), settings.telegramProxyKey())
-        }) }
+        bindings.extractor = { settings -> ArticleFetchRegistry.builtIns(bindings.telegramContent(settings), bindings.articlePlugins.map { it(settings) }) }
     }
 }

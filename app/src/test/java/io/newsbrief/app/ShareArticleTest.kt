@@ -8,7 +8,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.ArticleEntity
-import io.newsbrief.app.ui.ArticleActions
+import io.newsbrief.app.ui.ShareArticleButton
 import io.newsbrief.app.ui.articleShareIntent
 import org.junit.Assert.*
 import org.junit.Rule
@@ -20,7 +20,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
-class ArticleActionsTest {
+class ShareArticleTest {
     @get:Rule val compose = createComposeRule()
     private val article = ArticleEntity(sourceId = 1, sourceName = "Source", title = "Readable title",
         excerpt = "Preview", link = "https://meduza.io/news/original", publishedAt = 123, proxyRequired = true)
@@ -33,12 +33,8 @@ class ArticleActionsTest {
         val post = article.copy(link = "https://t.me/channel/123")
         assertTrue(articleShareIntent(post).getStringExtra(Intent.EXTRA_TEXT)!!.endsWith(post.link))
     }
-    @Test fun saveButtonTogglesVisibleStateAndShareOpensSystemChooser() {
-        var saved by mutableStateOf(false)
-        compose.setContent { MaterialTheme { ArticleActions(article, saved) { saved = !saved } } }
-        compose.onNodeWithText("Сохранить").performClick()
-        compose.onNodeWithText("✓ Сохранено").assertExists().performClick()
-        compose.onNodeWithText("Сохранить").assertExists()
+    @Test fun shareButtonOpensSystemChooser() {
+        compose.setContent { MaterialTheme { ShareArticleButton(article) } }
         compose.onNodeWithText("Поделиться").performClick()
         val app = ApplicationProvider.getApplicationContext<Application>()
         val chooser = shadowOf(app).nextStartedActivity

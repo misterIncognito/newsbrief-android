@@ -5,8 +5,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class FeedFiltersTest {
-    private fun source(address: String, id: Long, enabled: Boolean = true) = SourceCatalog.presets
-        .first { it.address == address }.asEntity().copy(id = id, enabled = enabled)
+    private fun source(address: String, id: Long, enabled: Boolean = true) = SourceEntity(id = id, name = address, address = address, kind = if (address.contains("t.me/")) SourceKind.TELEGRAM else SourceKind.RSS, enabled = enabled)
 
     @Test fun technologyIncludesRelevantSourcesAndExcludesGeneralAndDisabledSources() {
         val sources = listOf(source("https://www.theverge.com/rss/index.xml", 1),
@@ -29,7 +28,9 @@ class FeedFiltersTest {
         assertTrue(FeedFilters.sourceIds(listOf(source), FeedCategory.ALL, "deleted-source")!!.isEmpty())
     }
     @Test fun businessInsiderCanBeFilteredTogetherAcrossEditions() {
-        val sources = SourceCatalog.newDefaultsV5.mapIndexed { i, source -> source.asEntity().copy(id = i + 1L) }
+        val sources = listOf(source("https://www.theverge.com/rss/index.xml", 1),
+            source("https://businessinsider.com.pl/.feed", 2),
+            source("https://news.google.com/rss/search?q=site%3Abusinessinsider.com&hl=en-US&gl=US&ceid=US%3Aen", 3))
         assertEquals(2, FeedFilters.sourceIds(sources, FeedCategory.BUSINESS, "business-insider")!!.size)
         assertEquals(1, FeedFilters.sourceIds(sources, FeedCategory.TECH, null)!!.size)
     }

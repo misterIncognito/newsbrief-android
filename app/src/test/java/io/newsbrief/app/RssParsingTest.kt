@@ -9,9 +9,8 @@ import org.junit.Test
 
 @org.junit.runner.RunWith(org.robolectric.RobolectricTestRunner::class)
 @org.robolectric.annotation.Config(sdk = [35], application = android.app.Application::class)
-class CollectorsTest {
-    private val parser = WebCollectors()
-
+class RssParsingTest {
+    private val parser = io.newsbrief.app.network.FeedParsers()
     @Test fun parsesBasicRss() {
         val source = SourceEntity(1, "BBC", "https://example.com/feed", SourceKind.RSS)
         val feed = """<?xml version="1.0" encoding="UTF-8"?>
@@ -46,21 +45,6 @@ class CollectorsTest {
         assertEquals(1, items.size)
         assertEquals("Полный текст статьи с подробностями.", items.first().content)
         assertEquals("https://example.com/news/pic.jpg", items.first().imageUrl)
-    }
-
-    @Test fun parsesTelegramPublicPreview() {
-        val source = SourceEntity(2, "BILD", "https://t.me/s/BILD_Russian", SourceKind.TELEGRAM)
-        val html = """
-            <div class="tgme_widget_message_wrap">
-              <div class="tgme_widget_message" data-post="BILD_Russian/321">
-                <div class="tgme_widget_message_text">Новость дня. Контекст новости.</div>
-                <time datetime="2026-10-08T12:10:00+00:00"></time>
-              </div>
-            </div>
-        """.trimIndent()
-        val posts = parser.parseTelegramPreview(html, source)
-        assertEquals(1, posts.size)
-        assertTrue(posts.first().link.endsWith("/321"))
     }
 
     @Test fun parsesDeutscheWelleRdfRss() {
@@ -99,18 +83,5 @@ class CollectorsTest {
         parser.parseFeed("<!DOCTYPE rss [<!ENTITY x SYSTEM 'file:///etc/passwd'>]><rss/>",
             SourceEntity(1, "RSS", "https://example.com/rss", SourceKind.RSS))
     }
-    @Test fun telegramPostsKeepFullTextParagraphsAndPhotos() {
-        val source = SourceEntity(1, "BBC Telegram", "https://t.me/s/bbcrussian", SourceKind.TELEGRAM)
-        val longText = "Подробный текст. ".repeat(150)
-        val html = """<div class="tgme_widget_message_wrap">
-            <div class="tgme_widget_message" data-post="bbcrussian/123">
-            <div class="tgme_widget_message_text"><p>Начало.</p><p>$longText</p></div>
-            <a class="tgme_widget_message_photo_wrap" style="background-image:url('https://cdn.example/photo.jpg')"></a>
-            <time datetime="2026-10-08T12:00:00Z"></time></div></div>"""
-        val item = parser.parseTelegramPreview(html, source).single()
-        assertTrue(item.content.length > 1600)
-        assertTrue(item.content.startsWith("Начало.\n\n"))
-        assertEquals("https://cdn.example/photo.jpg", item.imageUrl)
-        assertEquals("https://t.me/bbcrussian/123", item.link)
-    }
+
 }

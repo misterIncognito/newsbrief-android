@@ -27,7 +27,7 @@ import org.robolectric.annotation.GraphicsMode
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedRuntimeTest {
     @get:Rule val compose = createComposeRule()
-    @Test fun feedLoadsDisplaysReadsAndSavesWithoutOtherFeatures() {
+    @Test fun minimalFeedLoadsAndOpensExternalBrowserWithoutOptionalUi() {
         val dispatcher = UnconfinedTestDispatcher(); Dispatchers.setMain(dispatcher)
         val store = MemoryNewsStore(); val settings = MemorySettings(); val features = listOf(FeedFeature())
         val bindings = FeatureBindings.create(features)
@@ -50,16 +50,18 @@ class FeedRuntimeTest {
             assertTrue(calls > 0)
             compose.onNodeWithText("Лента").assertExists()
             compose.onNodeWithText("Главное").assertDoesNotExist()
+            compose.onNodeWithText("Источники").assertDoesNotExist()
+            compose.onNodeWithText("Каталог").assertDoesNotExist()
+            compose.onNodeWithText("Сохранить").assertDoesNotExist()
+            compose.onNodeWithText("Поделиться").assertDoesNotExist()
+            compose.onNodeWithText("Сохранённые").assertDoesNotExist()
+            compose.onNodeWithText("Технологии").assertDoesNotExist()
             compose.onNodeWithText("Real feed item").performClick()
-            waitFor { vm.reader.value != null }
-            compose.onNodeWithText("Full content supplied by the feed").assertIsDisplayed()
-            compose.onNodeWithText("Открыть во встроенном браузере").assertDoesNotExist()
-            compose.onNodeWithText("Сохранить").performClick()
-            waitFor { vm.savedUrls.value.isNotEmpty() }
-            compose.onNodeWithText("← Назад").performClick()
-            compose.onNodeWithText("Сохранённые").performClick()
-            waitFor { vm.feedArticles.value.size == 1 }
-            compose.onNodeWithText("Real feed item").assertExists()
+            val intent = org.robolectric.Shadows.shadowOf(app).nextStartedActivity
+            assertEquals(android.content.Intent.ACTION_VIEW, intent.action)
+            assertEquals("https://example.org/story", intent.data.toString())
+            assertNull(vm.readerSource.value)
+            compose.onNodeWithText("Full content supplied by the feed").assertDoesNotExist()
         } finally { vm.viewModelScope.cancel(); Dispatchers.resetMain() }
     }
 }

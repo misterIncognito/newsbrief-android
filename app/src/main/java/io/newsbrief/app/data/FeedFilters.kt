@@ -11,15 +11,14 @@ object FeedFilters {
             (0 until tags.length()).mapNotNull { runCatching { FeedCategory.valueOf(tags.getString(it)) }.getOrNull() }.toSet()
         }.getOrDefault(emptySet())
         if (saved.isNotEmpty()) return saved
-        val category = SourceCatalog.presets.firstOrNull { it.address == catalogAddress(source) }?.category
-            ?: return setOf(FeedCategory.OTHER)
-        return buildSet {
-            if (category.contains("Технологии") || category.contains("IT")) add(FeedCategory.TECH)
-            if (category.contains("Бизнес")) add(FeedCategory.BUSINESS)
-            if (category.contains("Беларусь")) add(FeedCategory.BELARUS)
-            if (category.contains("Польша") || category.contains("Варшава")) add(FeedCategory.POLAND)
-            if (category.contains("Мир")) add(FeedCategory.WORLD)
-            if (isEmpty()) add(FeedCategory.GENERAL)
+        val address = catalogAddress(source)
+        return when {
+            address.contains("habr.com/") || address.contains("theverge.com/") || address.contains("vcnews") -> setOf(FeedCategory.TECH)
+            address.contains("businessinsider") || address.contains("businessinsider.com") -> setOf(FeedCategory.BUSINESS)
+            address.contains("zerkalo") || address.contains("nashaniva") || address.contains("belsat") -> setOf(FeedCategory.BELARUS)
+            address.contains("polsat") || address.contains("thewwarsaw") || address.contains("notesfrompoland") || address.contains("warsawinsider") -> setOf(FeedCategory.POLAND)
+            address.contains("bbc.co.uk/world") || address.contains("theguardian") || address.contains("aljazeera") -> setOf(FeedCategory.WORLD)
+            else -> setOf(FeedCategory.OTHER)
         }
     }
 

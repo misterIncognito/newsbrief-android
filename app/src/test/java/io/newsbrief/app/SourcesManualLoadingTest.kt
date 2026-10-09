@@ -1,7 +1,8 @@
 package io.newsbrief.app
 
 import io.newsbrief.app.data.*
-import io.newsbrief.app.features.SourcesFeature
+import io.newsbrief.app.features.SourceProvidersFeature
+import io.newsbrief.app.features.RssSourceFeature
 import io.newsbrief.app.network.*
 import io.newsbrief.app.runtime.FeatureBindings
 import kotlinx.coroutines.runBlocking
@@ -18,7 +19,7 @@ class SourcesManualLoadingTest {
     @Test fun atomLoadsIntoSessionStoreWithoutSyncReaderAiOrRoom() = runBlocking {
         val db = MemoryNewsStore()
         val settings = MemorySettings().apply { markSourcesCatalogV2Seeded(); markSourcesCatalogV3Seeded(); markSourcesCatalogV4Seeded(); markSourcesCatalogV5Seeded() }
-        val bindings = FeatureBindings.create(listOf(SourcesFeature()))
+        val bindings = FeatureBindings.create(listOf(SourceProvidersFeature(), RssSourceFeature()))
         assertNull(bindings.refresh); assertNull(bindings.article); assertNull(bindings.persistentStorage); assertNull(bindings.generate)
         val collector = SourcePluginRegistry(listOf(RssSourcePlugin { """<feed xmlns="http://www.w3.org/2005/Atom"><entry>
             <title>Atom story</title><link href="https://example.org/story"/>

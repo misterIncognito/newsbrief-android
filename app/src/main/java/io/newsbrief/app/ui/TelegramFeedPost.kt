@@ -58,7 +58,7 @@ internal fun TelegramFeedPost(article: ArticleEntity, workerUrl: String,
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("${article.sourceName} · $date", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary)
-            photos.forEach { NewsImage(it, article.link, workerUrl, 200) }
+            photos.forEach { NewsImage(it, article.link, workerUrl, 200, article.proxyRequired) }
             SelectionContainer {
                 Text(linkedText,
                     modifier = Modifier.testTag("telegram-post-body"), style = MaterialTheme.typography.bodyLarge)
