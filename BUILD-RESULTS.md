@@ -11,7 +11,7 @@ Room 7→8 preserves existing data and persists plugin identity; migrations from
 pass. Compose checks cover source-plugin choices, the unconfigured-service notice and
 connection settings alongside existing Save/Share, return refresh and scroll behavior.
 Live Meduza AMP, Zerkalo AMP and devby Readability checks pass, including `/image` downloads
-and offline image-cache reopening. No phone is currently attached, so 0.4.11 is not installed.
+and offline image-cache reopening. Version 0.4.11 was subsequently installed on the Motorola on 9 October 2026 and launched successfully. The real database upgraded from schema 5 to 8; all 989 original articles and 20 source definitions were retained, with 995 articles after refresh. See [phone verification](validation/phone-0411-install.json).
 
 One initial new UI test matched both a source label and the plugin selector; restricting
 its assertion to clickable controls fixed the test. The focused and final full suites pass.
