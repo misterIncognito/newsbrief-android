@@ -79,7 +79,7 @@ class SettingsStore(context: Context) : AppSettings {
     override fun setWorkerUrl(url: String) {
         val normalized = url.trim().trimEnd('/')
         // Validation lives in the common router, including full HTTPS URL requirements.
-        io.newsbrief.app.network.NewsRouting.endpoint("https://meduza.io/rss/all", "fetch", normalized)
+        io.newsbrief.app.network.ProxyUrls.workerService(normalized)
         prefs.edit().putString("worker_url", normalized).apply()
     }
 
