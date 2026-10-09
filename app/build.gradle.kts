@@ -91,6 +91,7 @@ if ("storage" in enabledFeatures) {
 val registrationDir = layout.buildDirectory.dir("generated/feature-registration")
 val generateFeatureRegistration by tasks.registering {
     inputs.property("features", enabledFeatures.sorted())
+    inputs.property("bindings", enabledFeatures.sorted().map { featurePlan.getValue(it)["binding"].toString() })
     outputs.dir(registrationDir)
     doLast {
         val target = registrationDir.get().file("io/newsbrief/app/runtime/GeneratedFeatures.kt").asFile
