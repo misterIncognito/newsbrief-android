@@ -9,6 +9,7 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,21 +37,25 @@ class ReaderLinksMigrationTest {
                     db.execSQL("INSERT INTO articles VALUES(1,1,'Disabled','Saved title','Excerpt','Offline full body','https://example.org/photo.jpg',1,'Author','[\"https://example.org/photo.jpg\"]','https://t.me/devby/16806',123,456)")
                     db.execSQL("INSERT INTO digests VALUES('2026-10-08','SHORT','Summary','[]',1,456)")
                     db.execSQL("INSERT INTO catalog_searches VALUES('TELEGRAM:AI','{\"saved\":true}',123)")
-                    if (version == 5) {
+                    if (version >= 5) {
                         NewsMigrations.FROM_4_5.migrate(db)
                         db.execSQL("UPDATE articles SET linksJson='[{\"label\":\"Подробнее\",\"url\":\"https://devby.io/news/story\"}]'")
+                    }
+                    if (version >= 6) {
+                        NewsMigrations.FROM_5_6.migrate(db)
+                        db.execSQL("UPDATE articles SET proxyRequired=1")
                     }
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
             }).build())
         legacy.writableDatabase; legacy.close()
         val db = Room.databaseBuilder(context, NewsDatabase::class.java, name)
-            .addMigrations(NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6).build()
+            .addMigrations(NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6, NewsMigrations.FROM_6_7).build()
         try {
             val article = db.articleDao().findByLink("https://t.me/devby/16806")!!
             assertEquals("Offline full body", article.content)
             assertEquals(if (version == 4) "[]" else "[{\"label\":\"Подробнее\",\"url\":\"https://devby.io/news/story\"}]", article.linksJson)
-            assertFalse(article.proxyRequired)
+            assertEquals(version >= 6, article.proxyRequired)
             assertEquals("Author", article.author)
             assertTrue(article.readerLoaded)
             assertEquals(123L, article.publishedAt)
@@ -63,6 +68,8 @@ class ReaderLinksMigrationTest {
             db.articleDao().fillMissingPreview(article.link, "New preview", "", links)
             db.articleDao().requireProxy(article.link)
             assertEquals(links, db.articleDao().findByLink(article.link)!!.linksJson)
+            assertTrue(db.savedArticleDao().observeUrls().first().isEmpty())
+            db.savedArticleDao().insert(SavedArticleEntity(article.link, 789))
         } finally { db.close() }
         val reopened = Room.databaseBuilder(context, NewsDatabase::class.java, name).build()
         try {
@@ -70,8 +77,10 @@ class ReaderLinksMigrationTest {
             assertEquals("Offline full body", saved.content)
             assertTrue(saved.proxyRequired)
             assertTrue(saved.linksJson.contains("devby.io/news/story"))
+            assertEquals(saved, reopened.articleDao().observeSaved().first().single())
         } finally { reopened.close(); context.deleteDatabase(name) }
     }
     @Test fun version4PreservesOfflineArticlesDisabledSourcesSummariesAndCatalog() { migrate(4) }
     @Test fun version5PreservesSavedLinksAndPersistsProxyChoiceAfterReopen() { migrate(5) }
+    @Test fun version6AddsBookmarksWithoutLosingArticlesSettingsMetadataOrProxyChoice() { migrate(6) }
 }

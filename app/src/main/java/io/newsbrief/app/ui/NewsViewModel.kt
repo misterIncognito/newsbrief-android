@@ -33,6 +33,19 @@ class NewsViewModel @JvmOverloads constructor(
 
     val sources = repo.observeSources().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val articles = repo.observeLatest().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val savedUrls = repo.observeSavedUrls().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val _savedOnly = MutableStateFlow(false)
+    val savedOnly = _savedOnly.asStateFlow()
+    fun showSaved(value: Boolean) { _savedOnly.value = value }
+    private val saving = mutableSetOf<String>()
+    fun toggleSaved(article: ArticleEntity) = viewModelScope.launch {
+        if (!saving.add(article.link)) return@launch
+        try {
+            report(if (repo.toggleSaved(article)) "Публикация сохранена" else "Публикация убрана из сохранённых")
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) { report("Не удалось сохранить публикацию: ${e.message}") }
+        finally { saving.remove(article.link) }
+    }
 
     private val _feedCategory = MutableStateFlow(FeedCategory.ALL)
     val feedCategory = _feedCategory.asStateFlow()
@@ -40,9 +53,9 @@ class NewsViewModel @JvmOverloads constructor(
     val feedSource = _feedSource.asStateFlow()
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val feedArticles = combine(repo.observeSources(), _feedCategory, _feedSource) { sources, category, source ->
-        FeedFilters.sourceIds(sources, category, source)
-    }.distinctUntilChanged().flatMapLatest { repo.observeFeed(it) }
+    val feedArticles = combine(repo.observeSources(), _feedCategory, _feedSource, _savedOnly) { sources, category, source, saved ->
+        saved to FeedFilters.sourceIds(sources, category, source)
+    }.distinctUntilChanged().flatMapLatest { (saved, ids) -> if (saved) repo.observeSaved() else repo.observeFeed(ids) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun filterCategory(category: FeedCategory) {
@@ -177,7 +190,7 @@ class NewsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             repo.seedDefaults()
             loadDigest()
-            refresh()
+            if (!_refreshing.value) refresh()
         }
     }
 
@@ -186,7 +199,11 @@ class NewsViewModel @JvmOverloads constructor(
 
     private var refreshRequested = false
 
-    fun refresh() {
+    fun feedBecameVisible() {
+        if (!_refreshing.value) refresh(quiet = true)
+    }
+
+    fun refresh(quiet: Boolean = false) {
         // Source changes during a refresh require another pass with the current source list.
         refreshRequested = true
         if (_refreshing.value) return
@@ -196,7 +213,7 @@ class NewsViewModel @JvmOverloads constructor(
                 while (refreshRequested) {
                     refreshRequested = false
                     val outcome = repo.refresh()
-                    report("Новых публикаций: ${outcome.added}" +
+                    if (!quiet) report("Новых публикаций: ${outcome.added}" +
                         if (outcome.errors.isNotEmpty()) "\nОшибки: ${outcome.errors.joinToString("; ")}" else "")
                 }
             } catch (e: CancellationException) { throw e

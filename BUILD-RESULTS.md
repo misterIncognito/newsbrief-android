@@ -1,15 +1,16 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.9**, **120 passing offline tests**. Debug APK and Android test APK built
-successfully. The native reader and background prefetch prefer publisher-advertised AMP
-pages, preserving original URLs, proxy requirements, metadata and offline storage.
-Live validation: **3 of 3 checks pass**, including real image downloads and offline cache
-reads for Meduza AMP, Zerkalo mirror AMP and dev.by non-AMP extraction. An initial live
-failure exposed Meduza's broken generic sharing image. Article photos/structured article
-covers now take priority, and the article-specific Meduza cover works through `/image`.
-Phone installation is pending USB reconnection. See [AMP-READER.md](AMP-READER.md),
-[ARTICLE-PREFETCH.md](ARTICLE-PREFETCH.md) and [TELEGRAM-FEED-FIX.md](TELEGRAM-FEED-FIX.md).
-Earlier phone migration/gesture results:
+Latest build: **0.4.10**, **130 passing offline tests**. Debug APK and Android test APK
+built successfully. Returning to the feed or resuming the app with the feed visible now
+refreshes sources, retaining filters and scroll position. Save/Share controls are available
+on news cards, Telegram posts and the native reader. Saved items persist in Room and remain
+accessible after source disable/delete; the additive 6 → 7 migration preserves existing data.
+The full Compose navigation test verifies refresh, scroll preservation and Saved-view actions;
+Android chooser and migration/storage tests also pass. Physical-phone installation is
+pending USB reconnection. See [SAVED-REFRESH.md](SAVED-REFRESH.md) and
+[validation/saved-refresh-0410-results.json](validation/saved-refresh-0410-results.json).
+Prior 0.4.9 AMP live checks (3/3) and the Meduza cover selection fix:
+[AMP-READER.md](AMP-READER.md). Earlier phone migration/gesture results:
 [READER-REFRESH-FIX.md](READER-REFRESH-FIX.md).
 The results below record the original 0.4.0 build.
 

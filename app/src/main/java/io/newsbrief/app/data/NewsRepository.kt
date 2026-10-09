@@ -27,6 +27,20 @@ class NewsRepository(
 
     fun observeSources(): Flow<List<SourceEntity>> = db.sourceDao().observe()
     fun observeLatest(): Flow<List<ArticleEntity>> = db.articleDao().observeRecent(0)
+    fun observeSaved(): Flow<List<ArticleEntity>> = db.articleDao().observeSaved()
+    fun observeSavedUrls(): Flow<List<String>> = db.savedArticleDao().observeUrls()
+
+    suspend fun toggleSaved(article: ArticleEntity): Boolean = db.withTransaction {
+        if (db.savedArticleDao().contains(article.link)) {
+            db.savedArticleDao().remove(article.link)
+            false
+        } else {
+            // Never replace richer cached reader content with an older feed preview.
+            db.articleDao().insertAll(listOf(article))
+            db.savedArticleDao().insert(SavedArticleEntity(article.link))
+            true
+        }
+    }
     fun observeFeed(sourceIds: List<Long>?): Flow<List<ArticleEntity>> =
         db.articleDao().observeFiltered(sourceIds.orEmpty(), sourceIds != null)
 

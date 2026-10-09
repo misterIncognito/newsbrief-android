@@ -39,7 +39,7 @@ internal fun annotatedPostText(text: String, links: List<ArticleLink>, color: Co
 /** Telegram posts are complete feed items; only embedded links navigate away. */
 @Composable
 internal fun TelegramFeedPost(article: ArticleEntity, workerUrl: String,
-    onLink: (String) -> Unit, onBrowser: (String) -> Unit) {
+    onLink: (String) -> Unit, onBrowser: (String) -> Unit, actions: @Composable () -> Unit = {}) {
     val links = remember(article.linksJson) { ArticleLinks.decode(article.linksJson) }
     val text = article.content.ifBlank { article.excerpt }.ifBlank { article.title }
     val primary = ArticleLinks.fullArticle(links)
@@ -71,6 +71,7 @@ internal fun TelegramFeedPost(article: ArticleEntity, workerUrl: String,
                 TextButton(onClick = { onLink(primary.url) }) { Text("Полная статья →") }
                 TextButton(onClick = { onBrowser(primary.url) }) { Text("Открыть в браузере") }
             }
+            actions()
         }
     }
 }

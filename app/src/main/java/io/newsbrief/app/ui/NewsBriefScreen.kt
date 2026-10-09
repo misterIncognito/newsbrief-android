@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -81,6 +83,11 @@ fun NewsBriefScreen(vm: NewsViewModel) {
     val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
     val browserForceProxy by vm.browserForceProxy.collectAsStateWithLifecycle()
     val catalogOpen by vm.catalogOpen.collectAsStateWithLifecycle()
+    val feedScroll = rememberLazyListState()
+    val savedScroll = rememberLazyListState()
+    FeedAutoRefresh(page == Page.NEWS && readerSource == null && browserUrl == null && !catalogOpen) {
+        vm.feedBecameVisible()
+    }
     BackHandler(enabled = readerSource != null || browserUrl != null || catalogOpen) {
         if (browserUrl != null) vm.closeBrowser()
         else if (readerSource != null) vm.closeReader() else vm.closeCatalog()
@@ -138,7 +145,7 @@ fun NewsBriefScreen(vm: NewsViewModel) {
                 SourceDirectoryPage(vm)
             } else when (page) {
                 Page.DIGEST -> DigestPage(vm)
-                Page.NEWS -> FeedPage(vm)
+                Page.NEWS -> FeedPage(vm, feedScroll, savedScroll)
                 Page.SOURCES -> SourcesPage(vm)
                 Page.SETTINGS -> SettingsPage(vm)
             }
@@ -213,54 +220,62 @@ private fun DigestPage(vm: NewsViewModel) {
 }
 
 @Composable
-private fun FeedPage(vm: NewsViewModel) {
+private fun FeedPage(vm: NewsViewModel, feedScroll: LazyListState, savedScroll: LazyListState) {
     val articles by vm.feedArticles.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
     val category by vm.feedCategory.collectAsStateWithLifecycle()
     val selectedSource by vm.feedSource.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
+    val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
     val options = remember(sources, category) { FeedFilters.options(sources, category) }
     var sourceMenu by remember { mutableStateOf(false) }
     val filtered = category != FeedCategory.ALL || selectedSource != null
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FeedCategory.entries.forEach { choice ->
-                FilterChip(selected = category == choice, onClick = { vm.filterCategory(choice) },
-                    label = { Text(choice.label) })
-            }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = !savedOnly, onClick = { vm.showSaved(false) }, label = { Text("Все новости") })
+            FilterChip(selected = savedOnly, onClick = { vm.showSaved(true) }, label = { Text("Сохранённые") })
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.weight(1f)) {
-                OutlinedButton(onClick = { sourceMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (selectedSource == null) "Все источники ▾"
-                        else (options.firstOrNull { it.key == selectedSource }?.label ?: "Источник недоступен") + " ▾",
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (!savedOnly) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FeedCategory.entries.forEach { choice ->
+                    FilterChip(selected = category == choice, onClick = { vm.filterCategory(choice) },
+                        label = { Text(choice.label) })
                 }
-                DropdownMenu(expanded = sourceMenu, onDismissRequest = { sourceMenu = false },
-                    modifier = Modifier.heightIn(max = 400.dp)) {
-                    DropdownMenuItem(text = { Text("Все источники") }, onClick = {
-                        vm.filterSource(null); sourceMenu = false
-                    })
-                    options.forEach { option ->
-                        DropdownMenuItem(text = { Text(option.label) }, onClick = {
-                            vm.filterSource(option.key); sourceMenu = false
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { sourceMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (selectedSource == null) "Все источники ▾"
+                            else (options.firstOrNull { it.key == selectedSource }?.label ?: "Источник недоступен") + " ▾",
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    DropdownMenu(expanded = sourceMenu, onDismissRequest = { sourceMenu = false },
+                        modifier = Modifier.heightIn(max = 400.dp)) {
+                        DropdownMenuItem(text = { Text("Все источники") }, onClick = {
+                            vm.filterSource(null); sourceMenu = false
                         })
+                        options.forEach { option ->
+                            DropdownMenuItem(text = { Text(option.label) }, onClick = {
+                                vm.filterSource(option.key); sourceMenu = false
+                            })
+                        }
                     }
                 }
+                if (filtered) TextButton(onClick = { vm.clearFeedFilter() }) { Text("Сбросить") }
             }
-            if (filtered) TextButton(onClick = { vm.clearFeedFilter() }) { Text("Сбросить") }
         }
         Text("Публикаций: ${articles.size}", modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FeedRefreshContainer(isRefreshing = refreshing, onRefresh = { vm.refresh() },
             modifier = Modifier.weight(1f).fillMaxWidth()) {
-            LazyColumn(Modifier.fillMaxSize().testTag("news-feed"),
+            LazyColumn(Modifier.fillMaxSize().testTag("news-feed"), state = if (savedOnly) savedScroll else feedScroll,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (articles.isEmpty()) item {
-                    Text(if (refreshing) "Загружаем новости…"
+                    Text(if (savedOnly) "Здесь будут сохранённые публикации. Нажми «Сохранить» под новостью."
+                        else if (refreshing) "Загружаем новости…"
                         else if (filtered) "В этом фильтре пока нет публикаций. Выбери другой источник или потяни ленту вниз."
                         else "Потяни ленту вниз, чтобы загрузить новости.",
                         modifier = Modifier.fillParentMaxHeight().padding(22.dp))
@@ -274,13 +289,15 @@ private fun FeedPage(vm: NewsViewModel) {
 @Composable
 private fun NewsCard(article: ArticleEntity, vm: NewsViewModel) {
     val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
+    val savedUrls by vm.savedUrls.collectAsStateWithLifecycle()
     if (ArticleLinks.telegramPreview(article.link) != null) {
         LaunchedEffect(article.link) {
             if (ArticleLinks.decode(article.linksJson).isEmpty()) vm.resolvePostLinks(article)
         }
         TelegramFeedPost(article, workerUrl,
             onLink = { vm.openFeedLink(article, it) },
-            onBrowser = { vm.openBrowser(it, forceProxy = true) })
+            onBrowser = { vm.openBrowser(it, forceProxy = true) },
+            actions = { ArticleActions(article, article.link in savedUrls) { vm.toggleSaved(article) } })
         return
     }
     Card(Modifier.fillMaxWidth().clickable { vm.openReader(article) }) {
@@ -293,6 +310,7 @@ private fun NewsCard(article: ArticleEntity, vm: NewsViewModel) {
                 style = MaterialTheme.typography.bodyMedium)
             Text("Читать в NewsBrief →", style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary)
+            ArticleActions(article, article.link in savedUrls) { vm.toggleSaved(article) }
         }
     }
 }
@@ -303,6 +321,7 @@ private fun ReaderPage(vm: NewsViewModel) {
     val reader by vm.reader.collectAsStateWithLifecycle()
     val busy by vm.readerBusy.collectAsStateWithLifecycle()
     val worker by vm.workerUrl.collectAsStateWithLifecycle()
+    val savedUrls by vm.savedUrls.collectAsStateWithLifecycle()
     val item = source ?: return
     Column(Modifier.fillMaxSize().verticalScroll(remember(item.link) { androidx.compose.foundation.ScrollState(0) }).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -310,6 +329,8 @@ private fun ReaderPage(vm: NewsViewModel) {
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(reader?.title?.ifBlank { item.title } ?: item.title,
             style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        ArticleActions(item.copy(title = reader?.title?.ifBlank { item.title } ?: item.title),
+            item.link in savedUrls) { vm.toggleSaved(item) }
         val image = reader?.imageUrl?.ifBlank { item.imageUrl } ?: item.imageUrl
         val images = reader?.images.orEmpty().ifEmpty { listOf(image).filter { it.isNotBlank() } }
         images.forEach { NewsImage(it, item.link, worker, 220) }

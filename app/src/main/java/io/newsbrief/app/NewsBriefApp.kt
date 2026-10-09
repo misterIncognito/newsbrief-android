@@ -21,7 +21,7 @@ class NewsBriefApp : Application() {
         super.onCreate()
         settings = SettingsStore(this)
         val database = Room.databaseBuilder(this, NewsDatabase::class.java, "newsbrief.sqlite")
-            .addMigrations(io.newsbrief.app.data.NewsMigrations.FROM_1_2, io.newsbrief.app.data.NewsMigrations.FROM_2_3, io.newsbrief.app.data.NewsMigrations.FROM_3_4, io.newsbrief.app.data.NewsMigrations.FROM_4_5, io.newsbrief.app.data.NewsMigrations.FROM_5_6).build()
+            .addMigrations(io.newsbrief.app.data.NewsMigrations.FROM_1_2, io.newsbrief.app.data.NewsMigrations.FROM_2_3, io.newsbrief.app.data.NewsMigrations.FROM_3_4, io.newsbrief.app.data.NewsMigrations.FROM_4_5, io.newsbrief.app.data.NewsMigrations.FROM_5_6, io.newsbrief.app.data.NewsMigrations.FROM_6_7).build()
         repository = NewsRepository(database, WebCollectors(settings), settings,
             onFeedUpdated = { io.newsbrief.app.worker.PrefetchWorker.enqueue(this) })
         prefetcher = io.newsbrief.app.network.ArticlePrefetcher(repository, settings,

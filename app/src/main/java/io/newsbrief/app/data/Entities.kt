@@ -79,6 +79,9 @@ interface SourceDao {
 
 @Dao
 interface ArticleDao {
+    @Query("SELECT a.* FROM articles a INNER JOIN saved_articles b ON b.link = a.link ORDER BY b.savedAt DESC, a.id DESC")
+    fun observeSaved(): Flow<List<ArticleEntity>>
+
     @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
         "WHERE s.enabled = 1 AND a.publishedAt >= :from ORDER BY a.publishedAt DESC LIMIT 250")
     fun observeRecent(from: Long): Flow<List<ArticleEntity>>
@@ -115,7 +118,7 @@ interface ArticleDao {
         "NOT EXISTS (SELECT 1 FROM sources WHERE id = articles.sourceId AND enabled = 1)")
     suspend fun associateEnabledSource(url: String, sourceId: Long, sourceName: String)
 
-    @Query("DELETE FROM articles WHERE publishedAt < :cutoff")
+    @Query("DELETE FROM articles WHERE publishedAt < :cutoff AND NOT EXISTS (SELECT 1 FROM saved_articles b WHERE b.link = articles.link)")
     suspend fun deleteOld(cutoff: Long)
 }
 
@@ -141,10 +144,11 @@ interface CatalogSearchDao {
     suspend fun prune()
 }
 
-@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class], version = 6, exportSchema = true)
+@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class, SavedArticleEntity::class], version = 7, exportSchema = true)
 abstract class NewsDatabase : RoomDatabase() {
     abstract fun sourceDao(): SourceDao
     abstract fun articleDao(): ArticleDao
     abstract fun digestDao(): DigestDao
     abstract fun catalogSearchDao(): CatalogSearchDao
+    abstract fun savedArticleDao(): SavedArticleDao
 }
