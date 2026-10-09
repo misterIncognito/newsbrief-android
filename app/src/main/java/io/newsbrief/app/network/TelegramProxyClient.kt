@@ -113,13 +113,7 @@ class TelegramProxyClient(
     }
 
     companion object {
-        fun validateBaseUrl(value: String): URI {
-            val uri = URI(value)
-            require(uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.query == null && uri.fragment == null) {
-                "Нужен HTTPS-адрес Telegram-прокси без пароля и параметров"
-            }
-            return uri
-        }
+        fun validateBaseUrl(value: String): URI = ProxyUrls.telegramService(value)
         fun channelKey(input: String): String {
             val raw = input.trim().removePrefix("telegram-proxy:").removePrefix("@")
             val key = if (raw.startsWith("https://")) {

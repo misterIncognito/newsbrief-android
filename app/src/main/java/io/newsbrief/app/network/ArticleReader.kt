@@ -11,18 +11,6 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.time.Instant
 
-data class ReaderArticle(
-    val title: String,
-    val text: String,
-    val imageUrl: String,
-    val originalUrl: String,
-    val notice: String? = null,
-    val publishedAt: Long? = null,
-    val author: String = "",
-    val images: List<String> = emptyList(),
-    val links: List<ArticleLink> = emptyList()
-)
-
 class ArticleReader(private val settings: SettingsStore,
     private val proxyDownload: (String, String, String, Int) -> ByteArray = { url, type, worker, limit ->
         NewsHttp.download(url, type, worker, limit, forceProxy = true)
@@ -127,12 +115,7 @@ class ArticleReader(private val settings: SettingsStore,
             (0 until array.length()).map { array.getString(it) }
         }.getOrDefault(emptyList())
 
-        fun htmlText(element: Element): String {
-            element.select("script,style,nav,footer,aside,form,template,amp-ad,amp-sticky-ad,amp-analytics,amp-auto-ads,amp-sidebar").remove()
-            element.select("p,div,h1,h2,h3,h4,li,blockquote,br").forEach { it.appendText("\n\n") }
-            return element.wholeText().replace(Regex("[\\t ]+"), " ")
-                .replace(Regex(" *\n *"), "\n").replace(Regex("\n{3,}"), "\n\n").trim()
-        }
+        fun htmlText(element: Element): String = FeedMarkup.htmlText(element)
 
         fun parseArticle(raw: String, original: String): ReaderArticle {
             if (raw.trimStart().startsWith("{")) {

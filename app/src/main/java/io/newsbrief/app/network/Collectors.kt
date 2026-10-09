@@ -97,7 +97,7 @@ internal class FeedParsers {
                                 val image = html.selectFirst("img[src]")?.absUrl("src").orEmpty()
                                     .ifBlank { html.selectFirst("img[src]")?.attr("src").orEmpty() }
                                 if (imageUrl.isBlank() && image.startsWith("https://")) imageUrl = image
-                                val plain = ArticleReader.htmlText(html)
+                                val plain = FeedMarkup.htmlText(html)
                                 if (capture == "encoded" || capture == "content") {
                                     if (plain.length > fullText.length) fullText = plain
                                 }
@@ -142,7 +142,7 @@ internal class FeedParsers {
             if (!postId.matches(Regex("[A-Za-z0-9_]+/[0-9]+"))) return@mapNotNull null
             val textElement = wrapper.selectFirst(".tgme_widget_message_text")
             val links = textElement?.let { ArticleLinks.extract(it) }.orEmpty()
-            val content = textElement?.let { ArticleReader.htmlText(it) }.orEmpty()
+            val content = textElement?.let { FeedMarkup.htmlText(it) }.orEmpty()
             if (content.isBlank()) return@mapNotNull null
             val published = wrapper.selectFirst("time[datetime]")?.attr("datetime").orEmpty()
             val images = wrapper.select(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb")

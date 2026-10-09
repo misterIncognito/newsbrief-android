@@ -76,7 +76,7 @@ class SettingsStore(context: Context) {
     fun saveTelegramProxyKey(value: String) = saveSecret("TelegramProxy", value)
     fun setTelegramProxyUrl(value: String) {
         val url = value.trim().trimEnd('/')
-        if (url.isNotBlank()) io.newsbrief.app.network.TelegramProxyClient.validateBaseUrl(url)
+        if (url.isNotBlank()) io.newsbrief.app.network.ProxyUrls.telegramService(url)
         // A key belongs to one origin; never send an old key to a newly selected service.
         if (url != telegramProxyUrl()) saveTelegramProxyKey("")
         prefs.edit().putString("telegram_proxy_url", url).apply()

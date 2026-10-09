@@ -22,7 +22,7 @@ class ArticleImageCache(private val directory: File,
         MessageDigest.getInstance("SHA-256").digest(url.toByteArray()).joinToString("") { "%02x".format(it) })
     override fun contains(url: String): Boolean = file(url).isFile
     override suspend fun load(url: String, worker: String): ByteArray = withContext(Dispatchers.IO) {
-        require(ArticleLinks.valid(url)) { "Invalid image URL" }
+        require(ProxyUrls.validResource(url)) { "Invalid image URL" }
         val file = file(url)
         if (file.isFile) return@withContext file.readBytes()
         val bytes = download(url, worker)
