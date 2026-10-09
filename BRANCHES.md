@@ -1,5 +1,62 @@
 # NewsBrief branch workflow
 
+`dev` is now a minimal Compose app shell. Networking, Room storage, source ingestion
+and discovery, reader/browser, synchronization, AI and article plugins are excluded.
+The shell does not open or delete the existing database, image cache or credentials.
+`main`, `release` and the annotated `v0.4.12` tag remain on the deployed release.
+
+| Feature branch | Own implementation | Required feature branch / PR base |
+| --- | --- | --- |
+| `feature/networking` | HTTP transport, Worker routing and URL validation | `dev` |
+| `feature/storage` | Room entities/DAOs/migrations, preferences/credentials, disk image cache | `feature/networking` |
+| `feature/sources-discovery` | RSS/Atom/Telegram ingestion, source plugins, catalogs, search, filters and shared content contracts | `feature/storage` |
+| `feature/reader-browser` | Native article extraction, AMP, embedded browser, image and article presentation components | `feature/sources-discovery` |
+| `feature/synchronization` | Refresh/cooldown, prefetch, workers, repository, app wiring, feed/source UI and view model | `feature/reader-browser` |
+| `feature/ai` | Existing digest client, screen and provider settings | Restore the five core areas first |
+| `feature/article-plugins` | Existing article interface, registry and providers | Restore the five core areas first |
+
+The five core branches are stacked because the implementations depend on one another.
+Each contains an explicit restoration commit for its own removal, plus normal merges
+of its prerequisites. Each branch builds and tests with those prerequisites included;
+only synchronization restores the complete app UI and activates background work.
+They are Git feature branches within the existing `:app` Gradle module, not five new
+Gradle modules. Each owns a dependency script under `app/features/`; absent features
+contribute no runtime libraries to the shell. Build configuration rejects missing
+prerequisites rather than silently substituting a different implementation.
+
+Restore progressively in the order shown above, or merge the complete stack:
+
+```sh
+git switch dev
+git merge feature/synchronization
+# Optional features, after the core app is restored:
+git merge feature/ai
+git merge feature/article-plugins
+```
+
+For a feature-only PR, target its prerequisite branch as listed in the table. Targeting
+`dev` also includes any required lower layers. Once prerequisites land in `dev`, retarget
+the next PR to `dev`. Preserve merge history when integrating these extraction branches;
+squashing a prerequisite into dev can reintroduce removal/restoration conflicts.
+
+Bring later shell or shared changes into a feature with an ordinary merge:
+
+```sh
+git switch feature/storage
+git merge dev
+```
+
+For updates in a lower feature branch, merge that branch into its dependants as well.
+Cherry-pick a self-contained fix only when its prerequisites already exist. Later edits
+to the same files may require normal conflict resolution. No history rewriting is used.
+All branches remain local until explicitly pushed; this extraction does not install
+an APK on the phone.
+
+## Historical extraction records
+
+The records below describe the earlier AI/article-plugin splits before the five core
+areas were removed. Their statements about what dev contained apply to those commits.
+
 - `dev`: ongoing development. Source plugins remain enabled. The native article reader
   uses its built-in implementation; the article plugin API/registry/providers are excluded.
   AI digest generation and its controls are excluded; the start screen is the news feed.

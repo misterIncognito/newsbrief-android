@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.devtools.ksp")
+    id("com.google.devtools.ksp") apply false
 }
 
 android {
@@ -28,7 +28,14 @@ android {
 
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 
-ksp { arg("room.schemaLocation", "$projectDir/schemas") }
+// Register generated Room sources only while the storage feature is present.
+// This also prevents stale KSP output from leaking into a shell build after switching branches.
+if (file("features/storage.gradle.kts").isFile) {
+    apply(plugin = "com.google.devtools.ksp")
+    extensions.configure<com.google.devtools.ksp.gradle.KspExtension> {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+}
 
 // Each branch restores its own dependency script along with implementation and tests.
 listOf("networking", "storage", "sources-discovery", "reader-browser", "synchronization").forEach { feature ->
