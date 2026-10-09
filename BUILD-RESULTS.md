@@ -1,9 +1,12 @@
 # NewsBrief Android build verification
 
-Current branch extraction: `dev` passes **152 unit tests** with article plugins removed;
-`feature/article-plugins` passes **154** with them restored. Both debug APKs build.
-The current merge check is conflict-free. See [branch workflow](BRANCHES.md) and
-[branch verification](validation/article-plugin-branches-results.json).
+Current feature extraction: `dev` passes **151 unit tests** with AI and article plugins
+removed. `feature/ai` passes **152** with AI restored and article plugins excluded.
+Both branches build debug and Android test APKs. Saved digests and provider preferences
+survive the removal in a regression test; Room schema 8 is unchanged. See
+[branch workflow](BRANCHES.md) and [AI verification](validation/ai-branches-results.json).
+The earlier article-plugin extraction results remain in
+[article-plugin verification](validation/article-plugin-branches-results.json).
 The deployed release and historical results below are unchanged.
 
 Latest deployed release: **0.4.12**, **154 passing offline tests**, zero failures/errors/skips.

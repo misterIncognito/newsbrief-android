@@ -9,10 +9,7 @@ data class ArticleLink(val label: String, val url: String)
 
 /** Keep public web links as data; opening them always uses the native reader. */
 object ArticleLinks {
-    fun valid(url: String): Boolean = runCatching {
-        val uri = URI(url)
-        uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null
-    }.getOrDefault(false)
+    fun valid(url: String): Boolean = ProxyUrls.validResource(url)
 
     fun extract(element: Element): List<ArticleLink> = element.select("a[href]")
         .map { ArticleLink(it.text().trim().ifBlank { it.absUrl("href") }, it.absUrl("href")) }
