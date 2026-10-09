@@ -11,7 +11,7 @@ class ManualFeedLoader(private val db: FeedStore, private val collector: NewsCol
     private val mutex = Mutex()
     suspend fun refresh(): RefreshResult = mutex.withLock { load() }
     private suspend fun load(): RefreshResult {
-        val sources = db.sourceDao().enabled().sortedByDescending { it.id }
+        val sources = db.sourceDao().enabled().filter(collector::supports).sortedByDescending { it.id }
         var total = 0
         val errors = mutableListOf<String>()
         for (source in sources) {

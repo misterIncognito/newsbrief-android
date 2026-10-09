@@ -14,6 +14,7 @@ interface NewsSourcePlugin {
 }
 
 interface SourceRegistry : NewsCollector {
+    override fun supports(source: SourceEntity): Boolean = available.any { it.id == source.kind }
     val available: List<SourcePluginInfo>
     fun plugin(id: String): NewsSourcePlugin
     fun canonicalAddress(input: String, id: String): String
