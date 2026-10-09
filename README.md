@@ -1,9 +1,11 @@
 # NewsBrief Android
 
-`dev` is a minimal Compose shell. The five core areas are preserved on stacked feature
-branches, with AI and article plugins on their existing branches. See
-[BRANCHES.md](BRANCHES.md) for feature ownership, prerequisites and merge-back commands.
-The shell leaves existing offline files and credentials untouched.
+`dev` is a minimal Compose shell with shared feature contracts. Independent feature
+branches contain networking, storage, sources/discovery, reader/browser, synchronization,
+feed UI, AI and article plugins. `feature/app-integration` composes the complete app.
+See [BRANCHES.md](BRANCHES.md) for ownership, dependencies and merge instructions, and
+[BUILD-RESULTS.md](BUILD-RESULTS.md) for the verified build matrix. The old cumulative
+branches are preserved under `archive/stacked/`. The shell preserves existing offline files.
 
 ## Deployed 0.4.12 history
 
