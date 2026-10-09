@@ -1,91 +1,102 @@
-# NewsBrief feature branches
+# NewsBrief incremental features
 
-`dev` contains a minimal app shell and shared contracts. `release` stays on the deployed
-shell at `aa5914a`; `main` and `v0.4.12` stay on the original complete application.
-No branch in this split has been pushed or installed on the phone.
+Start from `dev` and merge the features you need. Each feature registers its screens,
+settings and services automatically; startup, navigation and shared adapters belong to
+the foundation. **`feature/app-integration` is optional.** It is the convenient complete
+assembly and contains tests that exercise all features together.
 
-The old cumulative branches are preserved as `archive/stacked/<feature>`. Their commits
-and history remain reachable. Use the new `feature/*` branches for further development;
-do not merge the archived stack back into these branches. The full refactoring reference
-is preserved as `refactor/feature-boundaries`.
+`integration/feed` is a verified small working application: Feed + Sources + Networking
++ Storage. It loads RSS/Atom/Telegram, offers source discovery and filters, displays
+feed-provided article text in native Compose, saves/shares articles and persists data.
+It contains no background workers, full-page reader/browser, AI client or article extraction
+plugins. Live source availability still depends on the publisher and configured services.
 
-| Branch | Owns | Feature prerequisites |
+## Add features progressively
+
+```sh
+git switch -c my-app dev
+git merge feature/feed
+# Working feed UI, native feed-text reading and save/share; needs a data provider.
+git merge feature/sources-discovery
+# Adds sources, HTTP transport and manual loading. No synchronization feature required.
+git merge feature/storage
+# Adds Room and persistent settings. Existing databases use the original migrations.
+```
+
+Build or run after any step. Feed alone starts empty unless a host supplies data; no
+sample news is inserted. Without Storage, articles/settings/saves last for the current
+process and existing offline files are left untouched. With Storage, cached articles can
+be read offline even without Sources or the full Reader. Installing a different composition
+restarts the process: session-only state does not migrate automatically into Room.
+
+Optional next additions:
+
+```sh
+git merge feature/reader-browser    # Full article extraction, AMP, images and browser
+git merge feature/synchronization   # Background refresh, persisted cooldown and prefetch
+git merge feature/ai                # Digest screen, AI settings and generation
+git merge feature/article-plugins   # Pluggable article extraction providers
+```
+
+Prefetch needs a reader to fetch full pages, so it remains inactive when Reader is absent.
+Synchronization can be developed alone using shared ports; real news requires a source
+provider or cached data. AI can be developed alone, but summaries need articles. These
+are data requirements, not a requirement to merge every feature.
+
+## Ownership and real prerequisites
+
+| Branch | Adds | Required feature branches |
 | --- | --- | --- |
-| `feature/networking` | HTTP transport and redirect/proxy enforcement | None |
-| `feature/storage` | Room database/DAOs/migrations and encrypted settings | None |
-| `feature/sources-discovery` | RSS/Atom/Telegram ingestion, plugins, discovery/cache, source and catalog screens | Networking |
-| `feature/reader-browser` | Native reader, AMP, embedded browser, image cache, article/card/save/share components | Networking |
-| `feature/synchronization` | Refresh/cooldown coordinator, prefetch and background workers | None |
-| `feature/feed` | News list, multi-select controls, refresh gestures and visibility callbacks | None |
-| `feature/ai` | Digest selection/client and digest screen | None |
-| `feature/article-plugins` | Extraction registry and Telegram/AMP/Worker/HTML providers | Reader/browser and sources/discovery |
-| `feature/app-integration` | Startup, navigation, view model, repository adapters and full-app tests | All features |
+| `feature/feed` | News list, filters, gestures, visibility refresh | None |
+| `feature/networking` | HTTP transport, proxy/redirect enforcement, Worker settings | None |
+| `feature/sources-discovery` | RSS/Atom/Telegram providers, source/catalog UI and settings | Networking |
+| `feature/storage` | Room, migrations, persistent encrypted settings | None |
+| `feature/reader-browser` | Full article/AMP reader, images, internal browser, rich cards | Networking |
+| `feature/synchronization` | Cooldown coordinator, WorkManager refresh and optional prefetch | None |
+| `feature/ai` | AI client, digest selection/screen/settings | None |
+| `feature/article-plugins` | Telegram/AMP/Worker/HTML extraction registry/providers | Reader/browser and Sources |
+| `feature/app-integration` | Complete convenience assembly and full-app tests | None for runtime wiring; full-app tests need all features |
 
-Each feature branch starts from the same `dev` foundation and merges only the explicit
-prerequisites above. There is no networking → storage → sources → reader → sync chain.
-Storage, synchronization, feed and AI build without any other feature implementation.
-Sources and the reader can be worked on independently of each other and of Room.
-These remain Git feature branches inside the existing `:app` Gradle module.
+Prerequisites are already merged into the corresponding branch. For example, merging
+Sources also brings Networking, but does not bring Storage, Reader, Synchronization or AI.
+These are Git feature branches within the existing `:app` Gradle module.
 
-## Dependency rules
+The foundation owns records/ports, a working app host/view model/repository, memory-backed
+fallbacks, manual feed loading and basic article presentation. Feature bindings implement
+`AppFeature`; generated typed registration selects the available bindings. Source files and
+Gradle dependencies for excluded features are omitted from compilation. Each feature
+contributes its own UI/settings and only replaces the services it provides. The foundation
+has no dependency on concrete Room, HTTP, WorkManager, AI or reader implementations.
+Room annotations remain shared via `room-common`; schema 8 and migrations are unchanged.
 
-- Shared records, DAO/settings ports, URL/proxy policy, reader results and small content
-  utilities live in the foundation. It has no HTTP client, Room database/runtime,
-  background scheduling or active feature UI. Existing Room record annotations remain
-  shared deliberately to retain the exact schema; the foundation uses `room-common` only.
-- Features depend on ports, never `NewsRepository`, `NewsViewModel`, `NewsBriefApp` or
-  another feature's concrete `SettingsStore`/`NewsDatabase`.
-- Synchronization accepts `FeedStore`, `NewsCollector`, `SyncSettings`, article and image
-  ports. Its workers call `BackgroundTasksOwner`; only app integration supplies the host.
-  Source seeding, screens, navigation and startup do not belong to synchronization.
-- Reader extraction accepts an optional `ArticleExtractor` and `TelegramContent` port.
-  Sources supplies the Telegram adapter; app integration injects it. The reader has built-in
-  web/AMP extraction and needs no catalog, Telegram service client or database implementation.
-- Feature screens accept their own state/callback interfaces. Feed UI receives category
-  choices from its host and an article-content slot instead of importing the reader UI.
-- Runtime wiring and implementation choices belong to app integration. Its current
-  composition enables all features, including AI and article plugins. Adding a provider
-  changes its feature branch; adding it to the app changes integration wiring.
-- `tools/features.json` records file ownership and prerequisites. Run
-  `python3 tools/check-feature-boundaries.py` to check the current checkout. Dependency
-  scripts also reject missing prerequisites during Gradle configuration.
-
-## Working and merging
-
-Use normal merges to bring shared changes into any feature:
+`tools/features.json` declares ownership, registrations and prerequisites. Run
+`python3 tools/check-feature-boundaries.py` to check a checkout. Build a smaller composition
+from a branch containing more features with, for example:
 
 ```sh
-git switch feature/synchronization
+./gradlew :app:testDebugUnitTest :app:assembleDebug \
+  -PnewsbriefFeatures=feed,sources-discovery
+```
+
+Required features are included automatically. An empty `-PnewsbriefFeatures=` builds the
+foundation only. The default includes every runtime feature present on that branch. Full-app
+integration tests run only when all their required features are selected.
+
+## Keep development mergeable
+
+Bring shared changes into a feature with a normal forward merge:
+
+```sh
+git switch feature/feed
 git merge dev
 ```
 
-For a transport change needed by sources or the reader, merge `feature/networking` into
-those branches. Feature-only PRs for sources/reader can target networking while its changes
-are unmerged; other independent feature PRs can target dev. Article plugins can target an
-integration base containing reader and sources. Review shared contracts separately from
-feature implementations. Avoid cherry-picking prerequisite commits piecemeal or merging
-unrelated features into each other.
+Merge prerequisite updates into their dependants, then merge updated features into your
+application branch. Shared contract edits can still need ordinary conflict resolution.
+Do not merge `feature/app-integration` unless you want the complete app. Feature branches
+retain their Git history; the former cumulative branches remain under `archive/stacked/`.
+The previous separation is documented in [the earlier guide](docs/independent-feature-history.md).
 
-To verify the full application without restoring features to dev:
-
-```sh
-git switch feature/app-integration
-git merge dev
-git merge feature/networking feature/storage feature/sources-discovery feature/reader-browser \
-  feature/synchronization feature/feed feature/ai feature/article-plugins
-```
-
-To deliberately restore the full app to dev later, merge `feature/app-integration` into dev.
-Use normal merge commits while these extraction branches are in flight so Git retains the
-shared feature history. Later edits to the same contracts or integration files may still
-need ordinary conflict resolution; separate branches cannot eliminate that.
-
-## Validation
-
-The full refactoring reference passes 160 unit tests and builds the debug and Android-test
-APKs. All nine new feature branches and the dev foundation build and test successfully
-with only their declared prerequisites. Shared dev changes were merged forward into
-every feature without conflicts. Results and exact commits are recorded in `BUILD-RESULTS.md` and
-`validation/independent-feature-branches-results.json`.
-
-Earlier extraction records are in [the archived branch workflow](docs/stacked-branch-history.md).
+`release`, `main`, `v0.4.12` and the phone installation were not changed by this correction.
+See [BUILD-RESULTS.md](BUILD-RESULTS.md) for tested combinations, actual incremental merges,
+APK locations and limits of verification.
