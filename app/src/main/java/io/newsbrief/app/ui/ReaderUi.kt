@@ -6,6 +6,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 
 interface ReaderUi {
+    val browserAvailable: Boolean get() = true
     val workerUrl: StateFlow<String>
     val savedUrls: StateFlow<List<String>>
     val readerSource: StateFlow<ArticleEntity?>
