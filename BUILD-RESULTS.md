@@ -1,6 +1,12 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.12**, **154 passing offline tests**, zero failures/errors/skips.
+Current branch extraction: `dev` passes **152 unit tests** with article plugins removed;
+`feature/article-plugins` passes **154** with them restored. Both debug APKs build.
+The current merge check is conflict-free. See [branch workflow](BRANCHES.md) and
+[branch verification](validation/article-plugin-branches-results.json).
+The deployed release and historical results below are unchanged.
+
+Latest deployed release: **0.4.12**, **154 passing offline tests**, zero failures/errors/skips.
 Debug APK and Android test APK built successfully. The update adds a persistent three-minute
 cooldown between repeated feed-sync attempts (including failures), multi-select publisher
 chips, the browser action above article content, and an explicit original-page WebView mode.

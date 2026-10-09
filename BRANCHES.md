@@ -27,3 +27,18 @@ this architectural feature is developed separately.
 Later edits to the same reader/wiring files may need ordinary merge conflict resolution.
 No history rewriting, force pushes or reverse changes on release branches are required.
 Branches and tag are local until explicitly pushed.
+
+## Extraction verification
+
+- `dev` removal: `7f573ab`; 152 unit tests pass.
+- `feature/article-plugins` restoration: `8bc1ce4`; 154 unit tests pass.
+- Debug APK and Android test APK compile successfully on both branches.
+- APK inspection confirms article plugin classes are absent from `dev` and present
+  on the feature branch; source plugins remain available on both.
+- Git's merge-tree check restores the complete feature tree without conflicts.
+- Release branches and `v0.4.12` still point to `5defa09`. No phone deployment or push
+  was performed for this branch extraction.
+
+See [recorded results](validation/article-plugin-branches-results.json),
+[dev build output](validation/build-dev-without-article-plugins-output.txt), and
+[feature build output](validation/build-feature-article-plugins-output.txt).
