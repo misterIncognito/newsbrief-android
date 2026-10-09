@@ -5,12 +5,11 @@ import java.io.File
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.HttpUrl.Companion.toHttpUrl
 
 /** Shared by background prefetch and the visible reader, using the existing cache location. */
-class ArticleImageCache(private val directory: File,
+class ArticleImageCache(private val directory: File, private val requireProxy: Boolean = false,
     private val download: (String, String) -> ByteArray = { url, worker ->
-        NewsHttp.download(url, "image", worker, 8_000_000, forceProxy = true)
+        NewsHttp.download(url, "image", worker, 8_000_000, forceProxy = requireProxy, preferProxy = true)
     }
 ) : PrefetchImageStore {
     private fun file(url: String): File = File(directory,
@@ -33,8 +32,12 @@ class ArticleImageCache(private val directory: File,
         bytes
     }
 
+    override suspend fun loadForArticle(url: String, worker: String, article: io.newsbrief.app.data.ArticleEntity): ByteArray {
+        if (!article.proxyRequired && !NewsRouting.requiresProxy(article.link)) return load(url, worker)
+        return ArticleImageCache(directory, requireProxy = true).load(url, worker)
+    }
     companion object {
         fun originalUrl(url: String, worker: String): String =
-            if (url.startsWith(worker.trimEnd('/') + "/image?")) url.toHttpUrl().queryParameter("url") ?: url else url
+            io.newsbrief.app.runtime.FeatureBindings.create().pageProxyPlugins.firstNotNullOfOrNull { it.originalResource(url, worker) } ?: url
     }
 }

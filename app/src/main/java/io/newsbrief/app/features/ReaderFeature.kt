@@ -7,14 +7,13 @@ import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.ui.*
 
 class ReaderFeature : AppFeature, ArticlePresentation {
-    override val id = "reader-browser"
+    override val id = "native-reader"
     override val order = 40
     override fun configure(bindings: FeatureBindings) {
-        bindings.article = { settings, extractor -> ArticleReader(settings, plugins = extractor, telegram = bindings.telegram?.invoke(settings)) }
+        bindings.article = { settings, extractor -> ArticleReader(settings, plugins = extractor, telegram = bindings.telegramContent(settings)) }
         bindings.images = { ArticleImageCache(java.io.File(it.filesDir, "reader-images")) }
         bindings.presentation = this
     }
     @Composable override fun Card(article: ArticleEntity, vm: NewsViewModel) { NewsCard(article, vm) }
     @Composable override fun Reader(vm: NewsViewModel) { ReaderPage(vm) }
-    @Composable override fun Browser(url: String, worker: String, forceProxy: Boolean) { EmbeddedBrowserPage(url, worker, forceProxy) }
 }

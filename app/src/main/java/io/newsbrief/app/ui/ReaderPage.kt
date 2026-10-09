@@ -30,7 +30,6 @@ fun ReaderPage(vm: ReaderUi) {
     val reader by vm.reader.collectAsStateWithLifecycle()
     val busy by vm.readerBusy.collectAsStateWithLifecycle()
     val worker by vm.workerUrl.collectAsStateWithLifecycle()
-    val savedUrls by vm.savedUrls.collectAsStateWithLifecycle()
     val item = source ?: return
     val links = reader?.links ?: ArticleLinks.decode(item.linksJson)
     val primary = ArticleLinks.fullArticle(links)
@@ -40,16 +39,15 @@ fun ReaderPage(vm: ReaderUi) {
             val telegram = ArticleLinks.isTelegramPost(item)
             vm.openBrowser(if (telegram) primary?.url ?: item.link else item.link,
                 forceProxy = item.proxyRequired || (telegram && primary != null))
-        }, modifier = Modifier.fillMaxWidth()) { Text("Открыть во встроенном браузере") }
+        }, modifier = Modifier.fillMaxWidth()) { Text(if (vm.browserAvailable) "Открыть во встроенном браузере" else "Открыть во внешнем браузере") }
         Text(item.sourceName + " · " + formatDate(reader?.publishedAt ?: item.publishedAt),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(reader?.title?.ifBlank { item.title } ?: item.title,
             style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        ArticleActions(item.copy(title = reader?.title?.ifBlank { item.title } ?: item.title),
-            item.link in savedUrls) { vm.toggleSaved(item) }
+        ArticleActionRow(item.copy(title = reader?.title?.ifBlank { item.title } ?: item.title), vm)
         val image = reader?.imageUrl?.ifBlank { item.imageUrl } ?: item.imageUrl
         val images = reader?.images.orEmpty().ifEmpty { listOf(image).filter { it.isNotBlank() } }
-        images.forEach { NewsImage(it, item.link, worker, 220) }
+        images.forEach { NewsImage(it, item.link, worker, 220, item.proxyRequired) }
         reader?.author?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
         if (busy) CircularProgressIndicator()
         if (primary != null && ArticleLinks.isTelegramPost(item)) {
