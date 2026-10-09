@@ -1,15 +1,23 @@
 # NewsBrief Android
 
-Merge features into `dev` one at a time; each supplies its own runtime registration.
-`feature/app-integration` is an optional complete assembly, not a startup prerequisite.
-`integration/feed` contains the small working RSS/Atom/Telegram app with offline storage,
-feed-text reading and save/share, without background synchronization, AI or article plugins.
-Without the Storage feature, data/settings are session-only; existing offline files are untouched.
+`integration/feed` is the minimal working app: feed list, manual RSS/Atom refresh and Room
+storage. Article taps open the original link in the external browser. The MVP has no
+catalog, source-management screen, filters, Save/Share actions, reader, embedded browser,
+background sync, AI or proxy implementations. Existing offline data and source selections
+are preserved; uninstalled source providers are skipped during refresh.
 
-See [BRANCHES.md](BRANCHES.md) for progressive merge commands and real dependencies,
-and [BUILD-RESULTS.md](BUILD-RESULTS.md) for tests and APKs. All feature histories are
-preserved, including the older cumulative branches under `archive/stacked/`. This correction
-was not installed on the phone; the release and tag remain unchanged.
+Each optional capability has its own feature branch and registration. Source providers,
+source management and searchable discovery are separate. Save and Share are independent.
+The Cloudflare Worker implements the generic page-proxy plugin contract; the Telegram
+service is a separate source/content plugin. `feature/app-integration` assembles everything
+for convenience, but is not required to start or run the feed.
+
+See [BRANCHES.md](BRANCHES.md) for incremental merge commands and prerequisites, and
+[BUILD-RESULTS.md](BUILD-RESULTS.md) for exact tests, APKs and deployment results.
+These are Git capability branches within the existing `:app` module. Previous bundled
+branches remain under `archive/bundled/`; `main`, `release` and `v0.4.12` are unchanged.
+
+The section below documents earlier deployed versions and their complete feature set.
 
 ## Deployed 0.4.12 history
 
