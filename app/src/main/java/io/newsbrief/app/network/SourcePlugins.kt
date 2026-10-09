@@ -5,23 +5,12 @@ import io.newsbrief.app.util.FeedRules
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Stable IDs are stored in sources.kind and articles.sourcePluginId. */
-data class SourcePluginInfo(val id: String, val title: String, val addressHint: String)
-
-interface NewsSourcePlugin {
-    val info: SourcePluginInfo
-    fun canonicalAddress(input: String): String
-    suspend fun collect(source: SourceEntity): List<ArticleEntity>
-    suspend fun discover(): List<SourceEntity> = emptyList()
-    fun merge(existing: ArticleEntity, incoming: ArticleEntity): ArticleEntity = existing
-}
-
-class SourcePluginRegistry(plugins: List<NewsSourcePlugin>) : NewsCollector {
+class SourcePluginRegistry(plugins: List<NewsSourcePlugin>) : SourceRegistry {
     private val byId = plugins.associateBy { it.info.id }
-    val available = plugins.map { it.info }
+    override val available = plugins.map { it.info }
     init { require(byId.size == plugins.size) { "Duplicate source plugin ID" } }
-    fun plugin(id: String): NewsSourcePlugin = byId[id] ?: error("Плагин источника недоступен: $id")
-    fun canonicalAddress(input: String, id: String) = plugin(id).canonicalAddress(input)
+    override fun plugin(id: String): NewsSourcePlugin = byId[id] ?: error("Плагин источника недоступен: $id")
+    override fun canonicalAddress(input: String, id: String) = plugin(id).canonicalAddress(input)
     override fun merge(existing: ArticleEntity, incoming: ArticleEntity): ArticleEntity =
         byId[incoming.sourcePluginId]?.merge(existing, incoming) ?: existing
     override suspend fun collect(source: SourceEntity): List<ArticleEntity> = withContext(Dispatchers.IO) {
