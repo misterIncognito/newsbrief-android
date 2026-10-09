@@ -10,12 +10,33 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/** Service credentials use the existing Android Keystore key and preference format. */
+/** API keys are encrypted with non-exportable Android Keystore AES key, never bundled into APK. */
 class SettingsStore(context: Context) {
     private val prefs = context.getSharedPreferences("newsbrief_settings", Context.MODE_PRIVATE)
 
     companion object {
+        const val QWEN = "Qwen"
+        const val OPENAI = "OpenAI"
         private const val ALIAS = "newsbrief_api_keys_v1"
+    }
+
+    data class Config(val provider: String, val model: String)
+
+    fun read(): Config {
+        val provider = prefs.getString("provider", QWEN) ?: QWEN
+        val model = prefs.getString("model_$provider", null)
+            ?: if (provider == QWEN) "qwen3.5-flash" else "gpt-5.4-mini"
+        return Config(provider, model)
+    }
+
+    fun setProvider(provider: String) {
+        require(provider == QWEN || provider == OPENAI)
+        prefs.edit().putString("provider", provider).apply()
+    }
+
+    fun setModel(provider: String, model: String) {
+        require(model.isNotBlank())
+        prefs.edit().putString("model_$provider", model.trim()).apply()
     }
 
     private fun secret(): SecretKey {
@@ -29,7 +50,7 @@ class SettingsStore(context: Context) {
         }.generateKey()
     }
 
-    private fun saveSecret(provider: String, value: String) {
+    fun saveApiKey(provider: String, value: String) {
         if (value.isBlank()) {
             prefs.edit().remove("key_$provider").apply()
             return
@@ -41,9 +62,9 @@ class SettingsStore(context: Context) {
         prefs.edit().putString("key_$provider", Base64.encodeToString(payload, Base64.NO_WRAP)).apply()
     }
 
-    private fun hasSecret(provider: String): Boolean = prefs.contains("key_$provider")
+    fun hasApiKey(provider: String): Boolean = prefs.contains("key_$provider")
 
-    private fun loadSecret(provider: String): String {
+    fun loadApiKey(provider: String): String {
         val encoded = prefs.getString("key_$provider", null) ?: return ""
         return try {
             val bytes = Base64.decode(encoded, Base64.DEFAULT)
@@ -71,9 +92,9 @@ class SettingsStore(context: Context) {
     }
 
     fun telegramProxyUrl(): String = prefs.getString("telegram_proxy_url", "").orEmpty()
-    fun hasTelegramProxyKey(): Boolean = hasSecret("TelegramProxy")
-    fun telegramProxyKey(): String = loadSecret("TelegramProxy")
-    fun saveTelegramProxyKey(value: String) = saveSecret("TelegramProxy", value)
+    fun hasTelegramProxyKey(): Boolean = hasApiKey("TelegramProxy")
+    fun telegramProxyKey(): String = loadApiKey("TelegramProxy")
+    fun saveTelegramProxyKey(value: String) = saveApiKey("TelegramProxy", value)
     fun setTelegramProxyUrl(value: String) {
         val url = value.trim().trimEnd('/')
         if (url.isNotBlank()) io.newsbrief.app.network.TelegramProxyClient.validateBaseUrl(url)

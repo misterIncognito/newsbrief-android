@@ -56,22 +56,26 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.data.ArticleEntity
+import io.newsbrief.app.data.DigestEntity
+import io.newsbrief.app.data.DigestMode
+import io.newsbrief.app.data.SettingsStore
 import io.newsbrief.app.data.SourceCatalog
 import io.newsbrief.app.data.SourceKind
 import io.newsbrief.app.data.FeedCategory
 import io.newsbrief.app.data.FeedFilters
+import org.json.JSONArray
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private enum class Page(val label: String, val glyph: String) {
-    NEWS("Лента", "≡"), SOURCES("Источники", "+"), SETTINGS("Настройки", "⚙")
+    DIGEST("Главное", "✦"), NEWS("Лента", "≡"), SOURCES("Источники", "+"), SETTINGS("Настройки", "⚙")
 }
 
 @Composable
 fun NewsBriefScreen(vm: NewsViewModel) {
-    var page by rememberSaveable { mutableStateOf(Page.NEWS) }
+    var page by rememberSaveable { mutableStateOf(Page.DIGEST) }
     val readerSource by vm.readerSource.collectAsStateWithLifecycle()
     val browserUrl by vm.browserUrl.collectAsStateWithLifecycle()
     val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
@@ -138,9 +142,76 @@ fun NewsBriefScreen(vm: NewsViewModel) {
             } else if (catalogOpen) {
                 SourceDirectoryPage(vm)
             } else when (page) {
+                Page.DIGEST -> DigestPage(vm)
                 Page.NEWS -> FeedPage(vm, feedScroll, savedScroll)
                 Page.SOURCES -> SourcesPage(vm)
                 Page.SETTINGS -> SettingsPage(vm)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DigestPage(vm: NewsViewModel) {
+    val mode by vm.mode.collectAsStateWithLifecycle()
+    val digest by vm.digest.collectAsStateWithLifecycle()
+    val generating by vm.generating.collectAsStateWithLifecycle()
+    val news by vm.articles.collectAsStateWithLifecycle()
+    val sources by vm.sources.collectAsStateWithLifecycle()
+    val hasKey by vm.hasKey.collectAsStateWithLifecycle()
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("Главное за 24 часа", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("${news.size} публикаций · ${sources.count { it.enabled }} источника(ов)",
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = mode == DigestMode.SHORT, onClick = { vm.changeMode(DigestMode.SHORT) },
+                label = { Text("За 2 минуты") })
+            FilterChip(selected = mode == DigestMode.FULL, onClick = { vm.changeMode(DigestMode.FULL) },
+                label = { Text("Подробнее") })
+        }
+        Button(onClick = { vm.generate() }, enabled = !generating && news.isNotEmpty() && hasKey,
+            modifier = Modifier.fillMaxWidth()) {
+            if (generating) CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp).height(20.dp), strokeWidth = 2.dp)
+            Text(if (generating) "ИИ готовит сводку…" else "✦ Создать ИИ-сводку")
+        }
+        if (!hasKey) Text("Для ИИ-сводки добавь свой API-ключ в настройках.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (news.isEmpty()) Text("Новостей пока нет. Нажми «Обновить» и проверь подключённые источники.")
+
+        if (digest != null) {
+            val current = digest!!
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Сводка дня", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("По ${current.articleCount} публикациям · ${formatDate(current.createdAt)}",
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    SelectionContainer { Text(current.content, style = MaterialTheme.typography.bodyLarge) }
+                }
+            }
+            Text("Оригинальные публикации", style = MaterialTheme.typography.titleMedium)
+            val refs = remember(current.referencesJson) {
+                val json = JSONArray(current.referencesJson)
+                (0 until minOf(40, json.length())).map { json.getJSONObject(it) }
+            }
+            refs.forEach { ref ->
+                val url = ref.optString("url")
+                Text(
+                    "[${ref.optInt("number")}] ${ref.optString("source")} — ${ref.optString("title")}",
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        if (url.startsWith("https://")) vm.openLink(url, ref.optString("source"), ref.optString("title"))
+                    }
+                        .padding(vertical = 6.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Пока нет сводки", style = MaterialTheme.typography.titleMedium)
+                    Text("После обновления новостей нажми кнопку выше. ИИ сгруппирует события и поставит ссылки на источники.")
+                }
             }
         }
     }
@@ -396,6 +467,10 @@ private fun ProxyChannelsDialog(vm: NewsViewModel, state: NewsViewModel.ProxyCha
 
 @Composable
 private fun SettingsPage(vm: NewsViewModel) {
+    val config by vm.config.collectAsStateWithLifecycle()
+    val hasKey by vm.hasKey.collectAsStateWithLifecycle()
+    var modelDraft by remember(config.provider) { mutableStateOf(config.model) }
+    var keyDraft by remember(config.provider) { mutableStateOf("") }
     val worker by vm.workerUrl.collectAsStateWithLifecycle()
     var workerDraft by remember(worker) { mutableStateOf(worker) }
     val telegramProxy by vm.telegramProxyUrl.collectAsStateWithLifecycle()
@@ -422,8 +497,32 @@ private fun SettingsPage(vm: NewsViewModel) {
         OutlinedButton(onClick = { vm.saveTelegramProxy(telegramUrlDraft, telegramKeyDraft); telegramKeyDraft = "" }) { Text("Сохранить Telegram-прокси") }
         if (telegramKeySaved) TextButton(onClick = { vm.removeTelegramProxyKey() }) { Text("Удалить ключ Telegram-прокси") }
         HorizontalDivider()
+        Text("Настройки ИИ", style = MaterialTheme.typography.headlineSmall)
+        Text("Выбери модель. Выдержки публикаций отправляются напрямую с телефона выбранному ИИ-провайдеру, без нашего сервера.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = config.provider == SettingsStore.QWEN,
+                onClick = { vm.setProvider(SettingsStore.QWEN) }, label = { Text("Qwen") })
+            FilterChip(selected = config.provider == SettingsStore.OPENAI,
+                onClick = { vm.setProvider(SettingsStore.OPENAI) }, label = { Text("OpenAI") })
+        }
+        OutlinedTextField(value = modelDraft, onValueChange = { modelDraft = it }, modifier = Modifier.fillMaxWidth(),
+            singleLine = true, label = { Text("Модель") })
+        OutlinedButton(onClick = { vm.setModel(modelDraft) }) { Text("Сохранить модель") }
+        HorizontalDivider()
+        Text(if (hasKey) "API-ключ сохранён" else "API-ключ ещё не добавлен", style = MaterialTheme.typography.titleMedium)
+        Text("Ключ хранится в зашифрованном виде с Android Keystore. Это подходит для личного ключа, но не для общего ключа, встроенного в APK.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(value = keyDraft, onValueChange = { keyDraft = it }, modifier = Modifier.fillMaxWidth(),
+            singleLine = true, visualTransformation = PasswordVisualTransformation(),
+            label = { Text("API-ключ ${config.provider}") })
+        Button(onClick = { vm.saveKey(keyDraft); keyDraft = "" }, enabled = keyDraft.isNotBlank()) {
+            Text("Сохранить ключ")
+        }
+        if (hasKey) TextButton(onClick = { vm.saveKey("") }) { Text("Удалить сохранённый ключ") }
+        HorizontalDivider()
         Text("Ограничения MVP", style = MaterialTheme.typography.titleMedium)
-        Text("Публичная Telegram-страница показывает ограниченное число последних сообщений. Фоновое обновление Android выполняет с возможными задержками.",
+        Text("В сводку передаются заголовки и доступные выдержки, а не полные статьи. Публичная Telegram-страница показывает ограниченное число последних сообщений. Фоновое обновление Android выполняет с возможными задержками.",
             style = MaterialTheme.typography.bodyMedium)
     }
 }

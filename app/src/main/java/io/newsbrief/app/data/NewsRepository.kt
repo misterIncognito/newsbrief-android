@@ -1,9 +1,11 @@
 package io.newsbrief.app.data
 
+import io.newsbrief.app.ai.AiClient
 import io.newsbrief.app.network.ArticleReader
 import io.newsbrief.app.network.ReaderArticle
 import io.newsbrief.app.network.NewsCollector
 import androidx.room.withTransaction
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
@@ -20,6 +22,7 @@ class NewsRepository(
     private val clock: () -> Long = System::currentTimeMillis,
     private val onFeedUpdated: () -> Unit = {}
 ) {
+    private val ai = AiClient(settings)
     private val refreshMutex = Mutex()
 
     data class RefreshResult(val added: Int, val sources: Int, val errors: List<String>,
@@ -185,4 +188,14 @@ class NewsRepository(
         return result
     }
 
+    suspend fun digest(mode: String): DigestEntity? = db.digestDao().find(LocalDate.now().toString(), mode)
+
+    suspend fun generateDigest(mode: String): DigestEntity {
+        require(mode == DigestMode.SHORT || mode == DigestMode.FULL)
+        val cutoff = System.currentTimeMillis() - 24L * 60 * 60 * 1_000
+        val recent = db.articleDao().recent(cutoff, 600)
+        val digest = ai.generate(DigestArticleSelector.pick(recent), mode)
+        db.digestDao().save(digest)
+        return digest
+    }
 }
