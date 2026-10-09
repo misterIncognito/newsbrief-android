@@ -2,8 +2,6 @@
 
 Development branch: article plugin extensibility is isolated on `feature/article-plugins`.
 `dev` retains source plugins and a working built-in article reader. See [BRANCHES.md](BRANCHES.md).
-AI digest generation and provider settings are isolated on `feature/ai`; `dev` opens
-to the feed. Historical summaries and encrypted credentials remain stored.
 The version notes below describe the released 0.4.12 history.
 
 Локальный агрегатор новостей с ИИ-сводкой на Kotlin + Jetpack Compose, **без backend-сервера**.
@@ -254,3 +252,10 @@ Worker Readability и HTML издателя. Нативный Reader и пред
 используют прокси. Оригинальная статья The Warsaw проверена на Motorola внутри
 NewsBrief. Версия 0.4.12 установлена без удаления данных; 154 теста и одна проверка
 на телефоне прошли. Подробности: [FEED-BROWSER-0412.md](FEED-BROWSER-0412.md).
+
+## Current feature branches
+
+`dev` excludes AI generation and its digest/provider controls, and opens to the feed.
+`feature/ai` restores AI independently; `feature/article-plugins` restores the article
+plugin layer. Saved summaries, encrypted credentials and Room schema 8 are retained.
+See [BRANCHES.md](BRANCHES.md) for syncing and restoring either feature.
