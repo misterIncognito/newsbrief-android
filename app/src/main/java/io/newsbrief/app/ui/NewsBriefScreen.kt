@@ -28,8 +28,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -224,12 +222,11 @@ private fun FeedPage(vm: NewsViewModel, feedScroll: LazyListState, savedScroll: 
     val articles by vm.feedArticles.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
     val category by vm.feedCategory.collectAsStateWithLifecycle()
-    val selectedSource by vm.feedSource.collectAsStateWithLifecycle()
+    val selectedSources by vm.feedSources.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
     val options = remember(sources, category) { FeedFilters.options(sources, category) }
-    var sourceMenu by remember { mutableStateOf(false) }
-    val filtered = category != FeedCategory.ALL || selectedSource != null
+    val filtered = category != FeedCategory.ALL || selectedSources.isNotEmpty()
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = !savedOnly, onClick = { vm.showSaved(false) }, label = { Text("Все новости") })
@@ -245,22 +242,12 @@ private fun FeedPage(vm: NewsViewModel, feedScroll: LazyListState, savedScroll: 
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f)) {
-                    OutlinedButton(onClick = { sourceMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (selectedSource == null) "Все источники ▾"
-                            else (options.firstOrNull { it.key == selectedSource }?.label ?: "Источник недоступен") + " ▾",
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                    DropdownMenu(expanded = sourceMenu, onDismissRequest = { sourceMenu = false },
-                        modifier = Modifier.heightIn(max = 400.dp)) {
-                        DropdownMenuItem(text = { Text("Все источники") }, onClick = {
-                            vm.filterSource(null); sourceMenu = false
-                        })
-                        options.forEach { option ->
-                            DropdownMenuItem(text = { Text(option.label) }, onClick = {
-                                vm.filterSource(option.key); sourceMenu = false
-                            })
-                        }
+                Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = selectedSources.isEmpty(), onClick = { vm.filterSource(null) },
+                        label = { Text("Все источники") })
+                    options.forEach { option ->
+                        FilterChip(selected = option.key in selectedSources, onClick = { vm.toggleFeedSource(option.key) },
+                            label = { Text(option.label) })
                     }
                 }
                 if (filtered) TextButton(onClick = { vm.clearFeedFilter() }) { Text("Сбросить") }
@@ -323,8 +310,15 @@ private fun ReaderPage(vm: NewsViewModel) {
     val worker by vm.workerUrl.collectAsStateWithLifecycle()
     val savedUrls by vm.savedUrls.collectAsStateWithLifecycle()
     val item = source ?: return
+    val links = reader?.links ?: ArticleLinks.decode(item.linksJson)
+    val primary = ArticleLinks.fullArticle(links)
     Column(Modifier.fillMaxSize().verticalScroll(remember(item.link) { androidx.compose.foundation.ScrollState(0) }).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        OutlinedButton(onClick = {
+            val telegram = ArticleLinks.isTelegramPost(item)
+            vm.openBrowser(if (telegram) primary?.url ?: item.link else item.link,
+                forceProxy = item.proxyRequired || (telegram && primary != null))
+        }, modifier = Modifier.fillMaxWidth()) { Text("Открыть во встроенном браузере") }
         Text(item.sourceName + " · " + formatDate(reader?.publishedAt ?: item.publishedAt),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(reader?.title?.ifBlank { item.title } ?: item.title,
@@ -336,19 +330,12 @@ private fun ReaderPage(vm: NewsViewModel) {
         images.forEach { NewsImage(it, item.link, worker, 220) }
         reader?.author?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
         if (busy) CircularProgressIndicator()
-        val links = reader?.links ?: ArticleLinks.decode(item.linksJson)
-        val primary = ArticleLinks.fullArticle(links)
-        if (primary != null && ArticleLinks.telegramPreview(item.link) != null) {
+        if (primary != null && ArticleLinks.isTelegramPost(item)) {
             Button(onClick = { vm.openReaderLink(primary.url) }, enabled = !busy,
                 modifier = Modifier.fillMaxWidth()) {
                 Text("Читать полную статью · " + java.net.URI(primary.url).host)
             }
         }
-        OutlinedButton(onClick = {
-            val telegram = ArticleLinks.telegramPreview(item.link) != null
-            vm.openBrowser(if (telegram) primary?.url ?: item.link else item.link,
-                forceProxy = item.proxyRequired || (telegram && primary != null))
-        }, modifier = Modifier.fillMaxWidth()) { Text("Открыть во встроенном браузере") }
         val content = reader?.text?.ifBlank { item.content.ifBlank { item.excerpt } }
             ?: item.content.ifBlank { item.excerpt }
         SelectionContainer {

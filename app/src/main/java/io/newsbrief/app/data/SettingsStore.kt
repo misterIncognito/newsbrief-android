@@ -84,6 +84,13 @@ class SettingsStore(context: Context) {
         prefs.edit().putString("worker_url", normalized).apply()
     }
 
+    data class FeedSyncAttempt(val time: Long, val configuration: String)
+    fun feedSyncAttempt(): FeedSyncAttempt? = if (prefs.contains("feed_sync_attempt_time"))
+        FeedSyncAttempt(prefs.getLong("feed_sync_attempt_time", 0), prefs.getString("feed_sync_configuration", "").orEmpty()) else null
+    fun recordFeedSyncAttempt(time: Long, configuration: String) {
+        prefs.edit().putLong("feed_sync_attempt_time", time).putString("feed_sync_configuration", configuration).commit()
+    }
+
     fun telegramProxyUrl(): String = prefs.getString("telegram_proxy_url", "").orEmpty()
     fun hasTelegramProxyKey(): Boolean = hasApiKey("TelegramProxy")
     fun telegramProxyKey(): String = loadApiKey("TelegramProxy")

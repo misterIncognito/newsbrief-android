@@ -33,4 +33,15 @@ class FeedFiltersTest {
         assertEquals(2, FeedFilters.sourceIds(sources, FeedCategory.BUSINESS, "business-insider")!!.size)
         assertEquals(1, FeedFilters.sourceIds(sources, FeedCategory.TECH, null)!!.size)
     }
+    @Test fun multiplePublishersAreCombinedWithoutIncludingDisabledOrUnselectedSources() {
+        val sources = listOf(source("https://news.zerkalo.io/rss/all.rss", 1),
+            source("https://t.me/s/zerkalo_io", 2), source("https://t.me/s/bbcrussian", 3),
+            source("https://meduza.io/rss/all", 4), source("https://t.me/s/bbcrussian", 5, enabled = false),
+            SourceEntity(id = 6, name = "Zerkalo proxy", kind = SourceKind.TELEGRAM_PROXY, address = "telegram-proxy:zerkalo_io"))
+        assertEquals(listOf(1L, 2L, 3L, 6L), FeedFilters.sourceIds(sources, FeedCategory.ALL, setOf("zerkalo", "bbc-ru")))
+        assertEquals(listOf(3L), FeedFilters.sourceIds(sources, FeedCategory.ALL, setOf("bbc-ru")))
+        assertNull(FeedFilters.sourceIds(sources, FeedCategory.ALL, emptySet()))
+        assertTrue(FeedFilters.sourceIds(sources, FeedCategory.ALL, setOf("deleted")).orEmpty().isEmpty())
+    }
+
 }

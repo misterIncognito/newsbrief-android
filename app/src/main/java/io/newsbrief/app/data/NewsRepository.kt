@@ -19,12 +19,15 @@ class NewsRepository(
     val sourcePlugins: io.newsbrief.app.network.SourcePluginRegistry = (collector as? io.newsbrief.app.network.WebCollectors)?.plugins
         ?: (collector as? io.newsbrief.app.network.SourcePluginRegistry) ?: io.newsbrief.app.network.SourcePluginRegistry.builtIns(settings),
     private val articleReader: ArticleReader = ArticleReader(settings),
+    private val clock: () -> Long = System::currentTimeMillis,
     private val onFeedUpdated: () -> Unit = {}
 ) {
     private val ai = AiClient(settings)
     private val refreshMutex = Mutex()
 
-    data class RefreshResult(val added: Int, val sources: Int, val errors: List<String>)
+    data class RefreshResult(val added: Int, val sources: Int, val errors: List<String>,
+        val skipped: Boolean = false, val retryAfterMillis: Long = 0)
+    companion object { const val SYNC_COOLDOWN_MILLIS = 3 * 60_000L }
 
     fun observeSources(): Flow<List<SourceEntity>> = db.sourceDao().observe()
     fun observeLatest(): Flow<List<ArticleEntity>> = db.articleDao().observeRecent(0)
@@ -104,6 +107,18 @@ class NewsRepository(
         seedDefaults()
         // Fetch newly added sources first so slow existing feeds do not delay them.
         val sources = db.sourceDao().enabled().sortedByDescending { it.id }
+        val configuration = org.json.JSONArray().apply {
+            put(settings.workerUrl()); put(settings.telegramProxyUrl())
+            sources.forEach { put(org.json.JSONArray(listOf(it.id, it.kind, it.address))) }
+        }.toString()
+        val now = clock()
+        val previous = settings.feedSyncAttempt()
+        val elapsed = previous?.let { now - it.time }
+        if (previous?.configuration == configuration && elapsed != null && elapsed in 0 until SYNC_COOLDOWN_MILLIS)
+            return@withLock RefreshResult(0, sources.size, emptyList(), skipped = true,
+                retryAfterMillis = SYNC_COOLDOWN_MILLIS - elapsed)
+        // Record attempts, not successes, before any requests. Source-list changes remain immediate.
+        settings.recordFeedSyncAttempt(now, configuration)
         var total = 0
         val errors = mutableListOf<String>()
         for (source in sources) {

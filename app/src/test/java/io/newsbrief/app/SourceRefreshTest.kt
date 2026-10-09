@@ -134,7 +134,7 @@ class SourceRefreshTest {
             Dispatchers.resetMain()
         }
     }
-    @Test fun returningToFeedRefreshesQuietlyAndCoalescesWithActiveRefreshWithoutChangingFilters() = runBlocking {
+    @Test fun returningToFeedRespectsCooldownAndCoalescesWithoutChangingFilters() = runBlocking {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
         var vm: NewsViewModel? = null
@@ -143,13 +143,14 @@ class SourceRefreshTest {
         try {
             db.sourceDao().insert(SourceEntity(name = "Source", address = "https://source.example/rss", kind = SourceKind.RSS))
             var calls = 0
+            var now = 1_000_000L
             val repo = NewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity): List<ArticleEntity> {
                     calls++
                     if (calls == 1) { started.complete(Unit); release.await() }
                     return listOf(article(source).copy(link = "https://source.example/story/$calls"))
                 }
-            }, settings())
+            }, settings(), clock = { now })
             val model = NewsViewModel(app, repo, settings()); vm = model
             withTimeout(5000) { started.await() }
             model.filterCategory(FeedCategory.TECH)
@@ -161,10 +162,14 @@ class SourceRefreshTest {
             model.clearMessage()
             model.feedBecameVisible()
             withTimeout(5000) { model.refreshing.first { !it } }
+            assertEquals(1, calls)
+            now += NewsRepository.SYNC_COOLDOWN_MILLIS
+            model.feedBecameVisible()
+            withTimeout(5000) { model.refreshing.first { !it } }
             assertEquals(2, calls)
             assertEquals(2, repo.observeLatest().first().size)
             assertEquals(FeedCategory.TECH, model.feedCategory.value)
-            assertEquals("source-filter", model.feedSource.value)
+            assertEquals(setOf("source-filter"), model.feedSources.value)
             assertNull(model.message.value)
         } finally { release.complete(Unit); vm?.viewModelScope?.cancel(); db.close(); Dispatchers.resetMain() }
     }

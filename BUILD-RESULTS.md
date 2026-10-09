@@ -1,25 +1,25 @@
 # NewsBrief Android build verification
 
-Latest build: **0.4.11**, **150 passing tests** (147 offline + 3 live article/image
-checks), zero failures/errors/skips. Debug APK and Android test APK built successfully.
-Source collection and article extraction use separate plugin registries. The Telegram
-service connector includes encrypted access-key storage, bearer renewal, channel discovery,
-full posts and entity links. Service deployment is pending, so its base URL is configurable;
-Telegram API verification uses deterministic contract fixtures.
+Latest build: **0.4.12**, **154 passing offline tests**, zero failures/errors/skips.
+Debug APK and Android test APK built successfully. The update adds a persistent three-minute
+cooldown between repeated feed-sync attempts (including failures), multi-select publisher
+chips, the browser action above article content, and an explicit original-page WebView mode.
+New/enabled sources still load immediately. Meduza/Zerkalo continue to use the Worker.
 
-Room 7→8 preserves existing data and persists plugin identity; migrations from versions 1–7
-pass. Compose checks cover source-plugin choices, the unconfigured-service notice and
-connection settings alongside existing Save/Share, return refresh and scroll behavior.
-Live Meduza AMP, Zerkalo AMP and devby Readability checks pass, including `/image` downloads
-and offline image-cache reopening. Version 0.4.11 was subsequently installed on the Motorola on 9 October 2026 and launched successfully. The real database upgraded from schema 5 to 8; all 989 original articles and 20 source definitions were retained, with 995 articles after refresh. See [phone verification](validation/phone-0411-install.json).
+Version 0.4.12 was installed on the Motorola and launched successfully. The real Warsaw
+original-page instrumented check passed (**1 device test**), rendering 28,554 characters
+and the expected article heading inside NewsBrief. All **1,184 original articles** and
+**21 source definitions** were retained; 1,190 articles were stored after refresh.
+Room remains schema 8. A private local backup was taken before installation.
 
-One initial new UI test matched both a source label and the plugin selector; restricting
-its assertion to clickable controls fixed the test. The focused and final full suites pass.
-See [PLUGINS.md](PLUGINS.md), [validation/plugins-0411-results.json](validation/plugins-0411-results.json)
-and [validation/build-0411-output.txt](validation/build-0411-output.txt).
-Previous 0.4.10 changes: [SAVED-REFRESH.md](SAVED-REFRESH.md).
+An initial new Compose test attempted to click an offscreen chip; it now scrolls the
+horizontal source list before clicking. Focused and final full suites pass.
+See [FEED-BROWSER-0412.md](FEED-BROWSER-0412.md),
+[build/test results](validation/feed-browser-0412-results.json),
+[phone verification](validation/phone-0412-install.json) and
+[phone test output](validation/phone-0412-warsaw-test.txt).
+Previous plugin changes: [PLUGINS.md](PLUGINS.md).
 Previous live AMP checks: [AMP-READER.md](AMP-READER.md).
-Earlier phone checks: [READER-REFRESH-FIX.md](READER-REFRESH-FIX.md).
 
 The results below record the original 0.4.0 build.
 

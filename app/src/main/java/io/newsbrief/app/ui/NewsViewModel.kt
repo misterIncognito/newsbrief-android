@@ -88,20 +88,24 @@ class NewsViewModel @JvmOverloads constructor(
 
     private val _feedCategory = MutableStateFlow(FeedCategory.ALL)
     val feedCategory = _feedCategory.asStateFlow()
-    private val _feedSource = MutableStateFlow<String?>(null)
-    val feedSource = _feedSource.asStateFlow()
+    private val _feedSources = MutableStateFlow<Set<String>>(emptySet())
+    val feedSources = _feedSources.asStateFlow()
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val feedArticles = combine(repo.observeSources(), _feedCategory, _feedSource, _savedOnly) { sources, category, source, saved ->
+    val feedArticles = combine(repo.observeSources(), _feedCategory, _feedSources, _savedOnly) { sources, category, source, saved ->
         saved to FeedFilters.sourceIds(sources, category, source)
     }.distinctUntilChanged().flatMapLatest { (saved, ids) -> if (saved) repo.observeSaved() else repo.observeFeed(ids) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun filterCategory(category: FeedCategory) {
-        _feedSource.value = null
+        _feedSources.value = emptySet()
         _feedCategory.value = category
     }
-    fun filterSource(key: String?) { _feedSource.value = key }
+    fun filterSource(key: String?) { _feedSources.value = key?.let { setOf(it) }.orEmpty() }
+    fun toggleFeedSource(key: String) {
+        val current = _feedSources.value
+        _feedSources.value = if (key in current) current - key else current + key
+    }
     fun clearFeedFilter() { filterCategory(FeedCategory.ALL) }
 
     private val _mode = MutableStateFlow(DigestMode.SHORT)
@@ -252,7 +256,8 @@ class NewsViewModel @JvmOverloads constructor(
                 while (refreshRequested) {
                     refreshRequested = false
                     val outcome = repo.refresh()
-                    if (!quiet) report("Новых публикаций: ${outcome.added}" +
+                    if (!quiet && outcome.skipped) report("Обновление уже запускалось. Повтор через ${(outcome.retryAfterMillis + 999) / 1000} сек.")
+                    else if (!quiet) report("Новых публикаций: ${outcome.added}" +
                         if (outcome.errors.isNotEmpty()) "\nОшибки: ${outcome.errors.joinToString("; ")}" else "")
                 }
             } catch (e: CancellationException) { throw e

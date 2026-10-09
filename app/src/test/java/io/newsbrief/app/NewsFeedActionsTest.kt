@@ -42,7 +42,7 @@ class NewsFeedActionsTest {
         val registry = LifecycleRegistry(this)
         override val lifecycle: Lifecycle get() = registry
     }
-    @Test fun readerReturnRefreshesPreservesScrollAndShowsSavedItemInSavedFeed() {
+    @Test fun readerReturnWithinCooldownPreservesScrollAndShowsSavedItemInSavedFeed() {
         val dispatcher = UnconfinedTestDispatcher()
         Dispatchers.setMain(dispatcher)
         // Room callbacks and screen effects need both the coroutine scheduler and a UI frame.
@@ -80,7 +80,7 @@ class NewsFeedActionsTest {
             compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
             waitFor { calls.get() >= 1 && !vm.refreshing.value }
             compose.onNodeWithText("Лента").performClick()
-            waitFor { calls.get() >= 2 && !vm.refreshing.value && vm.feedArticles.value.size == 30 }
+            waitFor { calls.get() >= 1 && !vm.refreshing.value && vm.feedArticles.value.size == 30 }
             compose.onNodeWithTag("news-feed").performScrollToIndex(15)
             compose.onNodeWithText("Story 15", substring = true).performClick()
             waitFor { vm.reader.value?.text == "Saved reader body 15" }
@@ -89,9 +89,9 @@ class NewsFeedActionsTest {
             compose.onNodeWithText("✓ Сохранено").assertExists()
             val beforeReturn = calls.get()
             compose.onNodeWithText("← Назад").performClick()
-            waitFor { vm.readerSource.value == null && calls.get() > beforeReturn && !vm.refreshing.value }
+            waitFor { vm.readerSource.value == null && calls.get() == beforeReturn && !vm.refreshing.value }
             compose.onNodeWithText("Story 15", substring = true).assertIsDisplayed()
-            assertEquals(beforeReturn + 1, calls.get())
+            assertEquals(beforeReturn, calls.get())
             compose.onNodeWithText("Сохранённые").performClick()
             waitFor { vm.feedArticles.value.size == 1 }
             compose.onNodeWithText("Story 15", substring = true).assertExists()
@@ -135,6 +135,51 @@ class NewsFeedActionsTest {
             compose.onNodeWithText("Настройки").performClick()
             compose.onNodeWithText("HTTPS URL Telegram-прокси").performScrollTo().assertExists()
             compose.onNodeWithText("Ключ доступа Telegram-прокси").performScrollTo().assertExists()
+        } finally { model?.viewModelScope?.cancel(); db.close(); Dispatchers.resetMain() }
+    }
+
+    @Test fun multipleSourceChipsCombineFeedAndBrowserActionStaysAboveArticle() {
+        val dispatcher = UnconfinedTestDispatcher(); Dispatchers.setMain(dispatcher)
+        fun waitFor(condition: () -> Boolean) { compose.waitUntil(5000) {
+            dispatcher.scheduler.runCurrent(); compose.waitForIdle(); condition()
+        } }
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
+        var model: NewsViewModel? = null
+        try {
+            val settings = SettingsStore(app).apply {
+                markSourcesCatalogV2Seeded(); markSourcesCatalogV3Seeded(); markSourcesCatalogV4Seeded(); markSourcesCatalogV5Seeded()
+            }
+            runBlocking { listOf("Alpha", "Beta", "Gamma").forEach { name ->
+                db.sourceDao().insert(SourceEntity(name = name, address = "https://${name.lowercase()}.example/rss", kind = SourceKind.RSS))
+            } }
+            val repo = NewsRepository(db, object : NewsCollector {
+                override suspend fun collect(source: SourceEntity) = listOf(ArticleEntity(sourceId = source.id,
+                    sourceName = source.name, title = "Story ${source.name}", excerpt = "Preview",
+                    content = "Long article text. ".repeat(1000), readerLoaded = true,
+                    link = source.address.replace("rss", "story"), publishedAt = 123))
+            }, settings)
+            lateinit var vm: NewsViewModel
+            compose.runOnIdle { vm = NewsViewModel(app, repo, settings); model = vm }
+            val owner = Owner()
+            compose.setContent { CompositionLocalProvider(LocalLifecycleOwner provides owner) { MaterialTheme { NewsBriefScreen(vm) } } }
+            compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
+            compose.onNodeWithText("Лента").performClick()
+            waitFor { vm.feedArticles.value.size == 3 }
+            compose.onNodeWithText("Alpha").performScrollTo().performClick()
+            waitFor { vm.feedArticles.value.size == 1 }
+            compose.onNodeWithText("Beta").performScrollTo().performClick()
+            waitFor { vm.feedArticles.value.size == 2 }
+            compose.onNodeWithText("Alpha").assertIsSelected(); compose.onNodeWithText("Beta").assertIsSelected()
+            compose.onNodeWithText("Alpha").performScrollTo().performClick()
+            waitFor { vm.feedArticles.value.singleOrNull()?.sourceName == "Beta" }
+            compose.onNodeWithText("Все источники").performScrollTo().performClick()
+            waitFor { vm.feedArticles.value.size == 3 }
+            compose.onNodeWithText("Story Alpha").performClick()
+            waitFor { vm.reader.value != null }
+            val browser = compose.onNodeWithText("Открыть во встроенном браузере")
+            browser.assertIsDisplayed()
+            assertTrue(browser.fetchSemanticsNode().boundsInRoot.top < compose.onNodeWithText("Story Alpha").fetchSemanticsNode().boundsInRoot.top)
         } finally { model?.viewModelScope?.cancel(); db.close(); Dispatchers.resetMain() }
     }
 

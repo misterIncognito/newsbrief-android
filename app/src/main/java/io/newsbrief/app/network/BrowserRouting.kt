@@ -6,6 +6,11 @@ import java.net.URI
 object BrowserRouting {
     data class Route(val type: String, val forceProxy: Boolean)
 
+    /** Original-page mode is an explicit choice; required proxy hosts never become direct. */
+    fun canLoadOriginal(url: String, documentUrl: String, proxyLocked: Boolean = false): Boolean =
+        ArticleLinks.valid(url) && !proxyLocked && !NewsRouting.requiresProxy(url) &&
+            !NewsRouting.requiresProxy(documentUrl)
+
     fun route(url: String, mainFrame: Boolean, documentUrl: String, accept: String = "", forceDocumentProxy: Boolean = false): Route {
         require(ArticleLinks.valid(url)) { "Поддерживаются только HTTPS-страницы" }
         val path = URI(url).path.orEmpty().lowercase(java.util.Locale.ROOT)

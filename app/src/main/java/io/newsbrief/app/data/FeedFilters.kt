@@ -9,13 +9,17 @@ enum class FeedCategory(val label: String) {
 data class FeedSourceOption(val key: String, val label: String, val ids: List<Long>)
 
 object FeedFilters {
+    private fun catalogAddress(source: SourceEntity): String =
+        if (source.kind == SourceKind.TELEGRAM_PROXY && source.address.startsWith("telegram-proxy:"))
+            "https://t.me/s/" + source.address.removePrefix("telegram-proxy:") else source.address
+
     fun categories(source: SourceEntity): Set<FeedCategory> {
         val saved = runCatching {
             val tags = org.json.JSONArray(source.categoriesJson)
             (0 until tags.length()).mapNotNull { runCatching { FeedCategory.valueOf(tags.getString(it)) }.getOrNull() }.toSet()
         }.getOrDefault(emptySet())
         if (saved.isNotEmpty()) return saved
-        val category = SourceCatalog.presets.firstOrNull { it.address == source.address }?.category
+        val category = SourceCatalog.presets.firstOrNull { it.address == catalogAddress(source) }?.category
             ?: return setOf(FeedCategory.OTHER)
         return buildSet {
             if (category.contains("Технологии") || category.contains("IT")) add(FeedCategory.TECH)
@@ -27,7 +31,7 @@ object FeedFilters {
         }
     }
 
-    private fun publisher(source: SourceEntity): Pair<String, String> = when (source.address) {
+    private fun publisher(source: SourceEntity): Pair<String, String> = when (catalogAddress(source)) {
         "https://news.zerkalo.io/rss/all.rss", "https://t.me/s/zerkalo_io" -> "zerkalo" to "Зеркало"
         "https://feeds.bbci.co.uk/russian/rss.xml", "https://t.me/s/bbcrussian" -> "bbc-ru" to "BBC Русская служба"
         "https://meduza.io/rss/all", "https://t.me/s/meduzalive" -> "meduza" to "Медуза"
@@ -46,9 +50,12 @@ object FeedFilters {
         }.sortedBy { it.label.lowercase(java.util.Locale.ROOT) }
 
     /** null means all enabled sources; an empty list intentionally means no matching sources. */
-    fun sourceIds(sources: List<SourceEntity>, category: FeedCategory, publisherKey: String?): List<Long>? {
-        if (category == FeedCategory.ALL && publisherKey == null) return null
-        return options(sources, category).filter { publisherKey == null || it.key == publisherKey }
-            .flatMap { it.ids }.sorted()
+    fun sourceIds(sources: List<SourceEntity>, category: FeedCategory, publisherKey: String?): List<Long>? =
+        sourceIds(sources, category, publisherKey?.let { setOf(it) }.orEmpty())
+
+    fun sourceIds(sources: List<SourceEntity>, category: FeedCategory, publisherKeys: Set<String>): List<Long>? {
+        if (category == FeedCategory.ALL && publisherKeys.isEmpty()) return null
+        return options(sources, category).filter { publisherKeys.isEmpty() || it.key in publisherKeys }
+            .flatMap { it.ids }.distinct().sorted()
     }
 }
