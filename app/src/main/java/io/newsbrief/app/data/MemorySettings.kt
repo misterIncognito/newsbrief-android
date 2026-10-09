@@ -19,7 +19,7 @@ class MemorySettings : AppSettings {
     override fun hasApiKey(provider: String) = keys[provider].orEmpty().isNotBlank()
     override fun loadApiKey(provider: String) = keys[provider].orEmpty()
     override fun workerUrl() = worker
-    override fun setWorkerUrl(url: String) { NewsRouting.endpoint("https://meduza.io/rss/all", "fetch", url); worker = url.trim().trimEnd('/') }
+    override fun setWorkerUrl(url: String) { ProxyUrls.workerService(url); worker = url.trim().trimEnd('/') }
     override fun feedSyncAttempt() = attempt
     override fun recordFeedSyncAttempt(time: Long, configuration: String) { attempt = FeedSyncAttempt(time, configuration) }
     override fun telegramProxyUrl() = telegram

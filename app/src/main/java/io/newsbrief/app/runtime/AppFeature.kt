@@ -5,10 +5,14 @@ import androidx.compose.runtime.Composable
 import io.newsbrief.app.data.*
 import io.newsbrief.app.network.*
 import io.newsbrief.app.ui.NewsViewModel
+import io.newsbrief.app.ui.ReaderUi
+import io.newsbrief.app.ui.FeedUi
+import io.newsbrief.app.ui.ArticleAction
 
 interface AppFeature {
     val id: String
     val title: String get() = ""
+    val hasSettings: Boolean get() = false
     val order: Int get() = 0
     fun configure(bindings: FeatureBindings) {}
     @Composable fun Screen(vm: NewsViewModel) {}
@@ -17,9 +21,21 @@ interface AppFeature {
 interface ArticlePresentation {
     @Composable fun Card(article: ArticleEntity, vm: NewsViewModel)
     @Composable fun Reader(vm: NewsViewModel)
-    @Composable fun Browser(url: String, worker: String, forceProxy: Boolean)
 }
 class FeatureBindings {
+    val articleActions = mutableListOf<ArticleAction>()
+    val feedControls = mutableListOf<@Composable (FeedUi) -> Unit>()
+    var feedEmptyMessage: (FeedUi) -> String? = { null }
+    var saveArticle: (suspend (NewsStore, ArticleEntity) -> Boolean)? = null
+    val sourcePlugins = mutableListOf<(SourceSettings) -> NewsSourcePlugin>()
+    val sourceDefaults = mutableListOf<SourceEntity>()
+    val telegramPlugins = mutableListOf<(SourceSettings) -> TelegramContent>()
+    val pageProxyPlugins = mutableListOf<PageProxyPlugin>()
+    var pageRouter: (List<PageProxyPlugin>) -> PageRouter = { DirectPageRouter }
+    val articlePlugins = mutableListOf<(SourceSettings) -> ArticleFetchPlugin>()
+    fun telegramContent(settings: SourceSettings): TelegramContent? = telegramPlugins.takeIf { it.isNotEmpty() }
+        ?.let { CombinedTelegramContent(it.map { factory -> factory(settings) }) }
+
     var persistentStorage: ((Context) -> Pair<NewsStore, AppSettings>)? = null
     var sources: ((AppSettings) -> SourceRegistry)? = null
     var seed: suspend (NewsStore, AppSettings) -> Unit = { _, _ -> }
@@ -30,7 +46,6 @@ class FeatureBindings {
             (0 until tags.length()).any { index -> tags.getString(index) == category.name }
         }.getOrDefault(false)) }.map { FeedSourceOption("source:${it.id}", it.name, listOf(it.id)) }
     }
-    var telegram: ((AppSettings) -> TelegramContent)? = null
     var article: ((AppSettings, ArticleExtractor?) -> ArticleLoader)? = null
     var extractor: ((AppSettings) -> ArticleExtractor)? = null
     var generate: (suspend (List<ArticleEntity>, String, AppSettings) -> DigestEntity)? = null
@@ -40,6 +55,7 @@ class FeatureBindings {
     var feedUpdated: (Context) -> Unit = {}
     var images: ((Context) -> PrefetchImageStore)? = null
     var presentation: ArticlePresentation? = null
+    var browser: (@Composable (String, String, Boolean) -> Unit)? = null
     companion object {
         fun create(features: List<AppFeature> = GeneratedFeatures.create()): FeatureBindings = FeatureBindings().also { b ->
             features.sortedBy { it.order }.forEach { it.configure(b) }
