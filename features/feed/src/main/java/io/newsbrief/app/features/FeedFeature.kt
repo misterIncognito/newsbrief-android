@@ -11,7 +11,7 @@ class FeedFeature : AppFeature {
     override val id = "feed"
     override val title = "Лента"
     override val order = -10
-    @Composable override fun Screen(vm: NewsViewModel) {
+    @Composable override fun Screen(vm: AppUi) {
         val reader by vm.readerSource.collectAsStateWithLifecycle()
         val browser by vm.browserUrl.collectAsStateWithLifecycle()
         val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
