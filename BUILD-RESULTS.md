@@ -1,113 +1,112 @@
-# NewsBrief optional capability verification
+# NewsBrief Gradle module verification
 
-All **22 actual branch checkouts**, **4 real progressive merge stages** and **15 optional
-composition profiles** pass their automated tests and debug builds, with zero failures,
-errors or skips. The final full app passes **177 tests**; the minimal persistent feed
-passes **30 tests**. The full app also builds its Android-test APK; device instrumentation
-was not executed as part of this verification.
+The full module assembly passes **180 tests**; the minimal persistent feed passes **33**.
+All **22 actual branch checkouts**, **4 real incremental merge stages**, and **3 full-tree
+composition checks** pass their unit tests, module-graph assertions and debug APK builds.
+There are zero final test failures, errors or skips. The full app also compiles its Android-test
+APK; this does not claim instrumentation was executed on a device.
 
-## Actual branch and merge builds
+## Enforced boundaries
 
-These checkouts include the final provider-skipping and navigation changes. Exact commits,
-application-tree hashes, APK hashes and class-presence checks are retained in
-[the branch manifest](validation/optional-capabilities/branches/results.json).
+There are 19 runtime feature libraries, one integration-test library, three shared core
+libraries and the application project. Each feature's resolved main compiler project graph
+contains only `:core:api`. No implementation library depends on another feature or the host
+runtime. APIs include `AppFeature`, `AppUi`, `NewsStore`, `AppSettings`, `NewsSourcePlugin`,
+`TelegramContent`, `HttpTransport`, `PageProxyPlugin`, `ArticleFetchPlugin`, `FeedLoader` and
+prefetch ports. The static checker also verifies physical file ownership and forbids host/
+foreign implementation references.
 
-| Checkout/stage | Passing tests | Debug APK |
+Plugin-discovery tests load service descriptors and connect a fixture implementation through
+HTTP/parser interfaces without any production plugin. App assembly tests discover exactly
+the selected feature IDs. Every verified APK is inspected for exact service descriptor
+contents, selected/excluded concrete implementations and absence of fixture/test helpers.
+The full-tree selected builds prove unselected projects are excluded even when their source
+directories exist. Normal library source sets replace the former source-staging/filtering.
+
+## Actual branches and merge stages
+
+The manifest records exact commits, a hash of all compilation inputs under app/core/features
+and shared build configuration, per-module test counts, resolved compiler projects, plugin
+services and APK hashes. Documentation-only forward merges retain those compilation trees.
+
+| Branch/stage | Passing tests | Debug APK |
 | --- | ---: | --- |
-| `integration/feed` (mvp) | 30 | Passed |
-| `feature/app-integration` (app-integration) | 177 | Passed |
-| `dev` (dev) | 9 | Passed |
-| `feature/networking` (networking) | 12 | Passed |
-| `feature/page-proxy` (page-proxy) | 12 | Passed |
-| `feature/news-proxy` (news-proxy) | 16 | Passed |
-| `feature/storage` (storage) | 16 | Passed |
-| `feature/source-providers` (source-providers) | 11 | Passed |
-| `feature/rss-source` (rss-source) | 21 | Passed |
-| `feature/telegram-source` (telegram-source) | 16 | Passed |
-| `feature/telegram-proxy` (telegram-proxy) | 21 | Passed |
-| `feature/source-management` (source-management) | 9 | Passed |
-| `feature/source-discovery` (source-discovery) | 18 | Passed |
-| `feature/feed-filters` (feed-filters) | 14 | Passed |
-| `feature/native-reader` (native-reader) | 21 | Passed |
-| `feature/embedded-browser` (embedded-browser) | 18 | Passed |
-| `feature/synchronization` (synchronization) | 15 | Passed |
-| `feature/feed` (feed) | 11 | Passed |
-| `feature/save-articles` (save-articles) | 11 | Passed |
-| `feature/share-articles` (share-articles) | 11 | Passed |
-| `feature/ai` (ai) | 11 | Passed |
-| `feature/article-plugins` (article-plugins) | 24 | Passed |
-| `verify/optional-feature-merges` (add-save) | 32 | Passed |
-| `verify/optional-feature-merges` (add-share) | 34 | Passed |
-| `verify/optional-feature-merges` (add-catalog) | 40 | Passed |
-| `verify/optional-feature-merges` (add-proxy-plugins) | 54 | Passed |
+| `integration/feed` (mvp) | 33 | Passed |
+| `feature/app-integration` (app-integration) | 180 | Passed |
+| `dev` (dev) | 12 | Passed |
+| `feature/networking` (networking) | 15 | Passed |
+| `feature/page-proxy` (page-proxy) | 15 | Passed |
+| `feature/news-proxy` (news-proxy) | 19 | Passed |
+| `feature/storage` (storage) | 19 | Passed |
+| `feature/source-providers` (source-providers) | 14 | Passed |
+| `feature/rss-source` (rss-source) | 24 | Passed |
+| `feature/telegram-source` (telegram-source) | 19 | Passed |
+| `feature/telegram-proxy` (telegram-proxy) | 24 | Passed |
+| `feature/source-management` (source-management) | 12 | Passed |
+| `feature/source-discovery` (source-discovery) | 21 | Passed |
+| `feature/feed-filters` (feed-filters) | 17 | Passed |
+| `feature/native-reader` (native-reader) | 24 | Passed |
+| `feature/embedded-browser` (embedded-browser) | 21 | Passed |
+| `feature/synchronization` (synchronization) | 18 | Passed |
+| `feature/feed` (feed) | 14 | Passed |
+| `feature/save-articles` (save-articles) | 14 | Passed |
+| `feature/share-articles` (share-articles) | 14 | Passed |
+| `feature/ai` (ai) | 14 | Passed |
+| `feature/article-plugins` (article-plugins) | 27 | Passed |
+| `verify/gradle-module-merges` (add-save) | 35 | Passed |
+| `verify/gradle-module-merges` (add-share) | 37 | Passed |
+| `verify/gradle-module-merges` (add-catalog) | 43 | Passed |
+| `verify/gradle-module-merges` (add-proxy-plugins) | 57 | Passed |
 
-The four merge stages start from the MVP, then add Save, Share, source management/discovery,
-and the two proxy plugins using normal Git merges. The resulting branch is preserved as
-`verify/optional-feature-merges`; `integration/feed` remains the smaller MVP.
+The verification branch `verify/gradle-module-merges` starts with the MVP and adds Save,
+Share, source management/discovery, and the news/Telegram proxy plugins through actual
+forward merges. `integration/feed` remains the smaller MVP. Each module implementation is
+stored on its matching feature branch, with default runtime prerequisites merged from their
+own branches. Shared `dev` contains only the core and app shell.
 
-## Optional composition builds
-
-Profiles were selected from complete snapshot `02889d1` before the final provider-skipping
-and single-page navigation polish. The actual branch builds above verify the final source.
-Prerequisites are added automatically. Every APK was inspected for selected implementation
-classes and absence of excluded implementations, including both proxy clients, catalog,
-Save/Share, native reader and embedded browser.
+## Full-tree selected compositions
 
 | Profile | Requested features | Passing tests |
 | --- | --- | ---: |
-| full | All available | 177 |
-| mvp | feed,rss-source,storage | 30 |
-| mvp-session | feed,rss-source | 23 |
-| feed | feed | 11 |
-| shell |  | 9 |
-| mvp-save-articles | feed,rss-source,storage,save-articles | 32 |
-| mvp-share-articles | feed,rss-source,storage,share-articles | 32 |
-| mvp-source-management | feed,rss-source,storage,source-management | 30 |
-| mvp-source-discovery | feed,rss-source,storage,source-discovery | 36 |
-| mvp-feed-filters | feed,rss-source,storage,feed-filters | 35 |
-| mvp-news-proxy | feed,rss-source,storage,news-proxy | 37 |
-| mvp-telegram-source | feed,rss-source,storage,telegram-source | 32 |
-| mvp-telegram-proxy | feed,rss-source,storage,telegram-proxy | 37 |
-| mvp-native-reader | feed,rss-source,storage,native-reader | 39 |
-| mvp-embedded-browser | feed,rss-source,storage,embedded-browser | 36 |
+| full | All available | 180 |
+| selected-mvp | feed,rss-source,storage | 33 |
+| selected-share-browser | feed,rss-source,storage,share-articles,embedded-browser | 41 |
 
-## Behavior covered
+These include independent Share and Embedded Browser additions while Save, catalog,
+native Reader, synchronization, AI and both proxy implementations remain excluded.
+Existing RSS/Atom, Telegram, proxy, extraction, migration, offline data, cooldown and Compose
+navigation/action checks continue to pass in their owning libraries or integration suite.
 
-The Feed-only Compose test imports a fixture through the real view model/repository and
-memory store, verifies optional controls/screens are absent, and taps the item to verify
-Android ACTION_VIEW receives the original HTTPS URL. RSS/Atom integration tests cover
-import, full content and deduplication without Room, reader, synchronization or AI.
-The final provider test retains cached Telegram-service content while skipping its absent
-provider during an RSS refresh. Save and Share each have independent service/intent tests.
-Routing tests cover missing required proxies, terminal provider failures, protected-host
-redirects and image policy. Existing migration, offline-content, extraction, Telegram,
-cooldown, filtering and AI tests remain in their owning suites.
+## APKs and compatibility
 
-## Artifacts and data preservation
+Use verified copies because the default debug output is overwritten by later builds.
 
-Use the verified APK copies; the ordinary debug output is overwritten by later builds.
+- mvp: `app/build/outputs/apk/verified/newsbrief-modules-mvp-debug.apk`
+  SHA-256: `80bf41a3d26ce3745d2f020c73634ded989e92b3371bce2b00333a0254260bc0`
+- app-integration: `app/build/outputs/apk/verified/newsbrief-modules-app-integration-debug.apk`
+  SHA-256: `b83a61becb66996ba0a3fb009e83702b18856141242829f9297a6107616b3376`
 
-- MVP: `app/build/outputs/apk/verified/newsbrief-capability-mvp-debug.apk`
-- Full app: `app/build/outputs/apk/verified/newsbrief-capability-app-integration-debug.apk`
+Room stays at schema 8. Schema JSON files and `NewsMigrations.kt` match `main` byte-for-byte;
+only their owning directory changed to `features/storage`. Entity package/class names,
+database filename, source/plugin IDs and persisted settings keys remain unchanged. Missing
+providers are skipped during refresh while their cached articles remain. No destructive
+migration, uninstall or data clear is part of this change.
 
-mvp APK SHA-256: `6cb7924a932acf9db22511712ae7c005be3d5528a7cb011d1eb3eb3c9c578208`.
+This verification uses deterministic offline fixtures. It does not assert live Worker,
+Telegram-service or catalog-provider availability. The Telegram service URL is still
+configurable; in-app protected sources require their proxy plugin. External browsers own
+their network requests after receiving the original article URL.
 
-app-integration APK SHA-256: `a3e50b417288b99e53d07191702614d303916abb7d9d81240408772d21dc8595`.
+## Build issues resolved
 
-Room remains schema 8; schemas and migrations are unchanged from `main`. Existing source
-selections and stored articles/images/summaries/saved records are retained. Missing providers
-are skipped rather than replaced with another provider. Without Storage the host uses
-session memory and does not open/delete existing persistent files.
+Initial builds exposed script classpath configuration, dependencies previously supplied by
+the single app module, parser/feed-loader implementation imports, cross-module smart casts,
+obsolete test imports, Android-test BOM constraints and an internal gesture component used
+by cross-module tests. These were corrected with shared root configuration, library-owned
+dependencies, interface ports and explicit public/test APIs. The original failure logs are
+retained in `validation/gradle-modules/initial-build-failures/`. All final builds above pass.
 
-These checks use offline fixtures and do not assert current external-service availability.
-The Telegram service URL remains configurable. NewsBrief proxy policies apply to in-app
-requests; the external browser controls its own networking.
-
-All final checks passed. No release/tag changes or push were made. Build logs and manifests
-are in [validation/optional-capabilities](validation/optional-capabilities). Documentation-only
-forward merges preserve the tested `app` trees. Previous validation and the broader feed
-assembly remain in Git history and [the preceding results](docs/coarse-incremental-build-results.md).
-
-The tested MVP was installed on the connected Motorola with an in-place update. All **372** existing private files matched their pre-install hashes before launch; the app launched successfully. A private backup remains outside Git. Device visual/tap checks, if performed, are recorded separately.
-
-Database rows also matched their pre-install contents after launch, including 1273 articles and 21 sources. Phone was locked; no on-device feed or article tap assertion. Automated Compose external-navigation test passed.
+No push or changes to `main`, `release` or `v0.4.12` were made. Prior branch heads and previous
+validation remain in Git history. The preceding source-selection approach is documented
+in [the archived results](docs/source-selection-build-results.md), and the actual module
+architecture is documented in [BRANCHES.md](BRANCHES.md).
