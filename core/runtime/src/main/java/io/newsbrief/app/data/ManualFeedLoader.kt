@@ -7,9 +7,9 @@ import kotlinx.coroutines.sync.withLock
 
 /** Source fetching remains usable before background synchronization is installed. */
 class ManualFeedLoader(private val db: FeedStore, private val collector: NewsCollector,
-    private val onFeedUpdated: () -> Unit = {}) {
+    private val onFeedUpdated: () -> Unit = {}) : FeedLoader {
     private val mutex = Mutex()
-    suspend fun refresh(): RefreshResult = mutex.withLock { load() }
+    override suspend fun refresh(): RefreshResult = mutex.withLock { load() }
     private suspend fun load(): RefreshResult {
         val sources = db.sourceDao().enabled().filter(collector::supports).sortedByDescending { it.id }
         var total = 0
