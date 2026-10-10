@@ -1,147 +1,163 @@
-# NewsBrief optional capabilities
+# NewsBrief Gradle modules and plugin branches
 
-`dev` contains the application host, shared contracts and session-backed storage. The
-baseline article action opens the original HTTPS link using Android's external browser.
-There is no fallback native article renderer, catalog, saved-items screen or sharing action.
-Features contribute their own screens, settings, article actions, controls and services.
-`feature/app-integration` is an optional complete assembly and cross-feature test suite.
+NewsBrief now has real Android library modules. `:app` contains Android startup only.
+`dev` contains the shell and shared core, with **no optional feature implementation**.
+Each capability lives under `features/<name>/` on `feature/<name>`. The minimal application
+assembly is `integration/feed`; the complete convenience assembly is `feature/app-integration`.
+Runtime prerequisites are merged from their own branches, not copied into another module.
 
-## Minimal app
+## Shared contracts and host
 
-The current `integration/feed` branch contains exactly:
+| Module | Responsibility |
+| --- | --- |
+| `:core:api` | Data models; storage/settings/source/content/HTTP/article/proxy/UI ports; plugin registration contract; shared formatting and URL policy |
+| `:core:runtime` | Host ViewModel/repository, session storage/settings, manual ingestion, shared navigation and composition |
+| `:core:testing` | Test configuration helpers; excluded from the production APK |
+| `:app` | Application/Activity, manifest/resources and chosen library dependencies |
 
-- Feed list and refresh gestures.
-- RSS/Atom provider and generic source registry.
-- Networking transport.
-- Room storage for the persistent feed and existing offline data.
+Every feature library's **main compiler classpath includes only `:core:api` as a project
+dependency**. No feature imports another feature implementation, the host ViewModel,
+repository, application class or Room implementation. External libraries such as OkHttp,
+Jsoup and Room belong to the implementing module. Integration tests deliberately depend
+on multiple modules; those test dependencies are not production connections.
 
-Tapping a feed item opens the external browser. The MVP has no source-management/catalog
-screens, filter controls, Save/Share buttons, native reader, embedded browser, synchronization,
-AI or proxy implementations. There is no empty Settings tab. The feed is cached; reading
-full pages is the external browser's responsibility. Previously stored article bodies,
-images, summaries, saved records and settings remain available to their optional features.
-Existing cached Telegram items may still appear as ordinary feed records even when no
-Telegram provider is installed; those sources are skipped during refresh.
+`AppFeature` registers screens, settings, actions and services through `FeatureBindings`.
+Screens consume `AppUi`, `FeedUi`, `ReaderUi`, `SourcesUi` or `AiUi` interfaces. Storage
+implements `NewsStore` and `AppSettings`; providers implement `NewsSourcePlugin`;
+Telegram adapters implement `TelegramContent`; Networking implements `HttpTransport`;
+page proxies implement `PageProxyPlugin`; extraction uses `ArticleFetchPlugin` and parser
+ports. Synchronization receives `FeedLoader` and `PrefetchArticleStore`, without importing
+the manual loader or repository. Missing implementations leave optional UI absent or fail
+explicitly when a required operation is attempted.
 
-For a fresh database, the RSS plugin supplies BBC Russian and The Verge as a small initial
-source list. This is not the searchable catalog. Existing source selections are preserved;
-removed sources are not silently restored. Without Storage, the same app works in memory
-until its process exits. Session-only state is not automatically imported when Storage is
-added later; existing persistent data is opened using the unchanged migrations.
+Each runtime library owns a Java service descriptor at
+`src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature`. The descriptor
+names its public no-argument plugin class. `InstalledFeatures` discovers those classes
+through the API; `:app` does not import feature classes or maintain a hard-coded registry.
+Descriptors are merged when packaging the APK, and consumer rules preserve constructors.
+Excluded modules contribute no classes or descriptors to the APK.
 
-Build a minimal branch progressively:
+## Feature modules and branches
+
+Each row has a matching `feature/<name>` branch. Prerequisites below describe the default
+runnable assembly, **not implementation imports or library compiler dependencies**.
+
+| Name / Gradle module `:features:<name>` | Implementation | Default runtime prerequisites |
+| --- | --- | --- |
+| `feed` | Feed rows, refresh gestures, external article action | None |
+| `networking` | HTTP transport and redirect/size/time policy | None |
+| `source-providers` | Generic provider registry and initial seeding | None |
+| `rss-source` | RSS/Atom parser/provider; BBC Russian and The Verge initial defaults | Networking, Source Providers |
+| `telegram-source` | Public preview parser/provider and content adapter | Networking, Source Providers |
+| `telegram-proxy` | Configurable service provider/content, auth and channel/settings UI | Networking, Source Providers |
+| `source-management` | Add/remove/enable source UI | None; adding needs a registered provider |
+| `source-discovery` | Catalog, Feedly/TGden search and cache | Networking; connecting results needs the matching provider |
+| `page-proxy` | Provider-neutral proxy selection and terminal routing | None |
+| `news-proxy` | Cloudflare `/fetch`, `/article`, `/image` plugin and settings | Page Proxy |
+| `storage` | Room schema/migrations, persistent settings and keys | None |
+| `synchronization` | Workers, cooldown and optional article/image prefetch | None; prefetch waits for reader/images |
+| `feed-filters` | Category/publisher controls and grouping | None |
+| `native-reader` | Compose reader/cards, article/AMP parser, images and cache | Networking |
+| `embedded-browser` | Internal WebView, original-page mode and policy | Networking |
+| `save-articles` | Save action, saved-feed control and store-port service | None |
+| `share-articles` | Independent Android share action | None |
+| `ai` | AI client/selection/digest/settings UI | None; generating needs article data |
+| `article-plugins` | Extensible extraction registry and AMP/HTML/content adapters | Native Reader |
+| `app-integration` | Cross-module unit/device test sources; no runtime plugin | Its tests need all runtime modules |
+
+The Telegram service returns channels/posts, so its plugin implements the source/content
+interfaces rather than the arbitrary-page proxy interface. Public Telegram support remains
+independent. Neither missing nor failed service support silently falls back to public
+Telegram. Protected Meduza/Zerkalo in-app requests require a matching page proxy, and a
+selected proxy failure never falls back to a direct request. External browsers control
+their own networking after NewsBrief passes them the original URL.
+
+## Build and merge progressively
 
 ```sh
-git switch -c my-mvp dev
+git switch -c my-app dev
 git merge feature/feed
 git merge feature/rss-source
 git merge feature/storage
+./gradlew verifyModuleInterfaces :app:testDebugUnitTest :app:assembleDebug
 ```
 
-RSS brings its Networking and Source Providers prerequisites. Feed alone displays data
-supplied through the host's store/collector ports; it starts empty without a provider or
-stored articles. You can build/run after each merge.
+Build/run after every merge. Feed alone starts empty unless data is provided. RSS brings
+its default provider registry and transport branches. Storage adds persistence; without it
+the host uses session memory and does not open or delete existing database/settings files.
+Session-only changes are not automatically imported when Storage is added.
 
-## Independent feature branches
+`integration/feed` contains exactly Feed, RSS Source, Source Providers, Networking and
+Storage. Article taps open the external browser. It has no catalog/source-management UI,
+filters, Save/Share, reader, embedded browser, workers, AI, or proxy implementations. Existing
+source selections and offline data remain; cached articles from absent providers can still
+appear, but those providers are skipped during refresh. Deleted sources are not reseeded.
 
-| Feature branch | Owns | Required feature branches |
-| --- | --- | --- |
-| `feature/feed` | Feed rows, refresh gestures, default external article action | None |
-| `feature/networking` | HTTP download, size/time limits and redirect enforcement | None |
-| `feature/source-providers` | Generic provider registry and initial source seeding | None |
-| `feature/rss-source` | RSS/Atom parsing and fetching, minimal RSS defaults | Networking, Source Providers |
-| `feature/telegram-source` | Public Telegram preview provider/parser and reader-content adapter | Networking, Source Providers |
-| `feature/source-management` | Add/remove/enable sources | None; adding requires a registered provider |
-| `feature/source-discovery` | Curated/catalog search, Feedly/TGden discovery and cache | Networking; connecting a result requires its provider |
-| `feature/page-proxy` | Provider-neutral proxy registry and terminal routing policy | None |
-| `feature/news-proxy` | Cloudflare Worker page/image/extraction plugin and its settings | Page Proxy |
-| `feature/telegram-proxy` | Telegram service provider/content plugin, auth/config and channel browser | Networking, Source Providers |
-| `feature/save-articles` | Save action, saved-feed control and storage-port service | None |
-| `feature/share-articles` | Share action and Android share intent | None |
-| `feature/feed-filters` | Category/publisher selection and grouping | None |
-| `feature/native-reader` | Native article/AMP parsing, rich cards, images and image cache | Networking |
-| `feature/embedded-browser` | Internal WebView, original-page mode and request policy | Networking |
-| `feature/synchronization` | Background workers, cooldown and optional prefetch | None |
-| `feature/storage` | Room, migrations and encrypted persistent settings | None |
-| `feature/ai` | AI client, digest selection/screen and settings | None |
-| `feature/article-plugins` | Extensible article extraction registry, AMP/HTML and content-port adapters | Native Reader |
-| `feature/app-integration` | Complete convenience assembly and cross-feature tests | No runtime registration requirement; its tests need all capabilities |
-
-Save works through the store port, using session memory or Room when present. Share does
-not require Save. Native Reader does not require Embedded Browser, a source catalog or
-article plugins. With only Embedded Browser added, feed taps open the internal browser.
-When Native Reader is also present, it handles feed taps and offers the browser action.
-Without either, article taps use the external browser. Synchronization does not own feed UI
-or source loading; manual RSS refresh works without it. Prefetch waits for a reader/image
-store. AI needs article data to generate a summary, not every feature implementation.
-
-## Proxy and content plugins
-
-`PageProxyPlugin` accepts a provider-neutral resource/type request. The optional Page Proxy
-registry chooses an installed provider. `CloudflarePageProxy` implements `/fetch`, `/article`
-and `/image`; Worker URL encoding and extraction-provider registration live in News Proxy.
-Another page service can implement the same contract without changing HTTP transport or
-feed code. A selected provider's failure is terminal; it does not fall back to a direct
-request or silently select another service. Protected Meduza/Zerkalo hosts and explicitly
-proxy-required requests fail before networking when no matching plugin is installed.
-Ordinary image requests may use an installed proxy or go direct when none is present;
-images belonging to protected articles retain their proxy requirement.
-
-The Telegram service API provides channels/posts, so it implements `NewsSourcePlugin` and
-`TelegramContent` rather than pretending to fetch arbitrary web pages. Public Telegram is
-a separate plugin. Missing/failing Telegram service support never falls back to public
-Telegram or a publisher request. Both providers retain their original persisted IDs.
-The service URL remains configurable; no deployment of that service is implied.
-
-These plugins govern requests made by NewsBrief. The MVP hands the original article URL
-to the external browser; that browser controls its own connections. Protected in-app
-feeds/pages still need a suitable proxy plugin. Existing Worker/service configuration keys
-and legacy Room records remain in shared contracts/storage for data compatibility; that
-does not install or activate a proxy implementation.
-
-## Add only what you want
+Add only the desired capability to your own application branch:
 
 ```sh
-git switch integration/feed
-git merge feature/save-articles      # Save only; no Share
-git merge feature/share-articles     # Independently add Share
-git merge feature/source-management  # Manage configured sources
-git merge feature/source-discovery   # Independently add catalog/search
-git merge feature/news-proxy         # Generic Page Proxy plus the Worker provider
-git merge feature/telegram-proxy     # Independently add Telegram service support
+git merge feature/save-articles
+git merge feature/share-articles
+git merge feature/source-management
+git merge feature/source-discovery
+git merge feature/news-proxy
+git merge feature/telegram-proxy
 ```
 
-The minimal `integration/feed` branch is kept free of these optional additions. Actual
-verification merges are preserved on `verify/optional-feature-merges`. Use your own
-application branch for a different combination. Default builds enable features present
-on the branch; from a complete checkout, a composition can also be selected explicitly:
+Save does not require Share or Room; it uses the store interface. Reader and Embedded Browser
+are independent: with neither installed, taps open externally; with only Browser they open
+internally; with Reader it handles taps and offers the browser action. Manual RSS refresh
+does not require Synchronization. `feature/app-integration` is optional and is never a host
+startup requirement. Actual progressive verification merges are preserved on
+`verify/gradle-module-merges`; the MVP assembly remains free of those extra modules.
+
+From a complete checkout, select a smaller composition:
 
 ```sh
-./gradlew :app:testDebugUnitTest :app:assembleDebug \
+./gradlew verifyModuleInterfaces :app:testDebugUnitTest :app:assembleDebug \
   -PnewsbriefFeatures=feed,rss-source,storage
 ```
 
-Prerequisites are selected automatically. An empty `-PnewsbriefFeatures=` builds just the
-host. Excluded implementation sources and dependency scripts do not reach compilation;
-typed feature registration includes only selected bindings. These remain Git capability
-branches within the existing `:app` Gradle module, not separate Gradle modules.
-`tools/features.json` records ownership/prerequisites. Run
-`python3 tools/check-feature-boundaries.py` to check a checkout.
+An empty `-PnewsbriefFeatures=` selects only the shell/core. Settings includes only selected
+feature projects and their default prerequisites; there is no copying or filtering Kotlin
+sources. Each module compiles its own standard `src/main` and `src/test` trees.
+`:app:testDebugUnitTest` runs the included libraries' tests as well as application tests.
+Individual suites can be run with, for example, `:features:save-articles:testDebugUnitTest`.
+Full device tests remain owned under `features/app-integration/device-tests` and are compiled
+into `:app`'s Android-test APK only for the complete assembly.
 
-## Merge shared development forward
+## Develop a plugin
+
+Create `feature/<new-name>` from `dev`, add an Android library under `features/<new-name>`,
+and declare ownership, binding and optional default prerequisites in `tools/features.json`.
+Its main project dependency is `implementation(project(":core:api"))`. Implement the relevant
+port and a public no-argument `AppFeature` that registers it, and add its service descriptor.
+The application host requires no implementation import or registration edit. Put module
+unit tests alongside the implementation; shared test helpers come from `:core:testing`.
+
+```kotlin
+class CustomSourceFeature : AppFeature {
+    override val id = "custom-source"
+    override fun configure(bindings: FeatureBindings) {
+        bindings.sourcePlugins += { settings -> CustomNewsSource(settings) }
+    }
+}
+```
+
+Shared API/host changes flow forward normally:
 
 ```sh
 git switch feature/save-articles
 git merge dev
 ```
 
-Merge prerequisite updates into their dependants, then merge updated capabilities into
-your application branch. Normal conflict resolution can still be needed for shared ports.
-No force reset or history rewrite was used. Previous bundled branches, including the
-previously installed feed assembly, are preserved under `archive/bundled/`; earlier stacks
-remain under `archive/stacked/`. The old combined `sources-discovery` and `reader-browser`
-branches are archived in favor of the narrower branches above. `main`, `release` and
-`v0.4.12` remain unchanged.
+Merge prerequisite changes into their dependants and updated features into your application
+branch. Git conflicts can still require ordinary resolution when contracts change; no
+force reset or rewritten history is needed. The pre-module branch heads are preserved under
+`archive/pre-gradle-modules/`, and earlier archives remain. `main`, `release`, `v0.4.12` and
+the previously installed APK are unchanged by this refactor.
 
-See [BUILD-RESULTS.md](BUILD-RESULTS.md) for exact tested commits, combinations and APKs,
-and [the preceding guide](docs/coarse-incremental-feature-history.md) for historical context.
+`python3 tools/check-feature-boundaries.py` verifies physical ownership and forbidden imports.
+`./gradlew verifyModuleInterfaces` checks the resolved compiler graph, not just declarations.
+Tests verify service discovery and interface connections; APK inspection verifies exact
+plugin descriptors and selected/excluded implementations. See [BUILD-RESULTS.md](BUILD-RESULTS.md).
