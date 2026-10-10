@@ -8,5 +8,5 @@ class SourceManagementFeature : AppFeature {
     override val id = "source-management"
     override val title = "Источники"
     override val order = 20
-    @Composable override fun Screen(vm: NewsViewModel) { SourcesPage(vm) }
+    @Composable override fun Screen(vm: AppUi) { SourcesPage(vm) }
 }
