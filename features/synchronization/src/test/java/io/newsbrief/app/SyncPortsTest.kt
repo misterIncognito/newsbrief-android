@@ -51,9 +51,13 @@ class SyncPortsTest {
     private fun article(source: SourceEntity) = ArticleEntity(sourceId = source.id, sourceName = source.name,
         title = "Story", excerpt = "", link = "https://example.org/story", publishedAt = 1)
 
+    private fun synchronizer(db: FeedStore, collector: NewsCollector, settings: SyncSettings,
+        clock: () -> Long = System::currentTimeMillis) =
+        FeedSynchronizer(db, collector, settings, ManualFeedLoader(db, collector), clock)
+
     @Test fun concurrentAttemptsAreSerializedAndCooldownExpires() = runBlocking {
         val memory = Memory(); val settings = TestSettings(); var time = 1_000L; var calls = 0
-        val sync = FeedSynchronizer(memory, object : NewsCollector {
+        val sync = synchronizer(memory, object : NewsCollector {
             override suspend fun collect(source: SourceEntity): List<ArticleEntity> {
                 calls++; delay(10); return listOf(article(source))
             }
@@ -65,7 +69,7 @@ class SyncPortsTest {
     }
     @Test fun sourceConfigurationChangeBypassesCooldown() = runBlocking {
         val memory = Memory(); val settings = TestSettings()
-        val sync = FeedSynchronizer(memory, object : NewsCollector {
+        val sync = synchronizer(memory, object : NewsCollector {
             override suspend fun collect(source: SourceEntity) = listOf(article(source))
         }, settings)
         sync.refresh()
@@ -76,21 +80,21 @@ class SyncPortsTest {
     }
     @Test fun failuresRecordAttemptsAndNeverCallReaderOrStorageImplementation() = runBlocking {
         var calls = 0
-        val sync = FeedSynchronizer(Memory(), object : NewsCollector {
+        val sync = synchronizer(Memory(), object : NewsCollector {
             override suspend fun collect(source: SourceEntity): List<ArticleEntity> { calls++; error("offline") }
         }, TestSettings())
         assertEquals(1, sync.refresh().errors.size)
         assertTrue(sync.refresh().skipped); assertEquals(1, calls)
     }
     @Test fun cancellationPropagates() = runBlocking {
-        val sync = FeedSynchronizer(Memory(), object : NewsCollector {
+        val sync = synchronizer(Memory(), object : NewsCollector {
             override suspend fun collect(source: SourceEntity): List<ArticleEntity> = throw CancellationException("stopped")
         }, TestSettings())
         try { sync.refresh(); fail("Cancellation swallowed") } catch (_: CancellationException) { }
     }
     @Test fun duplicateContentUsesCollectorMergePort() = runBlocking {
         val memory = Memory(); var time = 1L
-        val sync = FeedSynchronizer(memory, object : NewsCollector {
+        val sync = synchronizer(memory, object : NewsCollector {
             override suspend fun collect(source: SourceEntity) = listOf(article(source))
             override fun merge(existing: ArticleEntity, incoming: ArticleEntity) = existing.copy(content = "Merged post")
         }, TestSettings(), clock = { time })

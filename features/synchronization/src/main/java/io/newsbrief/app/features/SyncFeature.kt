@@ -9,8 +9,8 @@ class SyncFeature : AppFeature {
     override val id = "synchronization"
     override val order = 30
     override fun configure(bindings: FeatureBindings) {
-        bindings.refresh = { db, collector, settings, clock, updated ->
-            val sync = FeedSynchronizer(db, collector, settings, clock, updated)
+        bindings.refresh = { db, collector, settings, clock, loader ->
+            val sync = FeedSynchronizer(db, collector, settings, loader, clock)
             sync::refresh
         }
         bindings.prefetch = { repo, settings, context ->
