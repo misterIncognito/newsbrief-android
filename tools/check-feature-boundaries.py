@@ -31,7 +31,7 @@ for base in ['app','core','features']:
         if not f.is_file() or 'build' in f.relative_to(root/base).parts:continue
         path=f.relative_to(root).as_posix()
         if f.suffix=='.kt' and path not in owned:errors.append(f'Unowned source: {path}')
-for base in ['core/api/src/main','core/runtime/src/main']:
+for base in ['app/src/main','core/api/src/main','core/runtime/src/main']:
     for f in (root/base).rglob('*.kt'):
         for symbol in implementations:
             if re.search(r'\b'+symbol+r'\b',f.read_text()):errors.append(f'{f.relative_to(root)} references optional implementation {symbol}')
