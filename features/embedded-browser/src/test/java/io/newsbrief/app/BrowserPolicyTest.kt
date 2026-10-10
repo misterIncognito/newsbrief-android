@@ -1,9 +1,6 @@
 package io.newsbrief.app
 
 import io.newsbrief.app.network.*
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Test
 
