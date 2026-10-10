@@ -84,8 +84,9 @@ class NewsRepository(
     suspend fun toggleSource(id: Long, enabled: Boolean) = db.sourceDao().setEnabled(id, enabled)
     suspend fun removeSource(id: Long) = db.sourceDao().delete(id)
 
-    private val refreshAction = extensions.refresh?.invoke(db, collector, settings, clock, onFeedUpdated)
-        ?: ManualFeedLoader(db, collector, onFeedUpdated)::refresh
+    private val feedLoader = ManualFeedLoader(db, collector, onFeedUpdated)
+    private val refreshAction = extensions.refresh?.invoke(db, collector, settings, clock, feedLoader)
+        ?: feedLoader::refresh
     suspend fun refresh(): RefreshResult {
         seedDefaults()
         return refreshAction()
