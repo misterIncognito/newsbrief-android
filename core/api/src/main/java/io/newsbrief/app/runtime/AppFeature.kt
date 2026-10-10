@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import io.newsbrief.app.data.*
 import io.newsbrief.app.network.*
-import io.newsbrief.app.ui.NewsViewModel
+import io.newsbrief.app.ui.AppUi
 import io.newsbrief.app.ui.ReaderUi
 import io.newsbrief.app.ui.FeedUi
 import io.newsbrief.app.ui.ArticleAction
@@ -15,14 +15,17 @@ interface AppFeature {
     val hasSettings: Boolean get() = false
     val order: Int get() = 0
     fun configure(bindings: FeatureBindings) {}
-    @Composable fun Screen(vm: NewsViewModel) {}
-    @Composable fun Settings(vm: NewsViewModel) {}
+    @Composable fun Screen(vm: AppUi) {}
+    @Composable fun Settings(vm: AppUi) {}
 }
 interface ArticlePresentation {
-    @Composable fun Card(article: ArticleEntity, vm: NewsViewModel)
-    @Composable fun Reader(vm: NewsViewModel)
+    @Composable fun Card(article: ArticleEntity, vm: AppUi)
+    @Composable fun Reader(vm: AppUi)
 }
 class FeatureBindings {
+    var http: HttpTransport? = null
+    var ampAlternative: (String, String) -> String? = { _, _ -> null }
+    var parseArticle: ((String, String) -> ReaderArticle)? = null
     val articleActions = mutableListOf<ArticleAction>()
     val feedControls = mutableListOf<@Composable (FeedUi) -> Unit>()
     var feedEmptyMessage: (FeedUi) -> String? = { null }
@@ -49,31 +52,16 @@ class FeatureBindings {
     var article: ((AppSettings, ArticleExtractor?) -> ArticleLoader)? = null
     var extractor: ((AppSettings) -> ArticleExtractor)? = null
     var generate: (suspend (List<ArticleEntity>, String, AppSettings) -> DigestEntity)? = null
-    var refresh: ((NewsStore, NewsCollector, AppSettings, () -> Long, () -> Unit) -> (suspend () -> RefreshResult))? = null
-    var prefetch: ((NewsRepository, AppSettings, Context) -> (suspend () -> io.newsbrief.app.sync.PrefetchOutcome))? = null
+    var refresh: ((NewsStore, NewsCollector, AppSettings, () -> Long, FeedLoader) -> (suspend () -> RefreshResult))? = null
+    var prefetch: ((PrefetchArticleStore, AppSettings, Context) -> (suspend () -> io.newsbrief.app.sync.PrefetchOutcome))? = null
     var start: (Context) -> Unit = {}
     var feedUpdated: (Context) -> Unit = {}
     var images: ((Context) -> PrefetchImageStore)? = null
     var presentation: ArticlePresentation? = null
     var browser: (@Composable (String, String, Boolean) -> Unit)? = null
     companion object {
-        fun create(features: List<AppFeature> = GeneratedFeatures.create()): FeatureBindings = FeatureBindings().also { b ->
+        fun create(features: List<AppFeature> = InstalledFeatures.create()): FeatureBindings = FeatureBindings().also { b ->
             features.sortedBy { it.order }.forEach { it.configure(b) }
         }
     }
-}
-class FeatureRuntime(context: Context, val features: List<AppFeature> = GeneratedFeatures.create()) {
-    val bindings = FeatureBindings.create(features)
-    private val persistent = bindings.persistentStorage?.invoke(context)
-    val store: NewsStore = persistent?.first ?: MemoryNewsStore()
-    val settings: AppSettings = persistent?.second ?: MemorySettings()
-    private val sourceRegistry = bindings.sources?.invoke(settings) ?: EmptySourceRegistry()
-    val repository = NewsRepository(store, sourceRegistry, settings, sourcePlugins = sourceRegistry,
-        extensions = bindings, onFeedUpdated = { bindings.feedUpdated(context) })
-    val backgroundTasks = object : io.newsbrief.app.sync.BackgroundTasks {
-        override suspend fun refresh() = repository.refresh()
-        override suspend fun prefetch() = prefetchArticles?.invoke() ?: io.newsbrief.app.sync.PrefetchOutcome(0, 0, 0)
-    }
-    private val prefetchArticles = if (bindings.article != null) bindings.prefetch?.invoke(repository, settings, context) else null
-    init { bindings.start(context) }
 }

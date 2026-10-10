@@ -10,7 +10,7 @@ interface ArticleAction {
     @Composable fun Content(article: ArticleEntity, vm: ReaderUi)
 }
 @Composable fun ArticleActionRow(article: ArticleEntity, vm: ReaderUi) {
-    val actions = (vm as? NewsViewModel)?.bindings?.articleActions.orEmpty()
+    val actions = (vm as? AppUi)?.bindings?.articleActions.orEmpty()
     if (actions.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         actions.forEach { it.Content(article, vm) }
     }
