@@ -1,0 +1,1 @@
+-keep public class * implements io.newsbrief.app.runtime.AppFeature { public <init>(); }
