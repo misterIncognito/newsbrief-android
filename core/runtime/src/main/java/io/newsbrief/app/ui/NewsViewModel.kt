@@ -3,7 +3,7 @@ package io.newsbrief.app.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.newsbrief.app.NewsBriefApp
+import io.newsbrief.app.runtime.FeatureRuntimeOwner
 import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.network.ReaderArticle
 import io.newsbrief.app.data.DigestEntity
@@ -26,24 +26,24 @@ import kotlinx.coroutines.CancellationException
 
 class NewsViewModel @JvmOverloads constructor(
     application: Application,
-    private val repo: io.newsbrief.app.data.NewsRepository = (application as NewsBriefApp).repository,
-    private val store: AppSettings = (application as NewsBriefApp).settings,
-    val features: List<io.newsbrief.app.runtime.AppFeature> = (application as? NewsBriefApp)?.runtime?.features ?: io.newsbrief.app.runtime.GeneratedFeatures.create()
-) : AndroidViewModel(application), SourcesUi, ReaderUi, FeedUi, AiUi {
+    private val repo: io.newsbrief.app.data.NewsRepository = (application as FeatureRuntimeOwner).runtime.repository,
+    private val store: AppSettings = (application as FeatureRuntimeOwner).runtime.settings,
+    override val features: List<io.newsbrief.app.runtime.AppFeature> = (application as? FeatureRuntimeOwner)?.runtime?.features ?: io.newsbrief.app.runtime.InstalledFeatures.create()
+) : AndroidViewModel(application), AppUi {
 
-    val bindings = (application as? NewsBriefApp)?.runtime?.bindings ?: io.newsbrief.app.runtime.FeatureBindings.create(features)
-    val presentation = bindings.presentation
+    override val bindings = (application as? FeatureRuntimeOwner)?.runtime?.bindings ?: io.newsbrief.app.runtime.FeatureBindings.create(features)
+    override val presentation = bindings.presentation
     override val browserAvailable get() = bindings.browser != null
-    fun openArticle(article: ArticleEntity) {
+    override fun openArticle(article: ArticleEntity) {
         if (presentation != null) openReader(article)
         else if (browserAvailable) openBrowser(article.link, article.proxyRequired)
         else openExternalArticle(getApplication(), article.link)
     }
     override val sourcePlugins = repo.sourcePlugins.available
     private val _telegramProxyUrl = MutableStateFlow(store.telegramProxyUrl())
-    val telegramProxyUrl = _telegramProxyUrl.asStateFlow()
+    override val telegramProxyUrl = _telegramProxyUrl.asStateFlow()
     private val _hasTelegramProxyKey = MutableStateFlow(store.hasTelegramProxyKey())
-    val hasTelegramProxyKey = _hasTelegramProxyKey.asStateFlow()
+    override val hasTelegramProxyKey = _hasTelegramProxyKey.asStateFlow()
     private val _proxyChannels = MutableStateFlow(ProxyChannelsState())
     override val proxyChannels = _proxyChannels.asStateFlow()
     private var proxyChannelsJob: Job? = null
@@ -62,7 +62,7 @@ class NewsViewModel @JvmOverloads constructor(
                 error = "Не удалось загрузить каналы: ${e.message.orEmpty().take(120)}") }
         }
     }
-    fun saveTelegramProxy(url: String, key: String) {
+    override fun saveTelegramProxy(url: String, key: String) {
         try {
             store.setTelegramProxyUrl(url)
             if (key.isNotBlank()) store.saveTelegramProxyKey(key)
@@ -71,7 +71,7 @@ class NewsViewModel @JvmOverloads constructor(
             report("Настройки Telegram-прокси сохранены")
         } catch (e: Exception) { report("Не удалось сохранить Telegram-прокси: ${e.message}") }
     }
-    fun removeTelegramProxyKey() {
+    override fun removeTelegramProxyKey() {
         store.saveTelegramProxyKey(""); _hasTelegramProxyKey.value = false
         report("Ключ Telegram-прокси удалён")
     }
@@ -126,9 +126,9 @@ class NewsViewModel @JvmOverloads constructor(
     private val _generating = MutableStateFlow(false)
     override val generating = _generating.asStateFlow()
     private val _message = MutableStateFlow<String?>(null)
-    val message = _message.asStateFlow()
+    override val message = _message.asStateFlow()
     private val _config = MutableStateFlow(store.read())
-    val config = _config.asStateFlow()
+    override val config = _config.asStateFlow()
     private val _hasKey = MutableStateFlow(store.hasApiKey(store.read().provider))
     override val hasKey = _hasKey.asStateFlow()
     private val _workerUrl = MutableStateFlow(store.workerUrl())
@@ -136,9 +136,9 @@ class NewsViewModel @JvmOverloads constructor(
     private val _readerSource = MutableStateFlow<ArticleEntity?>(null)
     override val readerSource = _readerSource.asStateFlow()
     private val _browserUrl = MutableStateFlow<String?>(null)
-    val browserUrl = _browserUrl.asStateFlow()
+    override val browserUrl = _browserUrl.asStateFlow()
     private val _browserForceProxy = MutableStateFlow(false)
-    val browserForceProxy = _browserForceProxy.asStateFlow()
+    override val browserForceProxy = _browserForceProxy.asStateFlow()
     override fun openBrowser(url: String, forceProxy: Boolean) {
         if (io.newsbrief.app.network.ArticleLinks.valid(url)) {
             if (!browserAvailable) { openExternalArticle(getApplication(), url); return }
@@ -146,14 +146,14 @@ class NewsViewModel @JvmOverloads constructor(
             _browserUrl.value = url
         }
     }
-    fun closeBrowser() { _browserUrl.value = null }
+    override fun closeBrowser() { _browserUrl.value = null }
     private val _reader = MutableStateFlow<ReaderArticle?>(null)
     override val reader = _reader.asStateFlow()
     private val _readerBusy = MutableStateFlow(false)
     override val readerBusy = _readerBusy.asStateFlow()
 
     private val _catalogOpen = MutableStateFlow(false)
-    val catalogOpen = _catalogOpen.asStateFlow()
+    override val catalogOpen = _catalogOpen.asStateFlow()
     private val _directoryState = MutableStateFlow(DirectoryState())
     override val directoryState = _directoryState.asStateFlow()
     private var directoryJob: Job? = null
@@ -163,7 +163,7 @@ class NewsViewModel @JvmOverloads constructor(
         _catalogOpen.value = true
         if (_directoryState.value.results == null) searchDirectory()
     }
-    fun closeCatalog() {
+    override fun closeCatalog() {
         _catalogOpen.value = false
         directoryGeneration++
         directoryJob?.cancel()
@@ -240,12 +240,12 @@ class NewsViewModel @JvmOverloads constructor(
         }
     }
 
-    fun clearMessage() { _message.value = null }
+    override fun clearMessage() { _message.value = null }
     private fun report(message: String) { _message.value = message }
 
     private var refreshRequested = false
 
-    fun feedBecameVisible() {
+    override fun feedBecameVisible() {
         if (!_refreshing.value) refresh(quiet = true)
     }
 
@@ -365,7 +365,7 @@ class NewsViewModel @JvmOverloads constructor(
         readerHistory.addAll(history)
     }
 
-    fun closeReader() {
+    override fun closeReader() {
         if (_browserUrl.value != null) { closeBrowser(); return }
         readerJob?.cancel()
         _readerBusy.value = false
@@ -380,7 +380,7 @@ class NewsViewModel @JvmOverloads constructor(
         }
     }
 
-    fun setWorkerUrl(value: String) {
+    override fun setWorkerUrl(value: String) {
         try {
             store.setWorkerUrl(value)
             _workerUrl.value = store.workerUrl()
@@ -388,20 +388,20 @@ class NewsViewModel @JvmOverloads constructor(
         } catch (e: Exception) { report("Неверный адрес: ${e.message}") }
     }
 
-    fun setProvider(value: String) {
+    override fun setProvider(value: String) {
         store.setProvider(value)
         _config.value = store.read()
         _hasKey.value = store.hasApiKey(value)
     }
 
-    fun setModel(value: String) {
+    override fun setModel(value: String) {
         if (value.isBlank()) { report("Название модели не должно быть пустым"); return }
         store.setModel(_config.value.provider, value)
         _config.value = store.read()
         report("Модель сохранена")
     }
 
-    fun saveKey(value: String) {
+    override fun saveKey(value: String) {
         store.saveApiKey(_config.value.provider, value)
         _hasKey.value = store.hasApiKey(_config.value.provider)
         report(if (value.isBlank()) "Ключ удалён" else if (store is io.newsbrief.app.data.MemorySettings) "Ключ сохранён до закрытия приложения" else "Ключ сохранён на устройстве")
