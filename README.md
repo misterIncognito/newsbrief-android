@@ -1,23 +1,22 @@
 # NewsBrief Android
 
-`integration/feed` is the minimal working app: feed list, manual RSS/Atom refresh and Room
-storage. Article taps open the original link in the external browser. The MVP has no
-catalog, source-management screen, filters, Save/Share actions, reader, embedded browser,
-background sync, AI or proxy implementations. Existing offline data and source selections
-are preserved; uninstalled source providers are skipped during refresh.
+Optional capabilities are real Android library modules under `features/<name>/`, each
+maintained on `feature/<name>`. Every feature's main project dependency is `:core:api`;
+modules communicate through storage, HTTP, source, content, extraction, proxy and UI
+interfaces. Plugins register through their own service descriptors. `:app` owns Android
+startup; `:core:runtime` supplies the host and session fallbacks. `dev` contains no optional
+feature implementation.
 
-Each optional capability has its own feature branch and registration. Source providers,
-source management and searchable discovery are separate. Save and Share are independent.
-The Cloudflare Worker implements the generic page-proxy plugin contract; the Telegram
-service is a separate source/content plugin. `feature/app-integration` assembles everything
-for convenience, but is not required to start or run the feed.
+`integration/feed` assembles only Feed, RSS Source, Source Providers, Networking and Storage.
+Article taps open the external browser. Catalog, management, filters, Save/Share, readers,
+workers, AI and proxies are separate additions. `feature/app-integration` is the optional
+full assembly and cross-module test suite. Existing offline data and Room migrations are
+preserved.
 
-See [BRANCHES.md](BRANCHES.md) for incremental merge commands and prerequisites, and
-[BUILD-RESULTS.md](BUILD-RESULTS.md) for exact tests, APKs and deployment results.
-These are Git capability branches within the existing `:app` module. Previous bundled
-branches remain under `archive/bundled/`; `main`, `release` and `v0.4.12` are unchanged.
-
-The section below documents earlier deployed versions and their complete feature set.
+See [BRANCHES.md](BRANCHES.md) for the module map, interfaces and progressive merges, and
+[BUILD-RESULTS.md](BUILD-RESULTS.md) for exact builds, tests and APKs. Previous heads are
+preserved under `archive/pre-gradle-modules/`; `main`, `release` and `v0.4.12` are unchanged.
+The following section describes the historical deployed complete versions.
 
 ## Deployed 0.4.12 history
 
