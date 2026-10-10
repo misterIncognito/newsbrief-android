@@ -1,72 +1,49 @@
 #!/usr/bin/env python3
-"""Check optional feature ownership and dependencies in the current checkout."""
+"""Validate physical module ownership and one-way implementation dependencies."""
 from pathlib import Path
-import json
-import re
-import sys
-
-root = Path(__file__).resolve().parents[1]
-plan = json.loads((root / 'tools/features.json').read_text())
-features = plan['features']
-enabled = {name for name in features if (root / f'app/features/{name}.gradle.kts').is_file()}
-errors = []
-owners = {path: name for name, feature in features.items() for path in feature['files']}
-for name in sorted(enabled):
-    feature = features[name]
-    missing = set(feature['requires']) - enabled
-    if missing:
-        errors.append(f'{name} requires {sorted(missing)}')
-    for path in feature['files']:
-        if not (root / path).is_file():
-            errors.append(f'{name} is missing {path}')
-    if name != 'app-integration':
-        for path in feature['files']:
-            if '/src/main/java/' not in path:
-                continue
-            content = (root / path).read_text() if (root / path).is_file() else ''
-            for forbidden in ['NewsBriefApp']:
-                if re.search(r'\b' + forbidden + r'\b', content):
-                    errors.append(f'{name}: {path} references integration class {forbidden}')
-            if name != 'storage':
-                for forbidden in ['SettingsStore', 'NewsDatabase', 'androidx.room.Room', 'androidx.room.withTransaction']:
-                    if re.search(r'\b' + re.escape(forbidden) + r'\b', content):
-                        errors.append(f'{name}: {path} references storage implementation {forbidden}')
-for path, owner in owners.items():
-    if owner not in enabled and (root / path).is_file():
-        # The application shell intentionally keeps its activity/application/manifest.
-        if Path(path).name not in ['MainActivity.kt', 'NewsBriefApp.kt', 'AndroidManifest.xml']:
-            errors.append(f'{path} exists but its feature {owner} is disabled')
-known = set(plan['foundation']) | set(owners)
-known.update({
-    'app/src/main/java/io/newsbrief/app/ui/NewsBriefShell.kt',
-    'app/src/test/java/io/newsbrief/app/ShellAppTest.kt',
-})
-for folder in ['app/src/main/java', 'app/src/test/java', 'app/src/androidTest']:
-    for file in (root / folder).rglob('*.kt'):
-        path = file.relative_to(root).as_posix()
-        if path not in known:
-            errors.append(f'{path} has no declared owner in tools/features.json')
-# The runnable foundation may reference ports, never optional implementations.
-implementation_names = [
-    'NewsHttp', 'NewsDatabase', 'SettingsStore', 'WebCollectors', 'SourcePluginRegistry',
-    'PublicDirectoryNetwork', 'SourceCatalog', 'FeedFilters', 'ArticleReader',
-    'ArticleImageCache', 'FeedSynchronizer', 'ArticlePrefetcher', 'RefreshWorker',
-    'PrefetchWorker', 'FeedPage', 'FeedAutoRefresh', 'AiClient', 'DigestPage',
-    'ArticleFetchRegistry', 'ReaderPage', 'EmbeddedBrowserPage', 'NewsCard',
-    'SaveArticleService', 'SaveArticleAction', 'ShareArticleAction', 'CloudflarePageProxy',
-    'TelegramProxyClient', 'RssSourcePlugin', 'TelegramPreviewSourcePlugin', 'SourcesPage',
-    'SourceDirectoryPage', 'FeedFilterControls', 'PageProxyRegistry',
-]
-for path in plan['foundation']:
-    if not (root / path).is_file():
-        errors.append(f'foundation is missing {path}')
-    elif '/src/main/java/' in path:
-        content = (root / path).read_text()
-        for name in implementation_names:
-            if re.search(r'\b' + name + r'\b', content):
-                errors.append(f'foundation: {path} references optional implementation {name}')
-
+import json,re,sys
+root=Path(__file__).resolve().parents[1]
+plan=json.loads((root/'tools/features.json').read_text());specs=plan['features']
+available={n for n in specs if (root/f'features/{n}/build.gradle.kts').is_file()}
+errors=[];owned=set(plan['foundation']);implementations={}
+for name,spec in specs.items():
+    owned.update(spec['files'])
+    if name not in available:
+        if (root/'features'/name).exists() and any(p.is_file() and 'build' not in p.relative_to(root/'features'/name).parts for p in (root/'features'/name).rglob('*')):
+            errors.append(f'{name}: implementation exists without its module build file')
+        continue
+    missing=set(spec['requires'])-available
+    if missing:errors.append(f'{name}: missing runtime prerequisites {sorted(missing)}')
+    for path in spec['files']:
+        if not (root/path).is_file():errors.append(f'{name}: missing owned file {path}')
+        if not path.startswith('features/'+name+'/'):errors.append(f'{name}: file outside its module: {path}')
+    script=(root/f'features/{name}/build.gradle.kts').read_text()
+    for dep in re.findall(r'(?:api|implementation)\(project\("([^"]+)"\)\)',script):
+        if dep!=':core:api':errors.append(f'{name}: implementation depends on {dep}; use a core API port')
+    if name!='app-integration':
+        descriptor=root/f'features/{name}/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature'
+        if not descriptor.is_file() or descriptor.read_text().strip()!=spec['binding']:errors.append(f'{name}: invalid plugin service descriptor')
+    for f in (root/'features'/name/'src/main').rglob('*.kt'):
+        for symbol in re.findall(r'^(?:data |sealed |abstract |open )?(?:class|object|interface)\s+(\w+)',f.read_text(),re.M):
+            implementations[symbol]=name
+for base in ['app','core','features']:
+    for f in (root/base).rglob('*'):
+        if not f.is_file() or 'build' in f.relative_to(root/base).parts:continue
+        path=f.relative_to(root).as_posix()
+        if f.suffix=='.kt' and path not in owned:errors.append(f'Unowned source: {path}')
+for base in ['core/api/src/main','core/runtime/src/main']:
+    for f in (root/base).rglob('*.kt'):
+        for symbol in implementations:
+            if re.search(r'\b'+symbol+r'\b',f.read_text()):errors.append(f'{f.relative_to(root)} references optional implementation {symbol}')
+for name in available-{'app-integration'}:
+    for f in (root/f'features/{name}/src/main').rglob('*.kt'):
+        for symbol,owner in implementations.items():
+            if owner!=name and re.search(r'\b'+symbol+r'\b',f.read_text()):errors.append(f'{name}: {f.name} imports {owner} implementation {symbol}')
+        for symbol in ['NewsViewModel','NewsRepository','FeatureRuntime','NewsBriefApp','ManualFeedLoader','MemoryNewsStore','MemorySettings']:
+            if re.search(r'\b'+symbol+r'\b',f.read_text()):errors.append(f'{name}: {f.name} depends on host implementation {symbol}')
+for f in (root/'core/api/src/main').rglob('*.kt'):
+    for symbol in ['NewsViewModel','NewsRepository','FeatureRuntime','NewsBriefApp','ManualFeedLoader','MemoryNewsStore','MemorySettings']:
+        if re.search(r'\b'+symbol+r'\b',f.read_text()):errors.append(f'API depends on implementation {symbol}: {f.name}')
 if errors:
-    print('\n'.join(errors), file=sys.stderr)
-    sys.exit(1)
-print('Feature boundaries OK: ' + (', '.join(sorted(enabled)) or 'foundation and shell only'))
+    print('\n'.join(sorted(set(errors))),file=sys.stderr);sys.exit(1)
+print('Module boundaries OK: '+(', '.join(sorted(available)) or 'app shell and core only'))
