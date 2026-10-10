@@ -17,7 +17,7 @@ class SourceDiscoveryFeature : AppFeature {
             search
         }
     }
-    @Composable override fun Screen(vm: NewsViewModel) {
+    @Composable override fun Screen(vm: AppUi) {
         androidx.compose.runtime.LaunchedEffect(Unit) { if (vm.directoryState.value.results == null) vm.searchDirectory() }
         SourceDirectoryPage(vm)
     }
