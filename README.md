@@ -1,5 +1,9 @@
 # NewsBrief Android
 
+`integration/feed` uses AGP 9.4.1 and Gradle 9.6.0, upgraded with Android Studio’s
+AGP Upgrade Assistant. See [upgrade validation](docs/agp-9.4.1-upgrade.md).
+Other branch toolchains remain unchanged.
+
 Optional capabilities are real Android library modules under `features/<name>/`, each
 maintained on `feature/<name>`. Every feature's main project dependency is `:core:api`;
 modules communicate through storage, HTTP, source, content, extraction, proxy and UI
