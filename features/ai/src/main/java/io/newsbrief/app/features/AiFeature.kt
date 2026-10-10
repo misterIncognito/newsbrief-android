@@ -14,6 +14,6 @@ class AiFeature : AppFeature {
     override fun configure(bindings: FeatureBindings) {
         bindings.generate = { articles, mode, settings -> AiClient(settings).generate(DigestArticleSelector.pick(articles), mode) }
     }
-    @Composable override fun Screen(vm: NewsViewModel) { DigestPage(vm) }
-    @Composable override fun Settings(vm: NewsViewModel) { AiSettingsSection(vm) }
+    @Composable override fun Screen(vm: AppUi) { DigestPage(vm) }
+    @Composable override fun Settings(vm: AppUi) { AiSettingsSection(vm) }
 }
