@@ -4,9 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import io.newsbrief.app.data.*
 import io.newsbrief.app.network.*
-import io.newsbrief.app.ui.AppUi
-import io.newsbrief.app.ui.ReaderUi
-import io.newsbrief.app.ui.FeedUi
+import androidx.lifecycle.ViewModel
 import io.newsbrief.app.ui.ArticleAction
 
 interface AppFeature {
@@ -15,20 +13,29 @@ interface AppFeature {
     val hasSettings: Boolean get() = false
     val order: Int get() = 0
     fun configure(bindings: FeatureBindings) {}
-    @Composable fun Screen(vm: AppUi) {}
-    @Composable fun Settings(vm: AppUi) {}
+    @Composable fun Screen(host: FeatureHost) {}
+    @Composable fun Settings(host: FeatureHost) {}
+    @Composable fun Toolbar(host: FeatureHost) {}
 }
 interface ArticlePresentation {
-    @Composable fun Card(article: ArticleEntity, vm: AppUi)
-    @Composable fun Reader(vm: AppUi)
+    @Composable fun Card(article: ArticleEntity, host: FeatureHost)
 }
 class FeatureBindings {
+    val controllers = mutableMapOf<Class<*>, (FeatureHost) -> ViewModel>()
+    fun <T : Any> controller(type: Class<T>, factory: (FeatureHost) -> ViewModel) {
+        check(controllers.putIfAbsent(type, factory) == null) { "Duplicate controller: ${type.name}" }
+    }
+    val commands = mutableMapOf<String, (FeatureHost) -> Unit>()
+    val navigation = mutableListOf<NavigationHandler>()
+    var feedLoader: ((FeatureServices) -> FeedLoader)? = null
+    var sourceActions: ((FeatureServices) -> SourceActions)? = null
+    var articleStore: ((FeatureServices) -> PrefetchArticleStore)? = null
     var http: HttpTransport? = null
     var ampAlternative: (String, String) -> String? = { _, _ -> null }
     var parseArticle: ((String, String) -> ReaderArticle)? = null
     val articleActions = mutableListOf<ArticleAction>()
-    val feedControls = mutableListOf<@Composable (FeedUi) -> Unit>()
-    var feedEmptyMessage: (FeedUi) -> String? = { null }
+    val feedControls = mutableListOf<@Composable (FeatureHost) -> Unit>()
+    var feedEmptyMessage: (FeatureHost) -> String? = { null }
     var saveArticle: (suspend (NewsStore, ArticleEntity) -> Boolean)? = null
     val sourcePlugins = mutableListOf<(SourceSettings) -> NewsSourcePlugin>()
     val sourceDefaults = mutableListOf<SourceEntity>()
