@@ -4,11 +4,12 @@ import io.newsbrief.app.data.*
 import kotlinx.coroutines.CancellationException
 import org.jsoup.Jsoup
 
-class ArticleFetchRegistry(val plugins: List<ArticleFetchPlugin>) : ArticleExtractor {
+class ArticleFetchRegistry(val plugins: List<ArticleFetchPlugin>,
+    private val parseArticle: (String, String) -> ReaderArticle = { _, _ -> error("Article parser unavailable") }) : ArticleExtractor {
     override suspend fun fetch(article: ArticleEntity, cached: ReaderArticle, worker: String,
         direct: (String, String, String, Int) -> ByteArray,
         proxy: (String, String, String, Int) -> ByteArray): ReaderArticle =
-        fetch(ArticleFetchRequest(article, cached, worker, direct, proxy, ArticleParsing::parse))
+        fetch(ArticleFetchRequest(article, cached, worker, direct, proxy, parseArticle))
     init { require(plugins.map { it.id }.distinct().size == plugins.size) { "Duplicate article plugin ID" } }
     suspend fun fetch(request: ArticleFetchRequest): ReaderArticle {
         for (plugin in plugins) if (plugin.supports(request)) {
@@ -17,10 +18,11 @@ class ArticleFetchRegistry(val plugins: List<ArticleFetchPlugin>) : ArticleExtra
         error("Нет подходящего плагина для статьи")
     }
     companion object {
-        fun builtIns(telegram: TelegramContent? = io.newsbrief.app.runtime.FeatureBindings.create().telegramContent(DefaultSourceSettings),
-            extra: List<ArticleFetchPlugin> = io.newsbrief.app.runtime.FeatureBindings.create().articlePlugins.map { it(DefaultSourceSettings) }) = ArticleFetchRegistry(
+        fun builtIns(telegram: TelegramContent? = null, extra: List<ArticleFetchPlugin> = emptyList(),
+            parseArticle: (String, String) -> ReaderArticle = { _, _ -> error("Article parser unavailable") },
+            ampAlternative: (String, String) -> String? = { _, _ -> null }) = ArticleFetchRegistry(
             listOfNotNull(telegram?.let { TelegramContentArticlePlugin(it) }) +
-                listOf(AmpArticlePlugin()) + extra + HtmlArticlePlugin()
+                listOf(AmpArticlePlugin(ampAlternative)) + extra + HtmlArticlePlugin(), parseArticle
         )
     }
 }
@@ -32,13 +34,13 @@ class TelegramContentArticlePlugin(private val content: TelegramContent) : Artic
     ) { url, type, _, _ -> request.download(url, type).toByteArray(Charsets.UTF_8) }
 }
 
-class AmpArticlePlugin : ArticleFetchPlugin {
+class AmpArticlePlugin(private val alternative: (String, String) -> String? = { _, _ -> null }) : ArticleFetchPlugin {
     override val id = "amp"
     override fun supports(request: ArticleFetchRequest) = !ArticleLinks.isTelegramPost(request.article)
     override suspend fun fetch(request: ArticleFetchRequest): ReaderArticle? {
         val raw = request.original.getOrNull() ?: return null
         if (raw.trimStart().startsWith("{")) return request.parseArticle(raw, request.article.link)
-        val amp = ArticleParsing.alternative(raw, request.article.link) ?: return null
+        val amp = alternative(raw, request.article.link) ?: return null
         return try {
             val ampRaw = request.download(amp)
             val document = Jsoup.parse(ampRaw, amp)

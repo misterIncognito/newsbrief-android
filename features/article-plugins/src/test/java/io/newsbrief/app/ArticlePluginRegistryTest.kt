@@ -16,6 +16,20 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class ArticlePluginRegistryTest {
+    @Test fun extractionUsesProvidedParserAndAmpResolver() = runBlocking {
+        val original = article()
+        val cached = ReaderArticle("Cached", "", "", original.link)
+        val visited = mutableListOf<String>()
+        val registry = ArticleFetchRegistry.builtIns(
+            parseArticle = { _, url -> ReaderArticle("Parsed", "body", "", url) },
+            ampAlternative = { _, _ -> "https://publisher.example/amp" })
+        val download: (String, String, String, Int) -> ByteArray = { url, _, _, _ ->
+            visited += url
+            "<html amp><article><p>body</p></article></html>".toByteArray()
+        }
+        assertEquals("body", registry.fetch(original, cached, "", download, download).text)
+        assertEquals(listOf(original.link, "https://publisher.example/amp"), visited)
+    }
     private val settings get() = SettingsStore(ApplicationProvider.getApplicationContext<Application>())
     private fun article(url: String = "https://publisher.example/story", proxy: Boolean = false) = ArticleEntity(
         sourceId = 1, sourceName = "Publisher", title = "Cached", excerpt = "Cached text", link = url, publishedAt = 123,
