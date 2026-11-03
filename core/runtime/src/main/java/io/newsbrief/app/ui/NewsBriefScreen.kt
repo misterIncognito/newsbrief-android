@@ -36,9 +36,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }, topBar = {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
-                MvpNotice()
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
+                    MvpNotice()
+                }
+                if (feed != null && sections.isEmpty()) Text(feed.title, style = MaterialTheme.typography.labelMedium)
             }
             when {
                 overlay != null -> TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
