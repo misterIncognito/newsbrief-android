@@ -31,7 +31,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Column {
-                Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
+                    MvpNotice()
+                }
                 if (pages.size == 1 && settingsFeatures.isEmpty()) Text(pages.single().title, style = MaterialTheme.typography.labelMedium)
             }
             if (overlay != null) TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
