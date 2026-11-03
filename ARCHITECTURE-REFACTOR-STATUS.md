@@ -14,4 +14,4 @@ The shell build/tests and a full-feature build/tests passed at the initial check
 The progressive integration run passed through 10 features. Stage 11 was interrupted
 because concurrent Gradle runs caused extreme host memory pressure; it was not a test
 failure. Later stages have not yet been checked. The new RSS and Telegram injection tests
-passed separately. The current feed integration is being tested separately.
+passed separately. The updated feed integration build and unit tests passed.
