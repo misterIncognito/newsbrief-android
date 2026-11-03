@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class)
+@Config(sdk = [35], qualifiers = "ru", application = Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class OriginalBrowserModeTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()

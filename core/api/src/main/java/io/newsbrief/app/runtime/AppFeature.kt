@@ -12,8 +12,10 @@ import kotlin.reflect.KProperty
 interface AppFeature {
     val id: String
     val title: String get() = ""
+    fun localizedTitle(context: Context): String = title
     val hasSettings: Boolean get() = false
     val settingsTitle: String get() = title.ifEmpty { id }
+    fun localizedSettingsTitle(context: Context): String = if (settingsTitle == title) localizedTitle(context).ifEmpty { id } else settingsTitle
     val order: Int get() = 0
     fun configure(bindings: FeatureBindings) {}
     @Composable fun Screen(host: FeatureHost) {}

@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
@@ -42,7 +45,7 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi, host: io.newsbrief.app.runtim
             Text(article.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             if (article.excerpt.isNotBlank()) Text(article.excerpt, maxLines = 4, overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium)
-            Text("Читать в NewsBrief →", style = MaterialTheme.typography.labelMedium,
+            Text(stringResource(R.string.nb_text_019), style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary)
             ArticleActionRow(article, host)
         }

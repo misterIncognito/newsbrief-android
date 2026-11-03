@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,7 +26,7 @@ fun NewsBriefShell() {
                 Text("NewsBrief", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                 MvpNotice()
             }
-            Text("Новости в одном месте", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.nb_text_001), style = MaterialTheme.typography.bodyLarge)
         }
     }
 }

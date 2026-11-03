@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
@@ -43,7 +46,7 @@ fun NewsImage(imageUrl: String, articleUrl: String, workerBase: String, height: 
         }
     }
     bitmap?.let {
-        Image(it.asImageBitmap(), contentDescription = "Иллюстрация новости",
+        Image(it.asImageBitmap(), contentDescription = stringResource(R.string.nb_text_020),
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxWidth().height(height.dp).clip(RoundedCornerShape(12.dp)))
     }

@@ -1,5 +1,7 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.features.telegram_proxy.R
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -10,10 +12,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     val saved by vm.hasTelegramProxyKey.collectAsStateWithLifecycle()
     var url by remember(proxy) { mutableStateOf(proxy) }
     var key by remember { mutableStateOf("") }
-    Text("Telegram-прокси", style = MaterialTheme.typography.titleLarge)
-    OutlinedTextField(url, { url = it }, singleLine = true, label = { Text("HTTPS URL Telegram-прокси") })
-    Text(if (saved) "Ключ доступа сохранён" else "Ключ доступа не добавлен")
-    OutlinedTextField(key, { key = it }, singleLine = true, visualTransformation = PasswordVisualTransformation(), label = { Text("Ключ доступа Telegram-прокси") })
-    OutlinedButton(onClick = { vm.saveTelegramProxy(url, key); key = "" }) { Text("Сохранить Telegram-прокси") }
-    if (saved) TextButton(onClick = vm::removeTelegramProxyKey) { Text("Удалить ключ Telegram-прокси") }
+    Text(stringResource(R.string.nb_tg_proxy), style = MaterialTheme.typography.titleLarge)
+    OutlinedTextField(url, { url = it }, singleLine = true, label = { Text(stringResource(R.string.nb_tg_url)) })
+    Text(if (saved) stringResource(R.string.nb_tg_key_saved) else stringResource(R.string.nb_tg_key_missing))
+    OutlinedTextField(key, { key = it }, singleLine = true, visualTransformation = PasswordVisualTransformation(), label = { Text(stringResource(R.string.nb_tg_key)) })
+    OutlinedButton(onClick = { vm.saveTelegramProxy(url, key); key = "" }) { Text(stringResource(R.string.nb_tg_save)) }
+    if (saved) TextButton(onClick = vm::removeTelegramProxyKey) { Text(stringResource(R.string.nb_tg_remove)) }
 }

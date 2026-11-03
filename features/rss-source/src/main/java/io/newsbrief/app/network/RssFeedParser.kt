@@ -1,5 +1,8 @@
 package io.newsbrief.app.network
 
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.LocalizedFailure
+import io.newsbrief.app.util.requireLocalized
 import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.data.SourceEntity
 import io.newsbrief.app.data.SourceKind
@@ -18,7 +21,7 @@ import java.util.Locale
 
 class FeedParsers {
     fun parseFeed(xml: String, source: SourceEntity): List<ArticleEntity> {
-        require(!xml.contains("<!DOCTYPE", ignoreCase = true)) { "DTD не допускается в RSS" }
+        requireLocalized(!xml.contains("<!DOCTYPE", ignoreCase = true), R.string.nb_err_dtd, "DTD не допускается в RSS")
         val parser = XmlPullParserFactory.newInstance().newPullParser()
         // External entities are not enabled. Reject DTD explicitly.
         parser.setInput(ByteArrayInputStream(xml.toByteArray(Charsets.UTF_8)), "UTF-8")
@@ -36,7 +39,7 @@ class FeedParsers {
         val buffer = StringBuilder()
         while (parser.eventType != XmlPullParser.END_DOCUMENT) {
             when (parser.eventType) {
-                XmlPullParser.DOCDECL -> error("DTD не допускается в RSS")
+                XmlPullParser.DOCDECL -> throw LocalizedFailure(R.string.nb_err_dtd, "DTD не допускается в RSS")
                 XmlPullParser.START_TAG -> {
                     val name = parser.name.substringAfter(':').lowercase(Locale.ROOT)
                     if (name == "item" || name == "entry") {

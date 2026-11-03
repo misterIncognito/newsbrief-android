@@ -1,4 +1,6 @@
 package io.newsbrief.app.ui
+import io.newsbrief.app.util.failureMessage
+import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.runtime.*
@@ -29,7 +31,7 @@ class ReaderViewModel(private val host: FeatureHost) : ViewModel(), ReaderUi {
         if (!refresh && _readerSource.value?.link != article.link) readerHistory.clear()
         readerJob?.cancel()
         _readerSource.value = article
-        host.navigator.show("reader", "← Назад", ::closeReader) { ReaderPage(this, host) }
+        host.navigator.show("reader", host.context.getString(R.string.nb_reader_back), ::closeReader) { ReaderPage(this, host) }
         _reader.value = null
         readerJob = viewModelScope.launch {
             _readerBusy.value = true
@@ -38,7 +40,7 @@ class ReaderViewModel(private val host: FeatureHost) : ViewModel(), ReaderUi {
                 if (_readerSource.value?.link == article.link) _reader.value = result
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
-                report("Ошибка чтения: ${e.message}")
+                report(host.context.getString(R.string.nb_reader_error, host.context.failureMessage(e)))
             } finally { if (currentCoroutineContext().isActive) _readerBusy.value = false }
         }
     }

@@ -1,5 +1,7 @@
 package io.newsbrief.app.data
 
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.requireLocalized
 import io.newsbrief.app.network.*
 import kotlinx.coroutines.CancellationException
 
@@ -8,7 +10,7 @@ class SourceDirectoryRepository(private val cache: CatalogSearchDao, private val
     suspend fun search(provider: DirectoryProvider, rawQuery: String, offset: Int = 0): DirectoryResults {
         require(offset >= 0)
         val query = rawQuery.trim().take(120)
-        require(query.length >= 2 || provider == DirectoryProvider.CURATED) { "Введи хотя бы 2 символа" }
+        requireLocalized(query.length >= 2 || provider == DirectoryProvider.CURATED, R.string.nb_directory_short_query, "Введи хотя бы 2 символа")
         if (provider == DirectoryProvider.CURATED) return network.search(provider, query)
         val key = if (provider == DirectoryProvider.TELEGRAM) "TELEGRAM:tgden-v1:${query.lowercase(java.util.Locale.ROOT)}:$offset"
             else "${provider.name}:${query.lowercase(java.util.Locale.ROOT)}"
@@ -24,7 +26,7 @@ class SourceDirectoryRepository(private val cache: CatalogSearchDao, private val
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) {
             if (previous != null) return SourceDiscoveryFilter.apply(provider, query,
-                previous.copy(cached = true, notice = "Каталог сейчас недоступен. Показаны сохранённые результаты."))
+                previous.copy(cached = true, notice = "Каталог сейчас недоступен. Показаны сохранённые результаты.", noticeResource = R.string.nb_directory_cache))
             throw e
         }
     }

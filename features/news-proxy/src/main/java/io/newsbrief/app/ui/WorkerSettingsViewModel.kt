@@ -1,4 +1,6 @@
 package io.newsbrief.app.ui
+import io.newsbrief.app.util.failureMessage
+import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.runtime.*
@@ -18,8 +20,8 @@ class WorkerSettingsViewModel(private val host: FeatureHost) : ViewModel(), Work
         try {
             store.setWorkerUrl(value)
             _workerUrl.value = store.workerUrl()
-            report("Адрес прокси сохранён")
-        } catch (e: Exception) { report("Неверный адрес: ${e.message}") }
+            report(host.context.getString(R.string.nb_proxy_saved))
+        } catch (e: Exception) { report(host.context.getString(R.string.nb_proxy_error, host.context.failureMessage(e))) }
     }
 
 

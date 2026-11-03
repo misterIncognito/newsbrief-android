@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,34 +25,38 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
     val sources by vm.sources.collectAsStateWithLifecycle()
     val existing = sources.map { it.address.lowercase(java.util.Locale.ROOT) }.toSet()
     Column(Modifier.fillMaxSize()) {
-        Text("Найти новые источники", style = MaterialTheme.typography.headlineSmall,
+        Text(stringResource(R.string.nb_text_037), style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp))
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DirectoryProvider.entries.forEach { provider ->
                 FilterChip(selected = provider == state.provider, onClick = { vm.directoryProvider(provider) },
-                    label = { Text(provider.label) })
+                    label = { Text(when (provider) {
+                        DirectoryProvider.RSS -> stringResource(R.string.nb_directory_provider_rss)
+                        DirectoryProvider.TELEGRAM -> "Telegram"
+                        DirectoryProvider.CURATED -> stringResource(R.string.nb_directory_provider_curated)
+                    }) })
             }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(value = state.query, onValueChange = { vm.directoryQuery(it) }, singleLine = true,
-                label = { Text("Тема, название или адрес") }, modifier = Modifier.weight(1f),
+                label = { Text(stringResource(R.string.nb_text_038)) }, modifier = Modifier.weight(1f),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { vm.searchDirectory() }))
             Button(onClick = { vm.searchDirectory() }, enabled = !state.busy,
-                modifier = Modifier.padding(top = 8.dp)) { Text("Найти") }
+                modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(R.string.nb_text_039)) }
         }
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Технологии" to "technology", "ИИ" to "artificial intelligence", "Код" to "programming").forEach { (label, query) ->
+            listOf(stringResource(R.string.nb_directory_tech) to "technology", stringResource(R.string.nb_directory_ai) to "artificial intelligence", stringResource(R.string.nb_directory_code) to "programming").forEach { (label, query) ->
                 TextButton(onClick = { vm.directoryQuery(query); vm.searchDirectory() }) { Text(label) }
             }
         }
         val page = state.results
         val provider = when (state.provider) {
-            DirectoryProvider.RSS -> "Поиск по внешнему индексу RSS · Feedly"
-            DirectoryProvider.TELEGRAM -> "Каталог и поиск Telegram · TGden"
-            DirectoryProvider.CURATED -> "Наша небольшая подборка проверенных адресов"
+            DirectoryProvider.RSS -> stringResource(R.string.nb_directory_rss)
+            DirectoryProvider.TELEGRAM -> stringResource(R.string.nb_directory_telegram)
+            DirectoryProvider.CURATED -> stringResource(R.string.nb_directory_curated)
         }
         Text(provider, style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp))
@@ -61,17 +68,17 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
             if (it.category == "ai") Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 16.dp)) {
                 Checkbox(checked = state.hidePromotions, onCheckedChange = vm::hideDirectoryPromotions)
-                Text("Скрыть крипто и игры", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.nb_text_046), style = MaterialTheme.typography.bodySmall)
             }
             val status = if (it.total != null) {
-                val countLabel = if (it.category != null) "В категории" else "Найдено"
-                "$countLabel: ${it.total} · показано: ${displayed.size}"
-            } else "Показано: ${displayed.size}"
-            Text("${state.searchedQuery} · $status" + if (it.cached) " · сохранённые результаты" else "",
+                val countLabel = if (it.category != null) stringResource(R.string.nb_in_category) else stringResource(R.string.nb_found)
+                stringResource(R.string.nb_count_displayed, countLabel, it.total ?: 0, displayed.size)
+            } else stringResource(R.string.nb_displayed_count, displayed.size)
+            Text("${state.searchedQuery} · $status" + if (it.cached) stringResource(R.string.nb_cached_suffix) else "",
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp))
-            it.notice?.let { notice -> Text(notice, modifier = Modifier.padding(horizontal = 18.dp)) }
-            if (displayed.isEmpty()) Text(if (it.items.isNotEmpty()) "На этой странице нет каналов с выбранным фильтром. Загрузи ещё или отключи фильтр." else "Ничего не найдено. Попробуй другое название или тему.", modifier = Modifier.padding(18.dp))
-            if (it.category == null && it.total != null && (it.total ?: 0) > it.items.size) Text("Каталог показывает наиболее подходящие результаты. Уточни запрос, чтобы найти другие каналы.",
+            it.notice?.let { notice -> Text(it.noticeResource?.let { id -> stringResource(id) } ?: notice, modifier = Modifier.padding(horizontal = 18.dp)) }
+            if (displayed.isEmpty()) Text(if (it.items.isNotEmpty()) stringResource(R.string.nb_empty_page) else stringResource(R.string.nb_no_results), modifier = Modifier.padding(18.dp))
+            if (it.category == null && it.total != null && (it.total ?: 0) > it.items.size) Text(stringResource(R.string.nb_text_051),
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 18.dp))
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -84,13 +91,13 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
                                 val supported = vm.sourcePlugins.any { it.id == source.kind }
                                 TextButton(enabled = supported && !added && state.addingAddress == null,
                                     onClick = { vm.addDirectorySource(source) }) {
-                                    Text(if (added) "Добавлен" else if (state.addingAddress == source.address) "Проверка…" else "Добавить")
+                                    Text(if (added) stringResource(R.string.nb_added) else if (state.addingAddress == source.address) stringResource(R.string.nb_checking) else stringResource(R.string.nb_add))
                                 }
                             }
                             if (source.description.isNotBlank()) Text(source.description, maxLines = 3,
                                 overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
                             Text(listOfNotNull(source.kind, source.language.takeIf { it.isNotBlank() },
-                                source.audience?.let { count -> "Аудитория: $count" }).joinToString(" · "),
+                                source.audience?.let { count -> stringResource(R.string.nb_audience, count) }).joinToString(" · "),
                                 style = MaterialTheme.typography.labelSmall)
                             Text(source.address, maxLines = 2, overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -101,7 +108,7 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
             if (it.nextOffset != null) OutlinedButton(onClick = vm::loadMoreDirectory,
                 enabled = !state.busy && state.query.trim() == state.searchedQuery,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-                Text(if (state.busy) "Загрузка…" else "Загрузить ещё")
+                Text(if (state.busy) stringResource(R.string.nb_loading) else stringResource(R.string.nb_load_more))
             }
         }
     }

@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.app.util.failureMessage
+import io.newsbrief.modules.core.api.R
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceError
 import android.webkit.WebResourceResponse
@@ -49,12 +52,12 @@ private fun BrowserSession(url: String, worker: String, forceProxy: Boolean, ori
             Text(runCatching { URI(location).host }.getOrNull().orEmpty(),
                 modifier = Modifier.weight(1f).padding(vertical = 12.dp),
                 style = MaterialTheme.typography.labelMedium)
-            TextButton(onClick = { browser?.reload() }) { Text("Перезагрузить") }
+            TextButton(onClick = { browser?.reload() }) { Text(stringResource(R.string.nb_browser_reload)) }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !originalMode, onClick = { onModeChange(location, false) }, label = { Text("Через загрузчик") })
-            FilterChip(selected = originalMode, onClick = { onModeChange(location, true) }, label = { Text("Оригинальная страница") })
+            FilterChip(selected = !originalMode, onClick = { onModeChange(location, false) }, label = { Text(stringResource(R.string.nb_browser_loader)) })
+            FilterChip(selected = originalMode, onClick = { onModeChange(location, true) }, label = { Text(stringResource(R.string.nb_browser_original)) })
         }
         failure?.let { Text(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.error) }
         if (progress < 100) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -93,19 +96,19 @@ private fun BrowserSession(url: String, worker: String, forceProxy: Boolean, ori
                         canGoBack = view.canGoBack()
                     }
                     override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
-                        if (request.isForMainFrame) failure = "Сайт ответил HTTP ${response.statusCode}. Можно переключить режим страницы или повторить загрузку."
+                        if (request.isForMainFrame) failure = context.getString(R.string.nb_browser_http_error, response.statusCode)
                     }
                     override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                        if (request.isForMainFrame) failure = "Не удалось открыть страницу. Повтори загрузку или переключи режим."
+                        if (request.isForMainFrame) failure = context.getString(R.string.nb_browser_open_error)
                     }
                     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                         return try {
                             val target = request.url.toString()
-                            require(ArticleLinks.valid(target)) { "Поддерживаются только HTTPS-страницы" }
+                            require(ArticleLinks.valid(target)) { context.getString(R.string.nb_browser_https_only) }
                             if (request.isForMainFrame && NewsRouting.requiresProxy(target)) proxyLocked.set(true)
                             // Native WebView transport supplies first-party cookies and scripts for the explicit original mode.
                             if (originalMode && BrowserRouting.canLoadOriginal(target, documentUrl.get(), proxyLocked.get())) return null
-                            require(request.method == "GET") { "Поддерживается чтение публичных страниц" }
+                            require(request.method == "GET") { context.getString(R.string.nb_browser_public_only) }
                             val route = BrowserRouting.route(target, request.isForMainFrame,
                                 documentUrl.get(), request.requestHeaders.entries.firstOrNull {
                                     it.key.equals("Accept", ignoreCase = true)
@@ -122,9 +125,11 @@ private fun BrowserSession(url: String, worker: String, forceProxy: Boolean, ori
                             } else WebResourceResponse(result.mimeType, result.encoding, ByteArrayInputStream(result.bytes))
                         } catch (e: Exception) {
                             // A concrete error response prevents WebView from trying a direct fallback.
-                            if (request.isForMainFrame) view.post { failure = "Не удалось загрузить страницу. Попробуй режим «Оригинальная страница»." }
-                            val message = org.jsoup.nodes.Entities.escape(e.message.orEmpty().take(120))
-                            val body = "<html><meta charset='utf-8'><body><h2>Не удалось загрузить страницу</h2><p>$message</p><p>Вернись к сохранённой статье или повтори загрузку.</p></body></html>"
+                            if (request.isForMainFrame) view.post { failure = context.getString(R.string.nb_browser_load_error) }
+                            val message = org.jsoup.nodes.Entities.escape(context.failureMessage(e).take(120))
+                            val heading = org.jsoup.nodes.Entities.escape(context.getString(R.string.nb_browser_error_title))
+                            val advice = org.jsoup.nodes.Entities.escape(context.getString(R.string.nb_browser_error_advice))
+                            val body = "<html><meta charset='utf-8'><body><h2>$heading</h2><p>$message</p><p>$advice</p></body></html>"
                             WebResourceResponse("text/html", "UTF-8", 502, "Unavailable", emptyMap(),
                                 ByteArrayInputStream(body.toByteArray()))
                         }

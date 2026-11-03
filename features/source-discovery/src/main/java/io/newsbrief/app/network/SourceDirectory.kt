@@ -1,5 +1,8 @@
 package io.newsbrief.app.network
 
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.LocalizedFailure
+import io.newsbrief.app.util.requireLocalized
 import io.newsbrief.app.data.FeedCategory
 import io.newsbrief.app.data.SourceKind
 import io.newsbrief.app.data.SourceCatalog
@@ -40,7 +43,7 @@ class PublicDirectoryNetwork : DirectoryNetwork {
     override suspend fun more(provider: DirectoryProvider, query: String, offset: Int): DirectoryResults =
         withContext(Dispatchers.IO) {
             require(provider == DirectoryProvider.TELEGRAM)
-            val category = TelegramTopics.category(query) ?: error("Уточни запрос, чтобы найти другие каналы")
+            val category = TelegramTopics.category(query) ?: throw LocalizedFailure(R.string.nb_err_dir_refine, "Уточни запрос, чтобы найти другие каналы")
             catalog(category, offset)
         }
     private fun catalog(category: String, offset: Int): DirectoryResults =
@@ -55,15 +58,15 @@ class PublicDirectoryNetwork : DirectoryNetwork {
     }
     private fun request(request: Request): String = client.newCall(request.newBuilder()
         .header("User-Agent", "NewsBrief/0.4.5").build()).execute().use { response ->
-        check(response.isSuccessful) { "Каталог недоступен (HTTP ${response.code})" }
-        val body = response.body ?: error("Пустой ответ каталога")
-        require(body.contentLength() <= 2_000_000) { "Слишком большой ответ каталога" }
+        requireLocalized(response.isSuccessful, R.string.nb_err_dir_http, "Каталог недоступен (HTTP ${response.code})", response.code)
+        val body = response.body ?: throw LocalizedFailure(R.string.nb_err_dir_empty, "Пустой ответ каталога")
+        requireLocalized(body.contentLength() <= 2_000_000, R.string.nb_err_dir_large, "Слишком большой ответ каталога")
         body.byteStream().use { input ->
             val output = java.io.ByteArrayOutputStream()
             val buffer = ByteArray(8192)
             var size = input.read(buffer)
             while (size != -1) {
-                require(output.size() + size <= 2_000_000) { "Слишком большой ответ каталога" }
+                requireLocalized(output.size() + size <= 2_000_000, R.string.nb_err_dir_large, "Слишком большой ответ каталога")
                 output.write(buffer, 0, size)
                 size = input.read(buffer)
             }
@@ -96,8 +99,8 @@ object DirectoryParser {
     }
     fun feedly(raw: String): DirectoryResults {
         val root = JSONObject(raw)
-        check(root.optBoolean("success", true)) { "Ошибка поиска RSS" }
-        val array = root.optJSONArray("results") ?: error("Некорректный ответ RSS-каталога")
+        requireLocalized(root.optBoolean("success", true), R.string.nb_err_rss_search, "Ошибка поиска RSS")
+        val array = root.optJSONArray("results") ?: throw LocalizedFailure(R.string.nb_err_rss_response, "Некорректный ответ RSS-каталога")
         val items = (0 until minOf(array.length(), 100)).mapNotNull { index ->
             val item = array.optJSONObject(index) ?: return@mapNotNull null
             if (item.has("valid") && !item.optBoolean("valid")) return@mapNotNull null
@@ -119,21 +122,21 @@ object DirectoryParser {
     }
     fun rpcPayload(raw: String): JSONObject {
         val root = JSONObject(raw)
-        check(!root.has("error")) { "Ошибка Telegram-каталога" }
-        val result = root.optJSONObject("result") ?: error("Некорректный ответ Telegram-каталога")
-        check(!result.optBoolean("isError")) { "Ошибка поиска Telegram" }
+        requireLocalized(!root.has("error"), R.string.nb_err_tg_directory, "Ошибка Telegram-каталога")
+        val result = root.optJSONObject("result") ?: throw LocalizedFailure(R.string.nb_err_tg_response, "Некорректный ответ Telegram-каталога")
+        requireLocalized(!result.optBoolean("isError"), R.string.nb_err_tg_search, "Ошибка поиска Telegram")
         result.optJSONObject("structuredContent")?.let { return it }
-        val content = result.optJSONArray("content") ?: error("Нет результатов каталога")
+        val content = result.optJSONArray("content") ?: throw LocalizedFailure(R.string.nb_err_no_results, "Нет результатов каталога")
         for (i in 0 until content.length()) {
             val block = content.optJSONObject(i) ?: continue
             if (block.optString("type") == "text") return JSONObject(block.getString("text"))
         }
-        error("Нет данных каталога")
+        throw LocalizedFailure(R.string.nb_err_no_data, "Нет данных каталога")
     }
     /** Legacy TGX response contract, retained for existing integrations and saved data. */
     fun telegram(raw: String): DirectoryResults {
         val root = rpcPayload(raw)
-        val array = root.optJSONArray("results") ?: error("Нет списка Telegram-каналов")
+        val array = root.optJSONArray("results") ?: throw LocalizedFailure(R.string.nb_err_no_channels, "Нет списка Telegram-каналов")
         val items = (0 until minOf(array.length(), 20)).mapNotNull { i ->
             val item = array.optJSONObject(i) ?: return@mapNotNull null
             if (item.optString("type") != "channel") return@mapNotNull null
@@ -150,8 +153,8 @@ object DirectoryParser {
     fun tgden(raw: String, category: String? = null, offset: Int = 0): DirectoryResults {
         val response = JSONObject(raw)
         val root = if (response.has("result") || response.has("error")) rpcPayload(raw) else response
-        check(!root.optBoolean("isDemo")) { "Каталог вернул демонстрационные данные вместо результатов" }
-        val array = root.optJSONArray("items") ?: error("Нет списка Telegram-каналов")
+        requireLocalized(!root.optBoolean("isDemo"), R.string.nb_err_demo, "Каталог вернул демонстрационные данные вместо результатов")
+        val array = root.optJSONArray("items") ?: throw LocalizedFailure(R.string.nb_err_no_channels, "Нет списка Telegram-каналов")
         val items = (0 until minOf(array.length(), 25)).mapNotNull { i ->
             val item = array.optJSONObject(i) ?: return@mapNotNull null
             if (item.optString("entity_type", "channel") != "channel" || item.optBoolean("is_private")) return@mapNotNull null

@@ -1,5 +1,8 @@
 package io.newsbrief.app.network
 
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.requireLocalized
+import io.newsbrief.app.util.LocalizedFailure
 import io.newsbrief.app.data.*
 import io.newsbrief.app.util.FeedRules
 import okhttp3.*
@@ -24,9 +27,7 @@ class TelegramProxyClient(
 
     @Synchronized private fun request(path: String, query: Map<String, String> = emptyMap()): JSONObject {
         val current = config()
-        require(current.baseUrl.isNotBlank() && current.accessKey.isNotBlank()) {
-            "Настрой HTTPS-адрес и ключ Telegram-прокси в настройках"
-        }
+        requireLocalized(current.baseUrl.isNotBlank() && current.accessKey.isNotBlank(), R.string.nb_err_tg_config, "Настрой HTTPS-адрес и ключ Telegram-прокси в настройках")
         validateBaseUrl(current.baseUrl)
         if (tokenConfig != current || System.currentTimeMillis() >= expiresAt) authenticate(current)
         fun execute(): Pair<Int, String> {
@@ -37,7 +38,7 @@ class TelegramProxyClient(
         }
         var response = execute()
         if (response.first == 401) { authenticate(current); response = execute() }
-        require(response.first in 200..299) { "Telegram-прокси: HTTP ${response.first}" }
+        requireLocalized(response.first in 200..299, R.string.nb_err_tg_http, "Telegram-прокси: HTTP ${response.first}", response.first)
         return JSONObject(response.second)
     }
 
@@ -46,10 +47,10 @@ class TelegramProxyClient(
         val body = JSONObject().put("accessKey", current.accessKey).toString()
             .toRequestBody("application/json".toMediaType())
         val response = exchange(Request.Builder().url(current.baseUrl.trimEnd('/') + "/auth").post(body).build())
-        require(response.first in 200..299) { "Telegram-прокси: авторизация HTTP ${response.first}" }
+        requireLocalized(response.first in 200..299, R.string.nb_err_tg_auth_http, "Telegram-прокси: авторизация HTTP ${response.first}", response.first)
         val auth = JSONObject(response.second)
         val next = auth.optString("accessToken")
-        require(next.isNotBlank() && auth.optString("tokenType").equals("Bearer", true)) { "Telegram-прокси: неверный ответ авторизации" }
+        requireLocalized(next.isNotBlank() && auth.optString("tokenType").equals("Bearer", true), R.string.nb_err_tg_auth, "Telegram-прокси: неверный ответ авторизации")
         token = next; tokenConfig = current
         expiresAt = System.currentTimeMillis() + (auth.optLong("expiresIn", 3600).coerceIn(1, 3600) * 1000 - 10_000).coerceAtLeast(0)
     }
@@ -57,8 +58,8 @@ class TelegramProxyClient(
     private fun exchange(request: Request): Pair<Int, String> {
         // Even injected clients cannot forward a credential through a redirect.
         return http.newBuilder().followRedirects(false).followSslRedirects(false).build().newCall(request).execute().use { response ->
-            val body = response.body ?: error("Telegram-прокси: пустой ответ")
-            require(body.contentLength() <= 3_000_000) { "Telegram-прокси: ответ слишком большой" }
+            val body = response.body ?: throw LocalizedFailure(R.string.nb_err_tg_empty, "Telegram-прокси: пустой ответ")
+            requireLocalized(body.contentLength() <= 3_000_000, R.string.nb_err_tg_large, "Telegram-прокси: ответ слишком большой")
             val bytes = body.byteStream().use { input ->
                 val output = java.io.ByteArrayOutputStream()
                 val buffer = ByteArray(8192)
@@ -69,7 +70,7 @@ class TelegramProxyClient(
                 }
                 output.toByteArray()
             }
-            require(bytes.size <= 3_000_000) { "Telegram-прокси: ответ слишком большой" }
+            requireLocalized(bytes.size <= 3_000_000, R.string.nb_err_tg_large, "Telegram-прокси: ответ слишком большой")
             response.code to bytes.toString(Charsets.UTF_8)
         }
     }
@@ -87,7 +88,7 @@ class TelegramProxyClient(
     }
     fun posts(source: SourceEntity): List<ArticleEntity> {
         val channel = request("/channel/${channelKey(source.address)}")
-        require(channel.optInt("enabled") == 1) { "Канал ещё не собирается Telegram-прокси" }
+        requireLocalized(channel.optInt("enabled") == 1, R.string.nb_err_tg_not_enabled, "Канал ещё не собирается Telegram-прокси")
         val page = request("/posts", mapOf("channel" to channel.getString("id"), "top" to "100"))
         val rows = page.getJSONArray("posts")
         return (0 until rows.length()).mapNotNull { parsePost(rows.getJSONObject(it), source, config().baseUrl) }
@@ -100,14 +101,12 @@ class TelegramProxyClient(
             "${channel.getString("id")}:${segments[1]}"
         } else {
             val base = validateBaseUrl(config().baseUrl)
-            require(uri.scheme == base.scheme && uri.authority == base.authority && uri.path.startsWith(base.path.trimEnd('/') + "/posts/")) {
-                "Публикация не принадлежит Telegram-прокси"
-            }
+            requireLocalized(uri.scheme == base.scheme && uri.authority == base.authority && uri.path.startsWith(base.path.trimEnd('/') + "/posts/"), R.string.nb_err_tg_wrong_post, "Публикация не принадлежит Telegram-прокси")
             uri.path.substringAfterLast('/')
         }
-        require(id.matches(Regex("[0-9]{1,20}:[0-9]{1,20}"))) { "Неверный ID публикации" }
+        requireLocalized(id.matches(Regex("[0-9]{1,20}:[0-9]{1,20}")), R.string.nb_err_tg_post_id, "Неверный ID публикации")
         val source = SourceEntity(id = article.sourceId, name = article.sourceName, kind = SourceKind.TELEGRAM_PROXY, address = "")
-        val post = parsePost(request("/posts/$id"), source, config().baseUrl) ?: error("Текст публикации недоступен")
+        val post = parsePost(request("/posts/$id"), source, config().baseUrl) ?: throw LocalizedFailure(R.string.nb_err_tg_post_text, "Текст публикации недоступен")
         return ReaderArticle(post.title, post.content, post.imageUrl, article.link,
             publishedAt = post.publishedAt, links = ArticleLinks.decode(post.linksJson))
     }
@@ -119,14 +118,14 @@ class TelegramProxyClient(
             val key = if (raw.startsWith("https://")) {
                 FeedRules.canonicalAddress(raw, SourceKind.TELEGRAM).substringAfterLast('/')
             } else raw
-            require(key.matches(Regex("(?:[0-9]{1,20}|[A-Za-z][A-Za-z0-9_]{4,31})"))) { "Укажи публичное имя или числовой ID канала" }
+            requireLocalized(key.matches(Regex("(?:[0-9]{1,20}|[A-Za-z][A-Za-z0-9_]{4,31})")), R.string.nb_err_tg_channel_id, "Укажи публичное имя или числовой ID канала")
             return key.lowercase(java.util.Locale.ROOT)
         }
         fun parsePost(row: JSONObject, source: SourceEntity, baseUrl: String): ArticleEntity? {
             val text = row.optString("text").take(60_000)
             if (text.isBlank()) return null
             val id = row.getString("id")
-            require(id.matches(Regex("[0-9]{1,20}:[0-9]{1,20}"))) { "Неверный ID публикации" }
+            requireLocalized(id.matches(Regex("[0-9]{1,20}:[0-9]{1,20}")), R.string.nb_err_tg_post_id, "Неверный ID публикации")
             val links = mutableListOf<ArticleLink>()
             val entities = row.optJSONArray("entities")
             for (index in 0 until (entities?.length() ?: 0)) {
@@ -146,7 +145,7 @@ class TelegramProxyClient(
             val sourceUrl = row.optString("sourceUrl")
             val link = sourceUrl.takeIf { ArticleLinks.telegramPreview(it) != null } ?: "${baseUrl.trimEnd('/')}/posts/$id"
             val date = row.getLong("date")
-            require(date in 0..Long.MAX_VALUE / 1000) { "Неверная дата публикации" }
+            requireLocalized(date in 0..Long.MAX_VALUE / 1000, R.string.nb_err_tg_date, "Неверная дата публикации")
             // The API currently exposes mediaType only; never invent downloadable image URLs.
             return ArticleEntity(sourceId = source.id, sourceName = source.name, sourcePluginId = SourceKind.TELEGRAM_PROXY,
                 title = FeedRules.headline(text), excerpt = text.take(1600), content = text,

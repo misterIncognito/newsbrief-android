@@ -5,5 +5,4 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val dateFormat = DateTimeFormatter.ofPattern("dd MMM, HH:mm", Locale.forLanguageTag("ru"))
-fun formatDate(millis: Long): String = dateFormat.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
+fun formatDate(millis: Long): String = DateTimeFormatter.ofPattern("dd MMM, HH:mm", Locale.getDefault()).format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))

@@ -1,5 +1,7 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.features.telegram_proxy.R
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
@@ -38,34 +40,34 @@ import io.newsbrief.app.data.SourceKind
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.openProxyChannels() }
     if (state.open) ProxyChannelsDialog(vm, state)
     else Column(Modifier.padding(16.dp)) {
-        Text("Telegram-прокси")
-        OutlinedButton(onClick = vm::openProxyChannels) { Text("Каналы Telegram-прокси") }
+        Text(stringResource(R.string.nb_tg_proxy))
+        OutlinedButton(onClick = vm::openProxyChannels) { Text(stringResource(R.string.nb_tg_channels)) }
     }
 }
 @Composable
 private fun ProxyChannelsDialog(vm: TelegramProxyUi, state: ProxyChannelsState) {
     var search by rememberSaveable { mutableStateOf("") }
     val sources by vm.sources.collectAsStateWithLifecycle()
-    AlertDialog(onDismissRequest = { vm.closeProxyChannels() }, title = { Text("Каналы Telegram-прокси") },
+    AlertDialog(onDismissRequest = { vm.closeProxyChannels() }, title = { Text(stringResource(R.string.nb_tg_channels)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Доступные каналы, которые уже собирает сервис. Подключение добавляет их в ленту.")
-                OutlinedTextField(value = search, onValueChange = { search = it }, singleLine = true, label = { Text("Поиск канала") })
+                Text(stringResource(R.string.nb_tg_channels_description))
+                OutlinedTextField(value = search, onValueChange = { search = it }, singleLine = true, label = { Text(stringResource(R.string.nb_tg_search)) })
                 if (state.busy) CircularProgressIndicator()
                 state.error?.let { Text(it) }
-                if (!state.busy && state.error == null && state.channels.isEmpty()) Text("На сервисе пока нет доступных каналов")
+                if (!state.busy && state.error == null && state.channels.isEmpty()) Text(stringResource(R.string.nb_tg_empty))
                 LazyColumn(Modifier.heightIn(max = 350.dp)) {
                     items(state.channels.filter { it.name.contains(search, true) || it.address.contains(search, true) }, key = { it.address }) { source ->
                         val added = sources.any { it.address == source.address }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(source.name, Modifier.weight(1f))
                             TextButton(onClick = { vm.addSource(source.name, source.kind, source.address) }, enabled = !added) {
-                                Text(if (added) "Подключён" else "Добавить")
+                                Text(if (added) stringResource(R.string.nb_tg_connected) else stringResource(R.string.nb_tg_add))
                             }
                         }
                     }
                 }
             }
-        }, confirmButton = { TextButton(onClick = { vm.closeProxyChannels() }) { Text("Закрыть") } },
-        dismissButton = { TextButton(onClick = { vm.openProxyChannels() }) { Text("Обновить") } })
+        }, confirmButton = { TextButton(onClick = { vm.closeProxyChannels() }) { Text(stringResource(R.string.nb_tg_close)) } },
+        dismissButton = { TextButton(onClick = { vm.openProxyChannels() }) { Text(stringResource(R.string.nb_tg_refresh)) } })
 }

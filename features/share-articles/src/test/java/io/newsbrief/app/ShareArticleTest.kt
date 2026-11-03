@@ -19,7 +19,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class)
+@Config(sdk = [35], qualifiers = "ru", application = Application::class)
 class ShareArticleTest {
     @get:Rule val compose = createComposeRule()
     private val article = ArticleEntity(sourceId = 1, sourceName = "Source", title = "Readable title",

@@ -1,0 +1,3 @@
+<resources>
+    <string name="nb_telegram_address_hint">@channel or https://t.me/channel</string>
+</resources>

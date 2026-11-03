@@ -1,5 +1,8 @@
 package io.newsbrief.app.features
 
+import android.content.Context
+import io.newsbrief.modules.features.source_discovery.R
+
 import androidx.compose.runtime.Composable
 import io.newsbrief.app.data.*
 import io.newsbrief.app.network.*
@@ -8,6 +11,7 @@ import io.newsbrief.app.ui.*
 
 class SourceDiscoveryFeature : AppFeature {
     override val id = "source-discovery"
+    override fun localizedTitle(context: Context): String = context.getString(R.string.nb_feature_source_discovery)
     override val title = "Каталог"
     override val order = 21
     override fun configure(bindings: FeatureBindings) {

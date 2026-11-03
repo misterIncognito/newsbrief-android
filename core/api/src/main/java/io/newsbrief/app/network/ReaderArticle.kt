@@ -10,6 +10,7 @@ data class ReaderArticle(
     val publishedAt: Long? = null,
     val author: String = "",
     val images: List<String> = emptyList(),
-    val links: List<ArticleLink> = emptyList()
+    val links: List<ArticleLink> = emptyList(),
+    val noticeFailure: Throwable? = null
 )
 

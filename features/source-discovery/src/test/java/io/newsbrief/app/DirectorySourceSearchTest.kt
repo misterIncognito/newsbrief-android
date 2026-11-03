@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class)
+@Config(sdk = [35], qualifiers = "en", application = Application::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class DirectorySourceSearchTest {
     @Test fun defaultRecommendationsAreTechAndSearchCanAddPoliticalSource() {
@@ -57,7 +57,7 @@ class DirectorySourceSearchTest {
             vm.addDirectorySource(politicalSource)
             dispatcher.scheduler.runCurrent()
             assertEquals(politicalSource, added)
-            assertTrue(vm.directoryState.value.addMessage!!.contains("добавлен"))
+            assertTrue(vm.directoryState.value.addMessage!!.contains("source added"))
         } finally {
             host.close()
             Dispatchers.resetMain()

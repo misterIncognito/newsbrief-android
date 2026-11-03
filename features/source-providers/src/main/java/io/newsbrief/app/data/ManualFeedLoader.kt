@@ -14,6 +14,7 @@ class ManualFeedLoader(private val db: FeedStore, private val collector: NewsCol
         val sources = db.sourceDao().enabled().filter(collector::supports).sortedByDescending { it.id }
         var total = 0
         val errors = mutableListOf<String>()
+        val failures = mutableListOf<SourceFailure>()
         for (source in sources) {
             try {
                 val items = collector.collect(source).filter {
@@ -38,11 +39,12 @@ class ManualFeedLoader(private val db: FeedStore, private val collector: NewsCol
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 errors += "${source.name}: ${e.message.orEmpty().take(120)}"
+                failures += SourceFailure(source.name, e)
             }
         }
         // Do not silently destroy history. A future retention policy can be user-controlled.
         onFeedUpdated()
-        return RefreshResult(added = total, sources = sources.size, errors = errors)
+        return RefreshResult(added = total, sources = sources.size, errors = errors, sourceFailures = failures)
     }
 
     private suspend fun mergePluginPost(incoming: ArticleEntity) {

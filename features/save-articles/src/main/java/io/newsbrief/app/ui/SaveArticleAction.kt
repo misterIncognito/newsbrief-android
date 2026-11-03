@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -22,5 +25,5 @@ class SaveArticleAction : ArticleAction {
     }
 }
 @Composable internal fun SaveArticleButton(saved: Boolean, onSave: () -> Unit) {
-    TextButton(onClick = onSave) { Text(if (saved) "✓ Сохранено" else "Сохранить") }
+    TextButton(onClick = onSave) { Text(if (saved) stringResource(R.string.nb_saved_marked) else stringResource(R.string.nb_save)) }
 }

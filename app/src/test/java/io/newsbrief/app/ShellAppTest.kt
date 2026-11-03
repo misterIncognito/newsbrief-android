@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = EmptyNewsBriefApp::class)
+@Config(sdk = [35], qualifiers = "ru", application = EmptyNewsBriefApp::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ShellAppTest {
     @get:Rule val compose = createComposeRule()

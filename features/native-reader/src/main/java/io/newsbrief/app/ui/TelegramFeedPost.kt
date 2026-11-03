@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
@@ -69,8 +72,8 @@ internal fun TelegramFeedPost(article: ArticleEntity, workerUrl: String,
                 TextButton(onClick = { onLink(link.url) }) { Text(link.label) }
             }
             if (primary != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { onLink(primary.url) }) { Text("Полная статья →") }
-                TextButton(onClick = { onBrowser(primary.url) }) { Text("Открыть в браузере") }
+                TextButton(onClick = { onLink(primary.url) }) { Text(stringResource(R.string.nb_text_021)) }
+                TextButton(onClick = { onBrowser(primary.url) }) { Text(stringResource(R.string.nb_text_022)) }
             }
             actions()
         }
