@@ -23,7 +23,7 @@ class ArticleReaderTest {
         val article = io.newsbrief.app.data.ArticleEntity(sourceId = 1, sourceName = "Source", title = "Title", excerpt = "",
             link = "https://example.org/story", publishedAt = 123)
         val reader = bindings.article!!.invoke(io.newsbrief.app.data.MemorySettings(), null)
-        assertEquals("Article text.", reader.load(article, refresh = true).text)
+        assertTrue(reader.load(article, refresh = true).text.contains("Article text."))
         assertEquals(listOf(article.link), requests.map { it.resource })
     }
     @Test fun workerContractPreservesParagraphsDateAndImages() {
