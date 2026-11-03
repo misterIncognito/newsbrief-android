@@ -51,6 +51,11 @@ class ReadStatusTest {
             vm.toggleRead(read).join()
             assertNull(store.articleDao().findByLink(read.link)!!.readAt)
             assertEquals(listOf(id), store.articleDao().observeUnreadFiltered(emptyList(), false).first().map { it.id })
+            vm.markVisible(listOf(id))
+            assertNull("A manual unread choice remains while the article is visible", store.articleDao().findByLink(read.link)!!.readAt)
+            vm.retainVisible(emptyList())
+            vm.markVisible(listOf(id))
+            assertNotNull("The article can be marked read after it leaves and returns", store.articleDao().findByLink(read.link)!!.readAt)
         } finally { host.close(); Dispatchers.resetMain() }
     }
 }

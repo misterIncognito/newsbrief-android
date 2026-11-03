@@ -30,8 +30,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.coroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -54,24 +53,21 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
     LaunchedEffect(activeScroll, lifecycle, onVisible != null, focused) {
         if (onVisible == null || !focused) return@LaunchedEffect
         lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            var handled = emptySet<Long>()
-            snapshotFlow {
-                val layout = activeScroll.layoutInfo
-                val visible = layout.visibleItemsInfo.filter { item ->
-                    item.offset < layout.viewportEndOffset && item.offset + item.size > layout.viewportStartOffset
-                }.mapNotNull { it.key as? Long }.toSet()
-                val eligible = layout.visibleItemsInfo.filter { item ->
-                    isVisibleEnough(item.offset, item.size, layout.viewportStartOffset, layout.viewportEndOffset)
-                }.mapNotNull { it.key as? Long }.toSet()
-                visible to eligible
-            }.collectLatest { (visible, eligible) ->
-                visibilityChanged?.invoke(visible.toList())
-                handled = handled.intersect(visible)
-                val pending = eligible - handled
-                if (pending.isNotEmpty()) {
-                    delay(1_000)
-                    visibleCallback?.invoke(pending.toList())
-                    handled = handled + pending
+            coroutineScope {
+                val tracker = VisibilityReadTracker(this, { visibilityChanged?.invoke(it) }) { visibleCallback?.invoke(it) }
+                try {
+                    snapshotFlow {
+                        val layout = activeScroll.layoutInfo
+                        val visible = layout.visibleItemsInfo.filter { item ->
+                            item.offset < layout.viewportEndOffset && item.offset + item.size > layout.viewportStartOffset
+                        }.mapNotNull { it.key as? Long }.toSet()
+                        val eligible = layout.visibleItemsInfo.filter { item ->
+                            isVisibleEnough(item.offset, item.size, layout.viewportStartOffset, layout.viewportEndOffset)
+                        }.mapNotNull { it.key as? Long }.toSet()
+                        visible to eligible
+                    }.collect { (visible, eligible) -> tracker.update(visible, eligible) }
+                } finally {
+                    tracker.close()
                 }
             }
         }
