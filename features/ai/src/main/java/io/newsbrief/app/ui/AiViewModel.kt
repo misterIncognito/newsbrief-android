@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.runtime.*
@@ -39,10 +40,10 @@ class AiViewModel(private val host: FeatureHost) : ViewModel(), AiUi {
         _generating.value = true
         try {
             _digest.value = generateDigest(_mode.value)
-            report("Сводка готова")
+            report(host.context.getString(R.string.nb_digest_ready))
         } catch (e: CancellationException) { throw e
         } catch (e: Exception) {
-            report("Не удалось создать сводку: ${e.message}")
+            report(host.context.getString(R.string.nb_digest_failed, e.message.orEmpty()))
         } finally { _generating.value = false }
     }
 
@@ -65,15 +66,15 @@ class AiViewModel(private val host: FeatureHost) : ViewModel(), AiUi {
     }
 
     override fun setModel(value: String) {
-        if (value.isBlank()) { report("Название модели не должно быть пустым"); return }
+        if (value.isBlank()) { report(host.context.getString(R.string.nb_model_required)); return }
         store.setModel(_config.value.provider, value)
         _config.value = store.read()
-        report("Модель сохранена")
+        report(host.context.getString(R.string.nb_model_saved))
     }
 
     override fun saveKey(value: String) {
         store.saveApiKey(_config.value.provider, value)
         _hasKey.value = store.hasApiKey(_config.value.provider)
-        report(if (value.isBlank()) "Ключ удалён" else if (bindings.persistentStorage == null) "Ключ сохранён до закрытия приложения" else "Ключ сохранён на устройстве")
+        report(if (value.isBlank()) host.context.getString(R.string.nb_key_deleted) else if (bindings.persistentStorage == null) host.context.getString(R.string.nb_key_temporary) else host.context.getString(R.string.nb_key_saved))
     }
 }

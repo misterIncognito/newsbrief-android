@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -51,7 +54,7 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null, openSources: ((
     IconButton(onClick = { open = true }, modifier = Modifier.testTag("open-source-filter")) {
         BadgedBox(badge = {
             if (selected.isNotEmpty() || category != FeedCategory.ALL) Badge()
-        }) { Icon(FilterIcon, contentDescription = "Фильтр ленты") }
+        }) { Icon(FilterIcon, contentDescription = stringResource(R.string.nb_text_009)) }
     }
     if (!open) return
     Dialog(onDismissRequest = { open = false }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
@@ -65,33 +68,42 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null, openSources: ((
             ) {
                 Column(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Фильтр ленты", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { open = false }) { Text("Готово") }
+                        Text(stringResource(R.string.nb_text_009), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { open = false }) { Text(stringResource(R.string.nb_text_010)) }
                     }
                     if (openSources != null) {
-                        TextButton(onClick = { open = false; openSources() }) { Text("Управление источниками") }
+                        TextButton(onClick = { open = false; openSources() }) { Text(stringResource(R.string.nb_text_011)) }
                     }
-                    Text("Категория", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.nb_text_012), style = MaterialTheme.typography.labelLarge)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         categories.forEach { choice ->
                             FilterChip(selected = category == choice, onClick = { vm.filterCategory(choice) },
-                                label = { Text(choice.label) })
+                                label = { Text(stringResource(when (choice) {
+                                    FeedCategory.ALL -> R.string.nb_category_all
+                                    FeedCategory.TECH -> R.string.nb_category_tech
+                                    FeedCategory.BUSINESS -> R.string.nb_category_business
+                                    FeedCategory.BELARUS -> R.string.nb_category_belarus
+                                    FeedCategory.POLAND -> R.string.nb_category_poland
+                                    FeedCategory.WORLD -> R.string.nb_category_world
+                                    FeedCategory.GENERAL -> R.string.nb_category_general
+                                    FeedCategory.OTHER -> R.string.nb_category_other
+                                })) })
                         }
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(value = search, onValueChange = { search = it }, singleLine = true,
-                        label = { Text("Найти источник") }, modifier = Modifier.fillMaxWidth().testTag("source-filter-search"))
+                        label = { Text(stringResource(R.string.nb_text_013)) }, modifier = Modifier.fillMaxWidth().testTag("source-filter-search"))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Источники", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.nb_text_014), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                         if (category != FeedCategory.ALL || selected.isNotEmpty()) {
-                            TextButton(onClick = { vm.clearFeedFilter(); search = "" }) { Text("Сбросить") }
+                            TextButton(onClick = { vm.clearFeedFilter(); search = "" }) { Text(stringResource(R.string.nb_text_015)) }
                         }
                     }
                     val needle = search.trim().lowercase(Locale.ROOT)
                     val visible = options.filter { needle.isEmpty() || it.label.lowercase(Locale.ROOT).contains(needle) }
                     if (visible.isEmpty()) {
-                        Text(if (options.isEmpty()) "Нет подключённых источников" else "Источники не найдены",
+                        Text(if (options.isEmpty()) stringResource(R.string.nb_no_sources) else stringResource(R.string.nb_sources_not_found),
                             modifier = Modifier.padding(vertical = 16.dp))
                     }
                     LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
@@ -109,7 +121,7 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null, openSources: ((
                             }
                         }
                     }
-                    Text(if (selected.isEmpty()) "Показаны все источники" else "Выбрано: ${selected.size}",
+                    Text(if (selected.isEmpty()) stringResource(R.string.nb_all_sources) else stringResource(R.string.nb_selected_count, selected.size),
                         style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
                 }
             }

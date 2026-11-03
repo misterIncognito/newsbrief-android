@@ -1,5 +1,7 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceError
 import android.webkit.WebResourceResponse
@@ -49,12 +51,12 @@ private fun BrowserSession(url: String, worker: String, forceProxy: Boolean, ori
             Text(runCatching { URI(location).host }.getOrNull().orEmpty(),
                 modifier = Modifier.weight(1f).padding(vertical = 12.dp),
                 style = MaterialTheme.typography.labelMedium)
-            TextButton(onClick = { browser?.reload() }) { Text("Перезагрузить") }
+            TextButton(onClick = { browser?.reload() }) { Text(stringResource(R.string.nb_browser_reload)) }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !originalMode, onClick = { onModeChange(location, false) }, label = { Text("Через загрузчик") })
-            FilterChip(selected = originalMode, onClick = { onModeChange(location, true) }, label = { Text("Оригинальная страница") })
+            FilterChip(selected = !originalMode, onClick = { onModeChange(location, false) }, label = { Text(stringResource(R.string.nb_browser_loader)) })
+            FilterChip(selected = originalMode, onClick = { onModeChange(location, true) }, label = { Text(stringResource(R.string.nb_browser_original)) })
         }
         failure?.let { Text(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.error) }
         if (progress < 100) LinearProgressIndicator(Modifier.fillMaxWidth())

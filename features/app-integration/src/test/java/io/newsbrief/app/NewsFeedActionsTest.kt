@@ -33,7 +33,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class)
+@Config(sdk = [35], qualifiers = "ru", application = Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @OptIn(ExperimentalCoroutinesApi::class)
 class NewsFeedActionsTest {

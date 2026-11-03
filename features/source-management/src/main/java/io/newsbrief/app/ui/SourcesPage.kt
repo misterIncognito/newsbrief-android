@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
@@ -40,13 +43,13 @@ fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null) {
     var dialogVisible by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Мои источники", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.nb_text_026), style = MaterialTheme.typography.headlineSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (openCatalog != null) OutlinedButton(onClick = openCatalog) { Text("Из каталога") }
-                if (vm.sourcePlugins.isNotEmpty()) OutlinedButton(onClick = { dialogVisible = true }) { Text("Своя ссылка") }
+                if (openCatalog != null) OutlinedButton(onClick = openCatalog) { Text(stringResource(R.string.nb_text_027)) }
+                if (vm.sourcePlugins.isNotEmpty()) OutlinedButton(onClick = { dialogVisible = true }) { Text(stringResource(R.string.nb_text_028)) }
             }
         }
-        Text("Добавляй ссылки для подключённых провайдеров источников.",
+        Text(stringResource(R.string.nb_text_029),
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -65,7 +68,7 @@ fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null) {
                         }
                         Text(source.address.removePrefix("telegram-proxy:"), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        TextButton(onClick = { vm.deleteSource(source.id) }) { Text("Удалить") }
+                        TextButton(onClick = { vm.deleteSource(source.id) }) { Text(stringResource(R.string.nb_text_030)) }
                     }
                 }
             }
@@ -85,14 +88,14 @@ private fun AddSourceDialog(plugins: List<io.newsbrief.app.network.SourcePluginI
     var expanded by rememberSaveable { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onClose,
-        title = { Text("Подключить источник") },
+        title = { Text(stringResource(R.string.nb_text_031)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Тип источника", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.nb_text_032), style = MaterialTheme.typography.labelMedium)
                     Box {
                         OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text((plugins.firstOrNull { it.id == kind }?.title ?: "Выберите тип") + " ▾")
+                            Text((plugins.firstOrNull { it.id == kind }?.title ?: stringResource(R.string.nb_choose_type)) + " ▾")
                         }
                         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                             plugins.forEach { plugin ->
@@ -105,16 +108,16 @@ private fun AddSourceDialog(plugins: List<io.newsbrief.app.network.SourcePluginI
                     }
                 }
                 OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true,
-                    label = { Text("Название") })
+                    label = { Text(stringResource(R.string.nb_text_034)) })
                 OutlinedTextField(value = address, onValueChange = { address = it }, singleLine = true,
                     label = { Text(plugins.firstOrNull { it.id == kind }?.addressHint.orEmpty()) })
             }
         },
         confirmButton = {
             TextButton(onClick = { onAdd(name, kind, address) }, enabled = name.isNotBlank() && address.isNotBlank()) {
-                Text("Добавить")
+                Text(stringResource(R.string.nb_text_035))
             }
         },
-        dismissButton = { TextButton(onClick = onClose) { Text("Отмена") } }
+        dismissButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.nb_text_036)) } }
     )
 }

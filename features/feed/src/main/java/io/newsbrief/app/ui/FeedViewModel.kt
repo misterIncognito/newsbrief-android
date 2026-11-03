@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.runtime.*
@@ -47,13 +48,13 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
                 while (refreshRequested) {
                     refreshRequested = false
                     val outcome = services.refresh()
-                    if (!quiet && outcome.skipped) report("Обновление уже запускалось. Повтор через ${(outcome.retryAfterMillis + 999) / 1000} сек.")
-                    else if (!quiet) report("Новых публикаций: ${outcome.added}" +
-                        if (outcome.errors.isNotEmpty()) "\nОшибки: ${outcome.errors.joinToString("; ")}" else "")
+                    if (!quiet && outcome.skipped) report(host.context.getString(R.string.nb_feed_retry, (outcome.retryAfterMillis + 999) / 1000))
+                    else if (!quiet) report(host.context.getString(R.string.nb_feed_new, outcome.added) +
+                        if (outcome.errors.isNotEmpty()) host.context.getString(R.string.nb_feed_errors, outcome.errors.joinToString("; ")) else "")
                 }
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
-                report("Ошибка обновления: ${e.message}")
+                report(host.context.getString(R.string.nb_feed_error, e.message.orEmpty()))
             } finally { _refreshing.value = false }
         }
     }

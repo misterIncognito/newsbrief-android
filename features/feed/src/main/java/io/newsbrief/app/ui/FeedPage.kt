@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
@@ -36,7 +39,7 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
     val filtered by vm.filtered.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize()) {
         controls()
-        Text("Публикаций: ${articles.size}", modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+        Text(stringResource(R.string.nb_count_articles, articles.size), modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FeedRefreshContainer(isRefreshing = refreshing, onRefresh = { vm.refresh() },
             modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -44,9 +47,9 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (articles.isEmpty()) item {
-                    Text(emptyMessage ?: if (refreshing) "Загружаем новости…"
-                        else if (filtered) "В этом фильтре пока нет публикаций. Выбери другой источник или потяни ленту вниз."
-                        else "Потяни ленту вниз, чтобы загрузить новости.",
+                    Text(emptyMessage ?: if (refreshing) stringResource(R.string.nb_load_news)
+                        else if (filtered) stringResource(R.string.nb_empty_filter)
+                        else stringResource(R.string.nb_pull_to_refresh),
                         modifier = Modifier.fillParentMaxHeight().padding(22.dp))
                 }
                 items(articles, key = { it.id }) { article -> articleContent(article) }

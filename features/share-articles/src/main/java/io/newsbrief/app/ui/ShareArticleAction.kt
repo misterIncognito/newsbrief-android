@@ -1,5 +1,7 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.material3.Text
@@ -21,9 +23,9 @@ class ShareArticleAction : ArticleAction {
 @Composable internal fun ShareArticleButton(article: ArticleEntity) {
         val context = LocalContext.current
         TextButton(onClick = {
-            try { context.startActivity(Intent.createChooser(articleShareIntent(article), "Поделиться")) }
+            try { context.startActivity(Intent.createChooser(articleShareIntent(article), context.getString(R.string.nb_share))) }
             catch (_: android.content.ActivityNotFoundException) {
-                Toast.makeText(context, "Нет доступного приложения для отправки", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.nb_share_unavailable), Toast.LENGTH_SHORT).show()
             }
-        }) { Text("Поделиться") }
+        }) { Text(context.getString(R.string.nb_share)) }
     }

@@ -1,5 +1,8 @@
 package io.newsbrief.app.features
 
+import android.content.Context
+import io.newsbrief.modules.features.news_proxy.R
+
 import androidx.compose.runtime.Composable
 import io.newsbrief.app.runtime.*
 import io.newsbrief.app.network.*
@@ -8,6 +11,7 @@ import io.newsbrief.app.ui.*
 class NewsProxyFeature : AppFeature {
     override val hasSettings = true
     override val id = "news-proxy"
+    override fun localizedSettingsTitle(context: Context): String = context.getString(R.string.nb_feature_news_proxy)
     override val settingsTitle = "Прокси новостей"
     override fun configure(bindings: FeatureBindings) {
         bindings.controller(WorkerSettingsUi::class.java, ::WorkerSettingsViewModel)

@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.runtime.*
@@ -17,11 +18,11 @@ class SourcesViewModel(private val host: FeatureHost) : ViewModel(), SourcesUi {
     private suspend fun refreshFeed() { if (!host.command("refresh")) services.refresh() }
     override fun addSource(name: String, kind: String, address: String) = viewModelScope.launch {
         try {
-            val added = checkNotNull(services.sourceActions) { "Провайдеры источников не подключены" }.add(name, kind, address)
-            report(if (added) "Источник добавлен" else "Такой источник уже подключён")
+            val added = checkNotNull(services.sourceActions) { host.context.getString(R.string.nb_sources_missing) }.add(name, kind, address)
+            report(if (added) host.context.getString(R.string.nb_source_added) else host.context.getString(R.string.nb_source_exists))
             if (added) refreshFeed()
         } catch (e: CancellationException) { throw e
-        } catch (e: Exception) { report(e.message ?: "Не удалось добавить источник") }
+        } catch (e: Exception) { report(e.message ?: host.context.getString(R.string.nb_source_failed)) }
     }
 
     override fun toggleSource(id: Long, value: Boolean) = viewModelScope.launch {
@@ -31,7 +32,7 @@ class SourcesViewModel(private val host: FeatureHost) : ViewModel(), SourcesUi {
 
     override fun deleteSource(id: Long) = viewModelScope.launch {
         services.store.sourceDao().delete(id)
-        report("Источник удалён")
+        report(host.context.getString(R.string.nb_source_removed))
     }
 
 

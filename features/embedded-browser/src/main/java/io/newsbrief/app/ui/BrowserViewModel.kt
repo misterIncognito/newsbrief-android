@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.runtime.*
@@ -20,7 +21,7 @@ class BrowserViewModel(private val host: FeatureHost) : ViewModel(), BrowserUi {
         if (io.newsbrief.app.network.ArticleLinks.valid(url)) {
             _browserForceProxy.value = forceProxy
             _browserUrl.value = url
-            host.navigator.show("browser", "← К статье", ::closeBrowser) {
+            host.navigator.show("browser", host.context.getString(R.string.nb_browser_back), ::closeBrowser) {
                 bindings.browser?.invoke(url, store.workerUrl(), forceProxy)
             }
         }

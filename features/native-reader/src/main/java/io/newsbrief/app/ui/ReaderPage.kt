@@ -1,5 +1,8 @@
 package io.newsbrief.app.ui
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
@@ -39,7 +42,7 @@ fun ReaderPage(vm: ReaderUi, host: io.newsbrief.app.runtime.FeatureHost) {
             val telegram = ArticleLinks.isTelegramPost(item)
             vm.openBrowser(if (telegram) primary?.url ?: item.link else item.link,
                 forceProxy = item.proxyRequired || (telegram && primary != null))
-        }, modifier = Modifier.fillMaxWidth()) { Text(if (vm.browserAvailable) "Открыть во встроенном браузере" else "Открыть во внешнем браузере") }
+        }, modifier = Modifier.fillMaxWidth()) { Text(if (vm.browserAvailable) stringResource(R.string.nb_open_builtin) else stringResource(R.string.nb_open_external)) }
         Text(item.sourceName + " · " + formatDate(reader?.publishedAt ?: item.publishedAt),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(reader?.title?.ifBlank { item.title } ?: item.title,
@@ -53,13 +56,13 @@ fun ReaderPage(vm: ReaderUi, host: io.newsbrief.app.runtime.FeatureHost) {
         if (primary != null && ArticleLinks.isTelegramPost(item)) {
             Button(onClick = { vm.openReaderLink(primary.url) }, enabled = !busy,
                 modifier = Modifier.fillMaxWidth()) {
-                Text("Читать полную статью · " + java.net.URI(primary.url).host)
+                Text(stringResource(R.string.nb_full_article, java.net.URI(primary.url).host))
             }
         }
         val content = reader?.text?.ifBlank { item.content.ifBlank { item.excerpt } }
             ?: item.content.ifBlank { item.excerpt }
         SelectionContainer {
-            Text(content.ifBlank { "Текст пока недоступен. Можно повторить загрузку." },
+            Text(content.ifBlank { stringResource(R.string.nb_article_unavailable) },
                 style = MaterialTheme.typography.bodyLarge)
         }
         links.forEach { link ->
@@ -74,7 +77,7 @@ fun ReaderPage(vm: ReaderUi, host: io.newsbrief.app.runtime.FeatureHost) {
         reader?.notice?.let { Text(it, color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodySmall) }
         OutlinedButton(onClick = { vm.openReader(item, refresh = true) }, enabled = !busy) {
-            Text("Обновить статью")
+            Text(stringResource(R.string.nb_text_025))
         }
         Text(item.link, style = MaterialTheme.typography.bodySmall)
     }

@@ -1,5 +1,8 @@
 package io.newsbrief.app.features
 
+import androidx.compose.ui.res.stringResource
+import io.newsbrief.modules.core.api.R
+
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
@@ -17,7 +20,7 @@ class SaveArticlesFeature : AppFeature {
     }
     override fun onFeedSelected(host: FeatureHost) { host.controller(SavedUi::class.java).showSaved(false) }
     @Composable override fun MenuItems(host: FeatureHost, openFeed: () -> Unit, closeMenu: () -> Unit) {
-        DropdownMenuItem(text = { Text("Сохранённые") }, onClick = {
+        DropdownMenuItem(text = { Text(stringResource(R.string.nb_text_078)) }, onClick = {
             host.controller(SavedUi::class.java).showSaved(true)
             openFeed()
             closeMenu()

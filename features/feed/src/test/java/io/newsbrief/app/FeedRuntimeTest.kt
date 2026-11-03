@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class)
+@Config(sdk = [35], qualifiers = "ru", application = Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedRuntimeTest {
@@ -107,9 +107,9 @@ class FeedRuntimeTest {
             assertTrue(calls > 0)
             compose.onNodeWithText("Лента").assertExists()
             compose.onNodeWithText("MVP").performClick()
-            compose.onNodeWithText("This is an early preview version and may contain issues or behave unexpectedly.").assertExists()
+            compose.onNodeWithText("Это ранняя версия приложения. Она может содержать ошибки и работать непредсказуемо.").assertExists()
             compose.onNodeWithText("OK").performClick()
-            compose.onNodeWithText("Early preview").assertDoesNotExist()
+            compose.onNodeWithText("Ранняя версия").assertDoesNotExist()
             compose.onNodeWithText("Главное").assertDoesNotExist()
             compose.onNodeWithText("Источники").assertDoesNotExist()
             compose.onNodeWithText("Каталог").assertDoesNotExist()

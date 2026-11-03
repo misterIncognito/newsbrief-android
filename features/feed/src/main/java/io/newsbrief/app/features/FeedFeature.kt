@@ -1,5 +1,8 @@
 package io.newsbrief.app.features
 
+import android.content.Context
+import io.newsbrief.modules.features.feed.R
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -9,6 +12,7 @@ import io.newsbrief.app.ui.*
 
 class FeedFeature : AppFeature {
     override val id = "feed"
+    override fun localizedTitle(context: Context): String = context.getString(R.string.nb_feature_feed)
     override val title = "Лента"
     override val order = -10
     override fun configure(bindings: FeatureBindings) {
