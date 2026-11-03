@@ -13,6 +13,7 @@ interface AppFeature {
     val id: String
     val title: String get() = ""
     val hasSettings: Boolean get() = false
+    val settingsTitle: String get() = title.ifEmpty { id }
     val order: Int get() = 0
     fun configure(bindings: FeatureBindings) {}
     @Composable fun Screen(host: FeatureHost) {}

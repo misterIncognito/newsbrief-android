@@ -13,51 +13,69 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-/** Available screens come from installed features, with no direct feature imports. */
+/** Features contribute their own pages and settings; the shell only arranges navigation. */
 @Composable fun NewsBriefScreen(vm: NewsViewModel) {
-    val pages = vm.features.filter { it.title.isNotEmpty() }.sortedBy { it.order }
-    val settingsFeatures = vm.features.filter { it.hasSettings }
-    var selected by rememberSaveable { mutableStateOf(pages.firstOrNull()?.id ?: if (settingsFeatures.isNotEmpty()) "settings" else "home") }
+    val feed = vm.features.firstOrNull { it.id == "feed" && it.title.isNotEmpty() }
+    val sections = vm.features.filter { it.id != "feed" && (it.title.isNotEmpty() || it.hasSettings) }.sortedBy { it.order }
+    var selected by rememberSaveable { mutableStateOf(if (feed != null) "feed" else if (sections.isNotEmpty()) "settings" else "home") }
+    val section = sections.firstOrNull { selected == "section:${it.id}" || selected == "page:${it.id}" }
+    val inPage = selected.startsWith("page:")
+    val inSettings = selected == "settings" || section != null
     val overlays by vm.overlays.collectAsStateWithLifecycle()
     val overlay = overlays.lastOrNull()
     val message by vm.message.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val screens = rememberSaveableStateHolder()
-    LaunchedEffect(message) {
-        message?.let { vm.clearMessage(); snackbar.showSnackbar(it) }
+    LaunchedEffect(message) { message?.let { vm.clearMessage(); snackbar.showSnackbar(it) } }
+    val back = {
+        selected = if (inPage && section?.hasSettings == true) "section:${section.id}" else "settings"
     }
-    BackHandler(overlay != null) { overlay?.onBack?.invoke() }
+    BackHandler(overlay != null || section != null) {
+        if (overlay != null) overlay.onBack() else back()
+    }
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }, topBar = {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
-                    MvpNotice()
-                }
-                if (pages.size == 1 && settingsFeatures.isEmpty()) Text(pages.single().title, style = MaterialTheme.typography.labelMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
+                MvpNotice()
             }
-            if (overlay != null) TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
-            else pages.firstOrNull { it.id == selected }?.Toolbar(vm.host)
+            when {
+                overlay != null -> TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
+                section != null -> TextButton(onClick = back) { Text("← Назад") }
+                selected == "feed" -> feed?.Toolbar(vm.host)
+            }
         }
     }, bottomBar = {
-        if (overlay == null && (pages.size > 1 || settingsFeatures.isNotEmpty())) NavigationBar {
-            pages.forEach { page -> NavigationBarItem(selected == page.id, { selected = page.id },
-                icon = { Text(if (page.id == "feed") "≡" else "+") }, label = { Text(page.title) }) }
-            if (settingsFeatures.isNotEmpty()) NavigationBarItem(selected == "settings", { selected = "settings" }, icon = { Text("⚙") }, label = { Text("Настройки") })
+        if (overlay == null && feed != null && sections.isNotEmpty()) NavigationBar {
+            NavigationBarItem(selected == "feed", { selected = "feed" }, icon = { Text("≡") }, label = { Text("Лента", maxLines = 1) })
+            NavigationBarItem(inSettings, { selected = "settings" }, icon = { Text("⚙") }, label = { Text("Настройки", maxLines = 1) })
         }
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 overlay != null -> overlay.content()
                 selected == "settings" -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Настройки", style = MaterialTheme.typography.headlineSmall)
+                    sections.forEach { feature ->
+                        Card(onClick = { selected = if (feature.hasSettings) "section:${feature.id}" else "page:${feature.id}" },
+                            modifier = Modifier.fillMaxWidth()) {
+                            Text(feature.settingsTitle, Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                }
+                section != null && !inPage -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    settingsFeatures.forEach { it.Settings(vm.host) }
+                    Text(section.settingsTitle, style = MaterialTheme.typography.headlineSmall)
+                    if (section.title.isNotEmpty()) {
+                        OutlinedButton(onClick = { selected = "page:${section.id}" }) { Text("Открыть: ${section.title}") }
+                    }
+                    section.Settings(vm.host)
                 }
-                else -> screens.SaveableStateProvider(selected) {
-                    val page = pages.firstOrNull { it.id == selected }
-                    if (page != null) page.Screen(vm.host) else Text("Новости в одном месте", Modifier.padding(18.dp))
-                }
+                section != null -> screens.SaveableStateProvider(selected) { section.Screen(vm.host) }
+                selected == "feed" && feed != null -> screens.SaveableStateProvider(selected) { feed.Screen(vm.host) }
+                else -> Text("Новости в одном месте", Modifier.padding(18.dp))
             }
         }
     }

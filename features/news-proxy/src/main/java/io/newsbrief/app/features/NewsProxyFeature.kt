@@ -8,6 +8,7 @@ import io.newsbrief.app.ui.*
 class NewsProxyFeature : AppFeature {
     override val hasSettings = true
     override val id = "news-proxy"
+    override val settingsTitle = "Прокси новостей"
     override fun configure(bindings: FeatureBindings) {
         bindings.controller(WorkerSettingsUi::class.java, ::WorkerSettingsViewModel)
         bindings.pageProxyPlugins += CloudflarePageProxy()
