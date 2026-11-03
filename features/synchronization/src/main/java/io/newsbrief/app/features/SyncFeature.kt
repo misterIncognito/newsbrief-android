@@ -15,7 +15,11 @@ class SyncFeature : AppFeature {
         }
         bindings.prefetch = { repo, settings, context ->
             val images = bindings.images?.invoke(context)
-            val prefetch = images?.let { ArticlePrefetcher(repo, settings, it) }
+            val prefetch = images?.let { store ->
+                ArticlePrefetcher(repo, settings, store) { url, worker ->
+                    bindings.pageProxyPlugins.firstNotNullOfOrNull { it.originalResource(url, worker) } ?: url
+                }
+            }
             val run: suspend () -> PrefetchOutcome = { prefetch?.prefetch()?.let { PrefetchOutcome(it.articles, it.images, it.failures) } ?: PrefetchOutcome(0, 0, 0) }
             run
         }

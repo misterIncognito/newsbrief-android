@@ -7,7 +7,8 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
 class ArticlePrefetcher(private val repository: PrefetchArticleStore, private val settings: WorkerSettings,
-    private val images: PrefetchImageStore) {
+    private val images: PrefetchImageStore,
+    private val originalImageUrl: (String, String) -> String = ArticleImages::originalUrl) {
     data class Target(val article: ArticleEntity, val originSource: Long)
     data class Result(val articles: Int, val images: Int, val failures: Int)
 
@@ -40,7 +41,7 @@ class ArticlePrefetcher(private val repository: PrefetchArticleStore, private va
 
     private fun leadImage(article: ArticleEntity): String = article.imageUrl.ifBlank {
         ArticleImages.decode(article.imagesJson).firstOrNull().orEmpty()
-    }.let { if (it.isBlank()) it else ArticleImages.originalUrl(it, settings.workerUrl()) }
+    }.let { if (it.isBlank()) it else originalImageUrl(it, settings.workerUrl()) }
 
     private suspend fun download(article: ArticleEntity): Result {
         var savedText = 0
@@ -54,7 +55,7 @@ class ArticlePrefetcher(private val repository: PrefetchArticleStore, private va
             else if (result.notice != null) failures++
             val image = result.imageUrl.ifBlank { result.images.firstOrNull().orEmpty() }
             if (image.isNotBlank()) {
-                val resource = ArticleImages.originalUrl(image, settings.workerUrl())
+                val resource = originalImageUrl(image, settings.workerUrl())
                 if (!images.contains(resource)) {
                     images.loadForArticle(resource, settings.workerUrl(), article)
                     savedImages++
