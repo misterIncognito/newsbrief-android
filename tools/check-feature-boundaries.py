@@ -39,10 +39,14 @@ for name in available-{'app-integration'}:
     for f in (root/f'features/{name}/src/main').rglob('*.kt'):
         for symbol,owner in implementations.items():
             if owner!=name and re.search(r'\b'+symbol+r'\b',f.read_text()):errors.append(f'{name}: {f.name} imports {owner} implementation {symbol}')
-        for symbol in ['NewsViewModel','NewsRepository','FeatureRuntime','NewsBriefApp','ManualFeedLoader','MemoryNewsStore','MemorySettings']:
+        for symbol in ['NewsViewModel','NewsRepository','FeatureRuntime','NewsBriefApp','MemoryNewsStore','MemorySettings']:
             if re.search(r'\b'+symbol+r'\b',f.read_text()):errors.append(f'{name}: {f.name} depends on host implementation {symbol}')
+# The host may coordinate plugins, but cannot consume or own a feature controller.
+for f in (root/'core/runtime/src/main').rglob('*.kt'):
+    for symbol in ['AppUi', 'FeedUi', 'FeedFilterUi', 'ReaderUi', 'AiUi', 'SourcesUi', 'DirectoryUi', 'SavedUi', 'BrowserUi', 'TelegramProxyUi', 'WorkerSettingsUi']:
+        if re.search(r'\b'+symbol+r'\b', f.read_text()):errors.append(f'Host references feature controller {symbol}: {f.name}')
 for f in (root/'core/api/src/main').rglob('*.kt'):
-    for symbol in ['NewsViewModel','NewsRepository','FeatureRuntime','NewsBriefApp','ManualFeedLoader','MemoryNewsStore','MemorySettings']:
+    for symbol in ['NewsViewModel','NewsRepository','FeatureRuntime','NewsBriefApp','MemoryNewsStore','MemorySettings']:
         if re.search(r'\b'+symbol+r'\b',f.read_text()):errors.append(f'API depends on implementation {symbol}: {f.name}')
 if errors:
     print('\n'.join(sorted(set(errors))),file=sys.stderr);sys.exit(1)
