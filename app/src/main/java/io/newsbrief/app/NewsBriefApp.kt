@@ -12,5 +12,6 @@ open class NewsBriefApp : Application(), FeatureRuntimeOwner, io.newsbrief.app.s
     override fun onCreate() {
         super.onCreate()
         runtime = FeatureRuntime(this, installedFeatures())
+        runtime.start()
     }
 }
