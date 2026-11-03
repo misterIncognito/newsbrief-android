@@ -1,11 +1,20 @@
-# The dev shell has no optional features. Application assemblies list one feature per line.
+# The integration assembly includes all optional runtime features.
+ai
+article-plugins
+embedded-browser
 feed
-networking
-source-providers
-rss-source
-storage
-telegram-source
-page-proxy
-news-proxy
-source-discovery
 feed-filters
+native-reader
+networking
+news-proxy
+page-proxy
+rss-source
+save-articles
+share-articles
+source-discovery
+source-management
+source-providers
+storage
+synchronization
+telegram-proxy
+telegram-source
