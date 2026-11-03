@@ -12,12 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.newsbrief.app.runtime.FeaturePageNavigation
 
 /** Features contribute their own pages and settings; the shell only arranges navigation. */
 @Composable fun NewsBriefScreen(vm: NewsViewModel) {
     val feed = vm.features.firstOrNull { it.id == "feed" && it.title.isNotEmpty() }
     val sections = vm.features.filter { it.id != "feed" && (it.title.isNotEmpty() || it.hasSettings) }.sortedBy { it.order }
     var selected by rememberSaveable { mutableStateOf(if (feed != null) "feed" else if (sections.isNotEmpty()) "settings" else "home") }
+    var returnPage by rememberSaveable { mutableStateOf("") }
     val section = sections.firstOrNull { selected == "section:${it.id}" || selected == "page:${it.id}" }
     val inPage = selected.startsWith("page:")
     val inSettings = selected == "settings" || section != null
@@ -28,7 +30,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     val screens = rememberSaveableStateHolder()
     LaunchedEffect(message) { message?.let { vm.clearMessage(); snackbar.showSnackbar(it) } }
     val back = {
-        selected = if (inPage && section?.hasSettings == true) "section:${section.id}" else "settings"
+        selected = if (returnPage.isNotEmpty()) returnPage
+            else if (inPage && section?.hasSettings == true) "section:${section.id}" else "settings"
+        returnPage = ""
+    }
+    val navigation = object : FeaturePageNavigation {
+        override fun hasPage(featureId: String) = sections.any { it.id == featureId && it.title.isNotEmpty() }
+        override fun openPage(featureId: String) {
+            if (hasPage(featureId)) {
+                returnPage = selected
+                selected = "page:$featureId"
+            }
+        }
     }
     BackHandler(overlay != null || section != null) {
         if (overlay != null) overlay.onBack() else back()
@@ -51,8 +64,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
         }
     }, bottomBar = {
         if (overlay == null && feed != null && sections.isNotEmpty()) NavigationBar {
-            NavigationBarItem(selected == "feed", { selected = "feed" }, icon = { Text("≡") }, label = { Text("Лента", maxLines = 1) })
-            NavigationBarItem(inSettings, { selected = "settings" }, icon = { Text("⚙") }, label = { Text("Настройки", maxLines = 1) })
+            NavigationBarItem(selected == "feed", { returnPage = ""; selected = "feed" }, icon = { Text("≡") }, label = { Text("Лента", maxLines = 1) })
+            NavigationBarItem(inSettings, { returnPage = ""; selected = "settings" }, icon = { Text("⚙") }, label = { Text("Настройки", maxLines = 1) })
         }
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -76,8 +89,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
                     }
                     section.Settings(vm.host)
                 }
-                section != null -> screens.SaveableStateProvider(selected) { section.Screen(vm.host) }
-                selected == "feed" && feed != null -> screens.SaveableStateProvider(selected) { feed.Screen(vm.host) }
+                section != null -> screens.SaveableStateProvider(selected) { section.Screen(vm.host, navigation) }
+                selected == "feed" && feed != null -> screens.SaveableStateProvider(selected) { feed.Screen(vm.host, navigation) }
                 else -> Text("Новости в одном месте", Modifier.padding(18.dp))
             }
         }
