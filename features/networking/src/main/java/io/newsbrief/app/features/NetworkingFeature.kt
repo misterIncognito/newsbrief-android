@@ -5,5 +5,7 @@ import io.newsbrief.app.network.NewsHttp
 
 class NetworkingFeature : AppFeature {
     override val id = "networking"
-    override fun configure(bindings: FeatureBindings) { bindings.http = NewsHttp }
+    override fun configure(bindings: FeatureBindings) {
+        bindings.http = NewsHttp.routed { bindings.pageRouter(bindings.pageProxyPlugins) }
+    }
 }
