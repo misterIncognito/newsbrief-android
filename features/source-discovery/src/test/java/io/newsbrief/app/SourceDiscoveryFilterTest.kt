@@ -16,6 +16,7 @@ class SourceDiscoveryFilterTest {
         val results = DirectoryResults(listOf(tech, politics, government))
         assertEquals(listOf(tech), SourceDiscoveryFilter.apply(DirectoryProvider.RSS, "technology", results).items)
         assertEquals(results, SourceDiscoveryFilter.apply(DirectoryProvider.RSS, "politics", results))
-        assertEquals(results, SourceDiscoveryFilter.apply(DirectoryProvider.TELEGRAM, "technology", results))
+        assertEquals(listOf(tech), SourceDiscoveryFilter.apply(DirectoryProvider.TELEGRAM, "technology", results).items)
+        assertEquals(results, SourceDiscoveryFilter.apply(DirectoryProvider.TELEGRAM, "politics", results))
     }
 }

@@ -12,7 +12,9 @@ internal object SourceDiscoveryFilter {
     fun apply(provider: DirectoryProvider, query: String, results: DirectoryResults): DirectoryResults {
         val technology = query.trim().lowercase(java.util.Locale.ROOT) in
             setOf("technology", "technologies", "tech", "технологии")
-        if (provider != DirectoryProvider.RSS || !technology) return results
-        return results.copy(items = results.items.filterNot { politicalTitle.containsMatchIn(it.title) })
+        if (provider == DirectoryProvider.CURATED || !technology) return results
+        return results.copy(items = results.items.filterNot { source ->
+            politicalTitle.containsMatchIn(source.title) || source.topics.any { politicalTitle.containsMatchIn(it) }
+        })
     }
 }
