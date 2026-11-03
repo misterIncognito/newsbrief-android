@@ -13,5 +13,6 @@ dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     api("androidx.room:room-common:2.8.5")
     api("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
+    api("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")
     implementation("org.jsoup:jsoup:1.21.2")
 }
