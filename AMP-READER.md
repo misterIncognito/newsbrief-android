@@ -1,5 +1,7 @@
 # NewsBrief 0.4.9: publisher AMP articles
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Both native article opening and background prefetch now discover the publisher's
 `<link rel="amphtml" href="…">` in the original HTML. Relative links and HTML base URLs
 are supported. Only valid HTTPS alternatives without credentials are accepted. Discovery
@@ -61,15 +63,15 @@ An initial live run failed on Meduza's generic sharing image
 which works through the Worker. Image priority was corrected to prefer article images,
 and the final live tests verify the image the reader actually selects with the same strict
 image validation and offline-cache assertion. The initial failure log is retained at
-[validation/amp-live-049-initial-output.txt](validation/amp-live-049-initial-output.txt).
+validation/amp-live-049-initial-output.txt.
 No direct connection was attempted. Canonical Zerkalo availability is not claimed by the
 mirror test. The deployed Worker was not modified.
 
 Debug APK: `app/build/outputs/apk/debug/app-debug.apk` (version 0.4.9, code 13).
 Offline report: `app/build/reports/tests/offline049/index.html`.
 Live report: `app/build/reports/tests/ampLive049/index.html`.
-Exact counts/hash: [validation/amp-049-results.json](validation/amp-049-results.json).
-Logs: [offline build](validation/build-049-output.txt), [live checks](validation/amp-live-049-output.txt).
+Exact counts/hash: validation/amp-049-results.json.
+Logs: offline build, live checks.
 
 The phone was unavailable over USB. This version has not been installed or tested on the
 phone; the Android test APK compiled successfully. Existing phone app data was not changed.

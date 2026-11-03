@@ -1,5 +1,7 @@
 # NewsBrief 0.4.8: background full-article prefetch
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Full text included in RSS/Atom has always been retained on import. Previously, a linked
 article whose feed supplied only a summary was downloaded on the first reader tap.
 Now a separate durable WorkManager job starts after feed refresh or successful source
@@ -56,5 +58,5 @@ in Git and restored for delivery; the user has been asked to check another edito
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
 Unit report: `app/build/reports/tests/testDebugUnitTest/index.html`.
-Exact results/hash: [validation/prefetch-048-results.json](validation/prefetch-048-results.json).
-Build log: [validation/build-048-output.txt](validation/build-048-output.txt).
+Exact results/hash: validation/prefetch-048-results.json.
+Build log: validation/build-048-output.txt.

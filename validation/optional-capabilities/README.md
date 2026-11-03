@@ -1,5 +1,7 @@
 # Optional capability evidence
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 `branches/results.json` records the 22 checkouts and four real merge stages on the final
 application source. `profiles/results.json` records 15 earlier compositions on snapshot
 02889d1; `profiles/snapshot.json` describes that boundary. Each record contains passing test

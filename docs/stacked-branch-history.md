@@ -1,3 +1,5 @@
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Historical snapshot before the independent feature split. Branch names below now live under `archive/stacked/`.
 
 # NewsBrief branch workflow
@@ -87,9 +89,9 @@ build script. The two optional feature branches were synced by real merges; thei
 README conflicts were resolved without changing feature behavior or rewriting history.
 
 Initial configuration/compilation issues were corrected and recorded. See
-[full results](validation/core-feature-branches-results.json),
-[resolved failures](validation/core-feature-initial-failures.txt), and
-[branch history](validation/core-feature-branch-history.txt).
+full results,
+resolved failures, and
+branch history.
 
 ## Historical extraction records
 
@@ -137,9 +139,9 @@ Branches and tag are local until explicitly pushed.
 - Release branches and `v0.4.12` still point to `5defa09`. No phone deployment or push
   was performed for this branch extraction.
 
-See [recorded results](validation/article-plugin-branches-results.json),
-[dev build output](validation/build-dev-without-article-plugins-output.txt), and
-[feature build output](validation/build-feature-article-plugins-output.txt).
+See recorded results,
+dev build output, and
+feature build output.
 
 ## AI feature branch
 
@@ -183,6 +185,6 @@ UI/repository/settings files may require normal conflict resolution.
 - Merge checks cover syncing `dev` into `feature/ai` and restoring AI into `dev`.
 - Release branches, release tag and the existing article-plugin branch are preserved.
 
-See [AI verification](validation/ai-branches-results.json),
-[dev build output](validation/build-dev-without-ai-output.txt), and
-[AI feature build output](validation/build-feature-ai-output.txt).
+See AI verification,
+dev build output, and
+AI feature build output.

@@ -1,5 +1,7 @@
 # NewsBrief optional capability verification
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 All **22 actual branch checkouts**, **4 real progressive merge stages** and **15 optional
 composition profiles** pass their automated tests and debug builds, with zero failures,
 errors or skips. The final full app passes **177 tests**; the minimal persistent feed
@@ -10,7 +12,7 @@ was not executed as part of this verification.
 
 These checkouts include the final provider-skipping and navigation changes. Exact commits,
 application-tree hashes, APK hashes and class-presence checks are retained in
-[the branch manifest](validation/optional-capabilities/branches/results.json).
+the branch manifest.
 
 | Checkout/stage | Passing tests | Debug APK |
 | --- | ---: | --- |

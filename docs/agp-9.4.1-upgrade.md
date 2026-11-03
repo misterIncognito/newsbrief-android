@@ -1,5 +1,7 @@
 # AGP 9.4.1 upgrade — 10 October 2026
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Applied Android Studio’s AGP Upgrade Assistant on `integration/feed`:
 AGP 8.13.2 → 9.4.1 and Gradle 8.13 → 9.6.0. Regenerated the wrapper JAR and
 launchers, pinned the distribution SHA-256 and retained the 60-second network timeout.

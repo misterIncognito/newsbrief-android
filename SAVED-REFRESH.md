@@ -1,5 +1,7 @@
 # NewsBrief 0.4.10: return-to-feed refresh, Save and Share
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Returning to the News feed from another tab, an article or a browser opened from the feed
 starts a source refresh. Resuming the app with the feed visible also refreshes it. The
 effect is scoped to feed visibility and the resumed Android lifecycle; recomposition or
@@ -50,5 +52,5 @@ with the full suite. The physical Android test APK was built but not run on a ph
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
 Test report: `app/build/reports/tests/testDebugUnitTest/index.html`.
-Counts/hash: [validation/saved-refresh-0410-results.json](validation/saved-refresh-0410-results.json).
-Build log: [validation/build-0410-output.txt](validation/build-0410-output.txt).
+Counts/hash: validation/saved-refresh-0410-results.json.
+Build log: validation/build-0410-output.txt.

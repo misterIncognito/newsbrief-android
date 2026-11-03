@@ -1,5 +1,7 @@
 # NewsBrief plugins (0.4.11)
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 On `dev`, news ingestion uses an injectable Kotlin source-plugin registry. Native article
 reading uses a built-in implementation. The article plugin system is isolated on
 `feature/article-plugins`; see [BRANCHES.md](BRANCHES.md). Source plugins ship in the APK. The existing source IDs (`RSS`, `TELEGRAM`) are

@@ -1,5 +1,7 @@
 # Module verification evidence
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 `branches.json` records 22 actual checkouts and four real merge stages. `profiles.json`
 records the full assembly and two explicit smaller selections from a complete checkout.
 Counts are aggregated once across the included app/core/feature test result directories.

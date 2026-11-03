@@ -1,3 +1,5 @@
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Historical build/deployment records before independent feature branches.
 
 # NewsBrief Android build verification
@@ -10,8 +12,8 @@ Current `dev` is a minimal shell: **2 passing tests**, debug APK built. Core fea
 branches pass **9 / 18 / 41 / 66 / 151** tests in dependency order. The synced AI and
 article-plugin branches pass **152 / 153**; their temporary combined merge passes
 **154**. All final builds pass. Initial failures and their fixes are recorded in
-[core extraction results](validation/core-feature-branches-results.json) and
-[resolved failure excerpts](validation/core-feature-initial-failures.txt).
+core extraction results and
+resolved failure excerpts.
 See [branch workflow](BRANCHES.md) for prerequisites and PR targets.
 
 Current shell APK: `app/build/outputs/apk/debug/app-debug.apk`.
@@ -20,8 +22,8 @@ Both are local build outputs and are not installed on the phone.
 
 The extraction did not deploy an APK or change `main`, `release`, `v0.4.12` or on-device
 data. The historical release/deployment results below describe the deployed app.
-Earlier split records: [AI](validation/ai-branches-results.json) and
-[article plugins](validation/article-plugin-branches-results.json).
+Earlier split records: AI and
+article plugins.
 
 Latest deployed release: **0.4.12**, **154 passing offline tests**, zero failures/errors/skips.
 Debug APK and Android test APK built successfully. The update adds a persistent three-minute
@@ -38,9 +40,9 @@ Room remains schema 8. A private local backup was taken before installation.
 An initial new Compose test attempted to click an offscreen chip; it now scrolls the
 horizontal source list before clicking. Focused and final full suites pass.
 See [FEED-BROWSER-0412.md](FEED-BROWSER-0412.md),
-[build/test results](validation/feed-browser-0412-results.json),
-[phone verification](validation/phone-0412-install.json) and
-[phone test output](validation/phone-0412-warsaw-test.txt).
+build/test results,
+phone verification and
+phone test output.
 Previous plugin changes: [PLUGINS.md](PLUGINS.md).
 Previous live AMP checks: [AMP-READER.md](AMP-READER.md).
 
@@ -66,7 +68,7 @@ Original archive Git history retained; starting commit `575bc30`.
 APK: `app/build/outputs/apk/debug/app-debug.apk` (11,446,614 bytes).
 SHA-256: `da22bc9bd32f8f7c3ecbb2b5c9db877c406370145fb1c65ded6df3d0af6bed60`.
 Test report: `app/build/reports/tests/testDebugUnitTest/index.html`.
-Build output: [validation/build-output.txt](validation/build-output.txt).
+Build output: validation/build-output.txt.
 
 Tools: Temurin JDK 17.0.20.1, Android SDK platform 36, build tools 35.0.0,
 Gradle Wrapper 8.13, AGP 8.13.2, Kotlin 2.3.20.
@@ -94,7 +96,7 @@ Observed article keys: `url`, `title`, `description`, `author`, `publishedAt`,
 `imageUrl`, `imageProxyUrl`, `text`, `paragraphs`, `extraction`.
 The parser preserves paragraph boundaries and the date. Original image URLs are
 saved so requests can use the current configured Worker, without double encoding.
-Results: [validation/worker-results.json](validation/worker-results.json).
+Results: validation/worker-results.json.
 
 ## Remaining acceptance limitations
 

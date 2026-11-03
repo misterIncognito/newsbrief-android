@@ -1,5 +1,7 @@
 # NewsBrief 0.4.4 — online source directories
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Historical 0.4.4 results. Telegram now uses TGden with paginated topic categories;
 see [AI-DISCOVERY-FIX.md](AI-DISCOVERY-FIX.md) for the current 0.4.5 behavior.
 
@@ -89,9 +91,9 @@ cancellation, cache retention, source verification, atomic import and migrations
 APK: `app/build/outputs/apk/debug/app-debug.apk` (version 0.4.4, versionCode 8).
 APK size: 11,539,996 bytes. SHA-256:
 `09bae60a5084bcecb8d91b4fc714852e06cb9005f330c83c1efcaaeef7b2ec80`.
-Build output: [validation/discovery-build.txt](validation/discovery-build.txt).
-Live results: [validation/directory-results.json](validation/directory-results.json)
-and [test output](validation/directory-live-tests.xml).
+Build output: validation/discovery-build.txt.
+Live results: validation/directory-results.json
+and test output.
 
 Version **0.4.4 is installed on the Motorola Edge 70 Fusion**, upgrading 0.4.2
 without uninstalling or clearing data. Launch succeeded with no startup crash.
@@ -99,7 +101,7 @@ On-phone checks displayed the native reader, 97 RSS technology results and the
 Telegram directory's 17,343-channel count. A subsequent AI query displayed three
 Telegram results. The migrated database passed its integrity check; all **661**
 previous articles, saved bodies, and all 19 source settings were preserved.
-Database version is now 4. Results: [validation/phone-044-results.json](validation/phone-044-results.json).
+Database version is now 4. Results: validation/phone-044-results.json.
 
 This smoke test covers installation, migration, reader rendering and directory
 search. Airplane-mode image checks and every publisher's full-article extraction

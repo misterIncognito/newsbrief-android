@@ -1,5 +1,7 @@
 # Source selection and refresh fix — 0.4.1
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 9 October 2026, Europe/Warsaw.
 
 ## Problem and behavior
@@ -29,7 +31,7 @@ when enabling a source. Existing parsing, routing and migration tests also pass.
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
 SHA-256: `512d6ea8ea4b265a6ecaa45b5231788d78a5deef3c50e44e0c7ad3c5d33bd6a2`.
-Build output: [validation/source-refresh-build.txt](validation/source-refresh-build.txt).
+Build output: validation/source-refresh-build.txt.
 
 Installed with replacement (no uninstall/data clear) on the connected Motorola
 Edge 70 Fusion; package version 0.4.1, versionCode 5. Launch succeeded and the

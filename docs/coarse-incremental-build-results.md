@@ -1,5 +1,7 @@
 # NewsBrief incremental feature verification
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 The runnable application no longer requires the all-feature integration branch. All nine
 compositions and all ten canonical checkouts pass their offline tests and debug builds.
 Three actual forward-merge stages also pass: Feed → Sources → Storage. The resulting
@@ -78,7 +80,7 @@ The first refactor compile exposed ambiguous trailing lambdas in two service fac
 explicit typed lambdas fixed them. The first Feed-only build showed that Android/Kotlin
 source filters did not exclude inactive Kotlin implementations. Staging an explicit selected
 source tree fixed this; the retained initial failure log is
-[`initial-exclusion-failure.txt`](validation/incremental-features/initial-exclusion-failure.txt).
+`initial-exclusion-failure.txt`.
 All final profile, branch and incremental-stage builds passed after those fixes.
 
 See [the feature guide](BRANCHES.md), [previous independent builds](docs/independent-build-results.md)

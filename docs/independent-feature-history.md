@@ -1,5 +1,7 @@
 # NewsBrief feature branches
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 `dev` contains a minimal app shell and shared contracts. `release` stays on the deployed
 shell at `aa5914a`; `main` and `v0.4.12` stay on the original complete application.
 No branch in this split has been pushed or installed on the phone.

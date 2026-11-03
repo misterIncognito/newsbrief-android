@@ -1,5 +1,7 @@
 # NewsBrief 0.4.12 — feed sync, source selection and original pages
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Feed synchronization records the start of every attempt, including failed and cancelled
 attempts, in persistent preferences before making requests. Repeating the same source
 configuration within three minutes returns the cached feed without making feed requests

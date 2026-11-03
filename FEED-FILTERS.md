@@ -1,5 +1,7 @@
 # Feed filters and source discovery — 0.4.3
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 ## Behavior
 
 The feed has source-category chips and a publisher dropdown. Categories cover
@@ -36,7 +38,7 @@ Live Mac HTTP checks parsed these valid XML feeds:
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`, versionCode 7.
 SHA-256: `3b8ccb39b4d5205c680d4e74e78ba25a53a3e91618c691c72baf610ed6b7451d`.
-Build output: [validation/filters-build.txt](validation/filters-build.txt).
+Build output: validation/filters-build.txt.
 
 Device installation and visual verification are pending: the previously connected
 Motorola phone disconnected during this request. No device data was changed.

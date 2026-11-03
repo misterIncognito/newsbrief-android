@@ -1,5 +1,7 @@
 # NewsBrief 0.4.7: Telegram posts in the feed, proxied article links
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Telegram posts are full feed items. Their saved text and photos appear directly in the
 news list, with selectable text and clickable embedded link labels. They no longer use
 a four-line excerpt or require opening a Telegram-post detail reader to follow a link.
@@ -43,5 +45,5 @@ reader/refresh build and are documented separately; they are not claimed as 0.4.
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
 Test report: `app/build/reports/tests/testDebugUnitTest/index.html`.
 Exact counts, APK hash and deployment status:
-[validation/telegram-feed-047-results.json](validation/telegram-feed-047-results.json).
-Build output: [validation/build-047-output.txt](validation/build-047-output.txt).
+validation/telegram-feed-047-results.json.
+Build output: validation/build-047-output.txt.

@@ -1,5 +1,7 @@
 # NewsBrief 0.4.6: Telegram article links, refresh gestures and embedded browser
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 ## Changes
 
 Telegram collection previously flattened anchor text and discarded link targets. The native
@@ -70,6 +72,6 @@ clearing the user's data. Enable it with `-e verifyArticleReaders true` and sele
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
 Unit report: `app/build/reports/tests/testDebugUnitTest/index.html`.
 Exact counts, APK SHA-256, installation status and HTTP results:
-[validation/phone-046-results.json](validation/phone-046-results.json).
-Build log: [validation/build-046-output.txt](validation/build-046-output.txt).
-Gesture results: [validation/gesture-046-output.txt](validation/gesture-046-output.txt).
+validation/phone-046-results.json.
+Build log: validation/build-046-output.txt.
+Gesture results: validation/gesture-046-output.txt.

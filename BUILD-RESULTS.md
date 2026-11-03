@@ -1,5 +1,7 @@
 # NewsBrief Gradle module verification
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 ## Feature state separation — 3 November 2026
 
 Feature UI state and ViewModels now belong to their optional modules. Core retains only

@@ -1,5 +1,7 @@
 # Feature state separation validation — 3 November 2026
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 `results.json` records 46 successful configurations, including their test totals,
 resolved main compiler graphs, plugin descriptors, actual controller classes in DEX,
 and APK SHA-256 hashes. Build logs are included alongside the JSON.

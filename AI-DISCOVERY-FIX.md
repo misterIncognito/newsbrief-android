@@ -1,5 +1,7 @@
 # NewsBrief 0.4.5 — usable Telegram AI discovery
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 The Telegram AI shortcut in 0.4.4 returned three records because it searched one
 English phrase in a small directory. Those records were crypto/game promotions;
 the directory's overall channel count did not establish useful AI coverage.
@@ -69,7 +71,7 @@ The update preserved all **661 saved articles**, their saved text and source
 settings. On-phone AI discovery displayed **16** channels with the default filter;
 pressing «Загрузить ещё» increased that to **32**, while the category total remained
 9,377. The installed APK's SHA-256 matches the tested build. On-phone checks are recorded
-in [validation/phone-045-results.json](validation/phone-045-results.json).
-Build details: [validation/ai-directory-build-results.json](validation/ai-directory-build-results.json).
-Live output: [validation/ai-directory-live-tests.xml](validation/ai-directory-live-tests.xml).
+in validation/phone-045-results.json.
+Build details: validation/ai-directory-build-results.json.
+Live output: validation/ai-directory-live-tests.xml.
 APK: `app/build/outputs/apk/debug/app-debug.apk`.

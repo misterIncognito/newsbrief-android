@@ -1,5 +1,7 @@
 # BBC and Zerkalo Telegram sources — 0.4.2
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 Added official public channels alongside their existing RSS feeds:
 
 - BBC Russian: https://t.me/s/bbcrussian
@@ -18,7 +20,7 @@ paragraphs/photos, plus existing refresh/routing/parsing/migration tests.
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
 SHA-256: `554c5d102891dcf1c681913b312506da838a98c428227cca1df4c7c71909dab5`.
-Build output: [validation/telegram-build.txt](validation/telegram-build.txt).
+Build output: validation/telegram-build.txt.
 
 Installed on the connected Motorola phone without clearing data. Room confirmed
 both new sources enabled, while Meduza and Polsat remained disabled as selected.

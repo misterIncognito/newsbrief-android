@@ -1,5 +1,7 @@
 # NewsBrief independent feature verification
 
+> Historical generated validation artifacts were removed; rerun the checks to produce current results.
+
 All ten checkouts build successfully with only their declared feature prerequisites.
 The full app on `feature/app-integration` passes **160 offline unit tests**, with zero
 failures, errors or skipped tests. Its debug APK and Android-test APK build successfully.
@@ -20,7 +22,7 @@ phone installation were not changed by this split.
 | `feature/app-integration` | 160 | Passed |
 
 Exact tested commits, tasks, APK hashes, logs and preserved refs are recorded in
-[the verification manifest](validation/independent-feature-branches-results.json).
+the verification manifest.
 Later documentation/tool-check merges do not change the tested application sources.
 
 Current full-app APK: `app/build/outputs/apk/debug/app-debug.apk`.
@@ -35,7 +37,7 @@ NewsBrief storage, source or reader implementation.
 
 The initial isolated AI compile exposed a dependency on source-owned `FeedRules`. Moving
 that pure helper into the foundation resolved it; the final matrix above passed afterward.
-The [initial failure log](validation/independent-features/initial-ai-failure.txt) is retained.
+The initial failure log is retained.
 Refactor compilation also required preserving Compose state imports and putting parameter
 defaults on interfaces; all were corrected before final validation.
 
