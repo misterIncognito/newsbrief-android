@@ -91,15 +91,13 @@ class NewsFeedActionsTest {
             waitFor { vm.readerUi.readerSource.value == null && calls.get() == beforeReturn && !vm.feed.refreshing.value }
             compose.onNodeWithText("Story 15", substring = true).assertIsDisplayed()
             assertEquals(beforeReturn, calls.get())
-            compose.onNodeWithContentDescription("Меню").performClick()
-            compose.onNodeWithText("Сохранённые").performClick()
+            compose.onNodeWithContentDescription("Сохранённые").performClick()
             waitFor { vm.feed.feedArticles.value.size == 1 }
             compose.onNodeWithText("Story 15", substring = true).assertExists()
             compose.onNodeWithText("✓ Сохранено").performClick()
             waitFor { vm.feed.feedArticles.value.isEmpty() }
             compose.onNodeWithText("Здесь будут сохранённые публикации.", substring = true).assertExists()
-            compose.onNodeWithContentDescription("Меню").performClick()
-            compose.onNodeWithText("Лента").performClick()
+            compose.onNodeWithContentDescription("Лента").performClick()
             waitFor { vm.feed.feedArticles.value.size == 30 }
             assertNotNull(runBlocking { repo.lookup("https://source.example/story/15") })
         } finally { model?.closeFeatures(); db.close(); Dispatchers.resetMain() }
@@ -127,8 +125,7 @@ class NewsFeedActionsTest {
             compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
             compose.onNodeWithText("Каталог").assertDoesNotExist()
             compose.onNodeWithText("Telegram-прокси").assertDoesNotExist()
-            compose.onNodeWithContentDescription("Меню").performClick()
-            compose.onNodeWithText("Настройки").performClick()
+            compose.onNodeWithContentDescription("Настройки").performClick()
             compose.onNodeWithText("Каталог").assertExists()
             compose.onNodeWithText("AI summary").assertExists()
             compose.onNodeWithText("Источники").performClick()
@@ -145,8 +142,7 @@ class NewsFeedActionsTest {
             compose.onNodeWithText("Telegram через прокси").performClick()
             compose.onNodeWithText("@канал, ссылка t.me или ID канала").assertExists()
             compose.onNodeWithText("Отмена").performClick()
-            compose.onNodeWithContentDescription("Меню").performClick()
-            compose.onNodeWithText("Настройки").performClick()
+            compose.onNodeWithContentDescription("Настройки").performClick()
             compose.onNodeWithText("Telegram-прокси").performClick()
             compose.onNodeWithText("HTTPS URL Telegram-прокси").performScrollTo().assertExists()
             compose.onNodeWithText("Ключ доступа Telegram-прокси").performScrollTo().assertExists()

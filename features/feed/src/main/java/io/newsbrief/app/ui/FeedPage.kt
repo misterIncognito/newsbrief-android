@@ -74,12 +74,12 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
     }
     Column(Modifier.fillMaxSize()) {
         controls()
-        Text(stringResource(R.string.nb_count_articles, articles.size), modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+        Text(stringResource(R.string.nb_count_articles, articles.size), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 2.dp),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FeedRefreshContainer(isRefreshing = refreshing, onRefresh = { vm.refresh() },
             modifier = Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(Modifier.fillMaxSize().testTag("news-feed"), state = activeScroll,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (articles.isEmpty()) item {
                     Text(emptyMessage ?: if (refreshing) stringResource(R.string.nb_load_news)

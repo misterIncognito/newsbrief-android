@@ -44,8 +44,7 @@ class OptionalFeatureAssemblyTest {
         val shell = NewsViewModel(app, FeatureServices(MemoryNewsStore(), MemorySettings(), bindings = bindings), features)
         try {
             compose.setContent { MaterialTheme { NewsBriefScreen(shell) } }
-            compose.onNodeWithContentDescription("Меню").performClick()
-            compose.onNodeWithText("Настройки").performClick()
+            compose.onNodeWithContentDescription("Настройки").performClick()
             compose.onNodeWithText("Источники").performClick()
             if ("source-discovery" in selected) {
                 compose.onNodeWithText("Из каталога").performClick()
@@ -66,7 +65,7 @@ class OptionalFeatureAssemblyTest {
         val id = runBlocking { store.sourceDao().insert(SourceEntity(name = "Fixture", address = "https://fixture.example/rss", kind = SourceKind.RSS)) }
         val article = ArticleEntity(sourceId = id, sourceName = "Fixture", title = "Independent feature story", excerpt = "Preview",
             content = "Full offline reader content", readerLoaded = true, link = "https://fixture.example/story", publishedAt = 1)
-        runBlocking { store.articleDao().insertAll(listOf(article)) }
+        val articleId = runBlocking { store.articleDao().insertAll(listOf(article)).single() }
         val collector = object : NewsCollector { override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>() }
         val services = FeatureServices(store, settings, collector, bindings = bindings)
         val shell = NewsViewModel(app, services, features)
@@ -75,7 +74,16 @@ class OptionalFeatureAssemblyTest {
             compose.setContent { MaterialTheme { NewsBriefScreen(shell) } }
             waitFor { shell.host.controller(FeedUi::class.java).feedArticles.value.size == 1 }
             compose.onNodeWithText("Independent feature story").assertExists()
-            val menuBounds = compose.onNodeWithContentDescription("Меню").fetchSemanticsNode().boundsInRoot
+            if ("read-status" in selected) {
+                val frame = compose.onNodeWithTag("read-status-frame-$articleId")
+                frame.performTouchInput { swipeLeft() }
+                waitFor { runBlocking { store.articleDao().findByLink(article.link)?.readAt != null } }
+                frame.performTouchInput { swipeRight() }
+                waitFor { runBlocking { store.articleDao().findByLink(article.link)?.readAt == null } }
+            }
+            val menuBounds = compose.onNodeWithTag("open-feed").fetchSemanticsNode().boundsInRoot
+            if ("save-articles" in selected) compose.onNodeWithTag("open-saved").assertIsDisplayed()
+            else compose.onNodeWithTag("open-saved").assertDoesNotExist()
             if ("feed-filters" in selected && "read-status" in selected) {
                 val filterBounds = compose.onNodeWithTag("open-source-filter").fetchSemanticsNode().boundsInRoot
                 val unread = compose.onNodeWithTag("unread-filter")

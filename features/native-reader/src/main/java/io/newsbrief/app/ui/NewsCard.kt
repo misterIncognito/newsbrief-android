@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import io.newsbrief.app.network.ArticleLinks
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,7 +38,9 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi, host: io.newsbrief.app.runtim
             actions = { ArticleActionRow(article, host) }, host = host)
         return
     }
-    Card(Modifier.fillMaxWidth().clickable { vm.openReader(article) }) {
+    val color = LocalArticleCardColor.current
+    Card(Modifier.fillMaxWidth().clickable { vm.openReader(article) },
+        colors = if (color != null) CardDefaults.cardColors(containerColor = color, contentColor = androidx.compose.ui.graphics.Color(0xFF191919)) else CardDefaults.cardColors()) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             if (article.imageUrl.isNotBlank()) NewsImage(article.imageUrl, article.link, workerUrl, 145, article.proxyRequired, host)
             Text("${article.sourceName} · ${formatDate(article.publishedAt)}",
