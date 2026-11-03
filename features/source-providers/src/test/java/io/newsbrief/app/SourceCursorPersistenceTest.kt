@@ -76,4 +76,27 @@ class SourceCursorPersistenceTest {
         assertNotNull(store.articleDao().findByLink("https://example.org/1"))
     }
 
+    @Test fun checkpointWriteFailureRollsBackArticles() = runBlocking {
+        val store = MemoryNewsStore()
+        val id = store.sourceDao().insert(SourceEntity(name = "S", address = "https://example.org", kind = "test"))
+        val sources = object : SourceDao by store.sourceDao() {
+            override suspend fun updateFetchProgress(id: Long, cursor: String?, expected: String, historyGap: Boolean) {
+                error("Checkpoint write failed")
+            }
+        }
+        val failingStore = object : NewsStore by store {
+            override fun sourceDao(): SourceDao = sources
+            override suspend fun <T> transaction(block: suspend () -> T): T = store.transaction(block)
+        }
+        val collector = object : NewsCollector {
+            override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
+            override suspend fun collectSince(source: SourceEntity) = SourceBatch(listOf(
+                ArticleEntity(sourceId = id, sourceName = "S", title = "Post", excerpt = "", link = "https://example.org/new", publishedAt = 1)), "1")
+        }
+        val result = ManualFeedLoader(failingStore, collector).refresh()
+        assertEquals(1, result.errors.size)
+        assertNull(store.articleDao().findByLink("https://example.org/new"))
+        assertEquals("", store.sourceDao().observe().first().single().fetchCursor)
+    }
+
 }
