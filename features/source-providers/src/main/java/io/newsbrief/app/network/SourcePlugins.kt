@@ -16,12 +16,4 @@ class SourcePluginRegistry(plugins: List<NewsSourcePlugin>) : SourceRegistry {
     override suspend fun collect(source: SourceEntity): List<ArticleEntity> = withContext(Dispatchers.IO) {
         plugin(source.kind).collect(source).map { it.copy(sourcePluginId = source.kind) }
     }
-    companion object {
-        fun builtIns(settings: SourceSettings? = null, overrides: List<NewsSourcePlugin> = emptyList()): SourcePluginRegistry {
-            val config = settings ?: DefaultSourceSettings
-            val replacements = overrides.map { it.info.id }.toSet()
-            val plugins = io.newsbrief.app.runtime.FeatureBindings.create().sourcePlugins.map { it(config) }
-            return SourcePluginRegistry(plugins.filterNot { it.info.id in replacements } + overrides)
-        }
-    }
 }
