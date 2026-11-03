@@ -46,6 +46,9 @@ interface ArticleDao {
 
     suspend fun updateArticle(article: ArticleEntity)
 
+    fun observeByLink(url: String): Flow<ArticleEntity?> =
+        observeFiltered(emptyList(), false).map { articles -> articles.firstOrNull { it.link == url } }
+
     suspend fun findByLink(url: String): ArticleEntity?
 
     suspend fun fillSourcePlugin(url: String, pluginId: String)

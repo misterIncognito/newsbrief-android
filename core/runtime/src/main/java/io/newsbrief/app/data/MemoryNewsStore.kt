@@ -81,6 +81,7 @@ class MemoryNewsStore : NewsStore {
             }
         }
         override suspend fun updateArticle(article: ArticleEntity) = update(article.link) { article }
+        override fun observeByLink(url: String) = state.map { it.articles.find { article -> article.link == url } }
         override suspend fun findByLink(url: String) = access { state.value.articles.find { it.link == url } }
         override suspend fun fillSourcePlugin(url: String, pluginId: String) = update(url) { if (it.sourcePluginId.isEmpty()) it.copy(sourcePluginId = pluginId) else it }
         override suspend fun setReadAt(url: String, readAt: Long?) = update(url) { it.copy(readAt = readAt) }

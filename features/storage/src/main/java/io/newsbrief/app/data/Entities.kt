@@ -60,6 +60,9 @@ interface RoomArticleDao : ArticleDao {
     override suspend fun updateArticle(article: ArticleEntity)
 
     @Query("SELECT * FROM articles WHERE link = :url LIMIT 1")
+    override fun observeByLink(url: String): Flow<ArticleEntity?>
+
+    @Query("SELECT * FROM articles WHERE link = :url LIMIT 1")
     override suspend fun findByLink(url: String): ArticleEntity?
 
     @Query("UPDATE articles SET sourcePluginId = :pluginId WHERE link = :url AND sourcePluginId = ''")
