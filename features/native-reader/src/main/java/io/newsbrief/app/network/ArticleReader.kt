@@ -12,13 +12,13 @@ import org.jsoup.nodes.Element
 import java.time.Instant
 
 class ArticleReader(private val settings: WorkerSettings,
-    private val proxyDownload: (String, String, String, Int) -> ByteArray = { url, type, worker, limit ->
-        HttpRequests.download(url, type, worker, limit, forceProxy = true)
+    private val proxyDownload: (String, String, String, Int) -> ByteArray = { _, _, _, _ ->
+        error("Networking plugin is unavailable")
     },
     val plugins: ArticleExtractor? = null,
     private val telegram: TelegramContent? = null,
-    private val download: (String, String, String, Int) -> ByteArray = { url, type, worker, limit ->
-        HttpRequests.download(url, type, worker, limit)
+    private val download: (String, String, String, Int) -> ByteArray = { _, _, _, _ ->
+        error("Networking plugin is unavailable")
     }
 ) : ArticleLoader {
     override suspend fun load(article: ArticleEntity, refresh: Boolean): ReaderArticle = withContext(Dispatchers.IO) {
