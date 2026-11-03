@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.ViewModel
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.*
 import io.newsbrief.app.features.FeedFeature
@@ -13,6 +14,7 @@ import io.newsbrief.app.runtime.FeatureBindings
 import io.newsbrief.app.ui.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -27,6 +29,53 @@ import org.robolectric.annotation.GraphicsMode
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedRuntimeTest {
     @get:Rule val compose = createComposeRule()
+    @Test fun selectedSourcesFilterTheFeedAndResetRestoresAllArticles() {
+        val dispatcher = UnconfinedTestDispatcher(); Dispatchers.setMain(dispatcher)
+        val store = MemoryNewsStore(); val features = listOf(FeedFeature())
+        val ids = runBlocking {
+            val first = store.sourceDao().insert(SourceEntity(name = "First", address = "https://first.example/rss", kind = SourceKind.RSS))
+            val second = store.sourceDao().insert(SourceEntity(name = "Second", address = "https://second.example/rss", kind = SourceKind.RSS))
+            store.articleDao().insertAll(listOf(
+                ArticleEntity(sourceId = first, sourceName = "First", title = "First article", excerpt = "", link = "https://first.example/1", publishedAt = 1),
+                ArticleEntity(sourceId = second, sourceName = "Second", title = "Second article", excerpt = "", link = "https://second.example/1", publishedAt = 2)))
+            listOf(first, second)
+        }
+        val filter = object : ViewModel(), FeedFilterUi {
+            override val feedCategory = MutableStateFlow(FeedCategory.ALL)
+            override val feedSources = MutableStateFlow<Set<String>>(emptySet())
+            override val feedOptions = MutableStateFlow<List<FeedSourceOption>>(emptyList())
+            override val selection = MutableStateFlow(FeedSelection())
+            override fun filterCategory(category: FeedCategory) { feedCategory.value = category; feedSources.value = emptySet(); selection.value = FeedSelection(category) }
+            override fun filterSource(key: String?) { feedSources.value = key?.let { setOf(it) }.orEmpty(); selection.value = FeedSelection(feedCategory.value, feedSources.value) }
+            override fun toggleFeedSource(key: String) {
+                feedSources.value = if (key in feedSources.value) feedSources.value - key else feedSources.value + key
+                selection.value = FeedSelection(feedCategory.value, feedSources.value)
+            }
+            override fun clearFeedFilter() = filterCategory(FeedCategory.ALL)
+        }
+        val bindings = FeatureBindings.create(features)
+        bindings.controller(FeedFilterUi::class.java) { filter }
+        val services = io.newsbrief.app.runtime.FeatureServices(store, MemorySettings(), bindings = bindings)
+        val shell = NewsViewModel(ApplicationProvider.getApplicationContext<Application>(), services, features)
+        fun waitForTitles(titles: Set<String>) {
+            compose.waitUntil(5000) {
+                dispatcher.scheduler.runCurrent(); compose.waitForIdle()
+                shell.host.controller(FeedUi::class.java).feedArticles.value.map { it.title }.toSet() == titles
+            }
+        }
+        try {
+            compose.setContent { MaterialTheme { NewsBriefScreen(shell) } }
+            waitForTitles(setOf("First article", "Second article"))
+            filter.toggleFeedSource("source:${ids[0]}")
+            waitForTitles(setOf("First article"))
+            filter.toggleFeedSource("source:${ids[1]}")
+            waitForTitles(setOf("First article", "Second article"))
+            filter.toggleFeedSource("source:${ids[0]}")
+            waitForTitles(setOf("Second article"))
+            filter.clearFeedFilter()
+            waitForTitles(setOf("First article", "Second article"))
+        } finally { shell.closeFeatures(); Dispatchers.resetMain() }
+    }
     @Test fun minimalFeedLoadsAndOpensExternalBrowserWithoutOptionalUi() {
         val dispatcher = UnconfinedTestDispatcher(); Dispatchers.setMain(dispatcher)
         val store = MemoryNewsStore(); val settings = MemorySettings(); val features = listOf(FeedFeature())
