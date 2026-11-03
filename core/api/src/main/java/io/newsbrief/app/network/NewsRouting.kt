@@ -15,7 +15,4 @@ object NewsRouting {
             Regex("(?:[a-z0-9-]+\\.)?zerkalo-[a-z0-9-]+\\.site").matches(host)
     }
 
-    /** Compatibility API; selected page-proxy plugins supply endpoint implementations. */
-    fun endpoint(resourceUrl: String, type: String, workerBase: String, forceProxy: Boolean = false) =
-        PageRouting.route(resourceUrl, type, workerBase, forceProxy)
 }
