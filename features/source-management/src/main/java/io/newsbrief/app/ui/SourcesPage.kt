@@ -35,13 +35,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.data.SourceKind
 
 @Composable
-fun SourcesPage(vm: SourcesUi) {
+fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null) {
     val sources by vm.sources.collectAsStateWithLifecycle()
     var dialogVisible by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Мои источники", style = MaterialTheme.typography.headlineSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (openCatalog != null) OutlinedButton(onClick = openCatalog) { Text("Из каталога") }
                 if (vm.sourcePlugins.isNotEmpty()) OutlinedButton(onClick = { dialogVisible = true }) { Text("Своя ссылка") }
             }
         }
