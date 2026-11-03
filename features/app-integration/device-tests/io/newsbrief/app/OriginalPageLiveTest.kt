@@ -35,7 +35,7 @@ class OriginalPageLiveTest {
         val link = ArticleLinks.fullArticle(ArticleLinks.decode(post!!.linksJson))!!.url
         val vm = ViewModelProvider(compose.activity)[NewsViewModel::class.java]
         compose.runOnUiThread { vm.host.controller(io.newsbrief.app.ui.BrowserUi::class.java).openBrowser(link, forceProxy = true) }
-        compose.onNodeWithText("Оригинальная страница").performClick()
+        compose.onNodeWithText("Оригинал").performClick()
         compose.waitUntil(60_000) {
             var ready = false
             compose.runOnUiThread { ready = browser()?.let { it.progress == 100 && it.title.orEmpty().contains("Warsaw", true) } == true }

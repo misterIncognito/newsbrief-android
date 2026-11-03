@@ -13,9 +13,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
 @Composable
-fun MvpNotice() {
+fun BetaNotice() {
     var open by rememberSaveable { mutableStateOf(false) }
-    TextButton(onClick = { open = true }) { Text("MVP", color = Color(0xFFB00020)) }
+    TextButton(onClick = { open = true }) { Text("Beta", color = Color(0xFFB00020)) }
     if (open) AlertDialog(
         onDismissRequest = { open = false },
         title = { Text(stringResource(R.string.nb_preview_title)) },

@@ -12,11 +12,11 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
 import io.newsbrief.app.network.ArticleLinks
 import io.newsbrief.app.network.BrowserRouting
@@ -54,11 +54,7 @@ private fun BrowserSession(url: String, worker: String, forceProxy: Boolean, ori
                 style = MaterialTheme.typography.labelMedium)
             TextButton(onClick = { browser?.reload() }) { Text(stringResource(R.string.nb_browser_reload)) }
         }
-        Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !originalMode, onClick = { onModeChange(location, false) }, label = { Text(stringResource(R.string.nb_browser_loader)) })
-            FilterChip(selected = originalMode, onClick = { onModeChange(location, true) }, label = { Text(stringResource(R.string.nb_browser_original)) })
-        }
+        BrowserModeSelector(originalMode) { onModeChange(location, it) }
         failure?.let { Text(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.error) }
         if (progress < 100) LinearProgressIndicator(Modifier.fillMaxWidth())
         AndroidView(modifier = Modifier.weight(1f).fillMaxWidth(), factory = { context ->
@@ -141,5 +137,19 @@ private fun BrowserSession(url: String, worker: String, forceProxy: Boolean, ori
     }
     DisposableEffect(url) {
         onDispose { browser?.apply { stopLoading(); destroy() }; browser = null }
+    }
+}
+
+@Composable
+private fun BrowserModeSelector(originalMode: Boolean, onModeChange: (Boolean) -> Unit) {
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        SegmentedButton(selected = !originalMode, onClick = { if (originalMode) onModeChange(false) },
+            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)) {
+            Text(stringResource(R.string.nb_browser_loader), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        SegmentedButton(selected = originalMode, onClick = { if (!originalMode) onModeChange(true) },
+            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)) {
+            Text(stringResource(R.string.nb_browser_original), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
