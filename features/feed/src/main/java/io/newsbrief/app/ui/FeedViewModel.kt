@@ -1,0 +1,62 @@
+package io.newsbrief.app.ui
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import io.newsbrief.app.runtime.*
+import io.newsbrief.app.data.*
+import io.newsbrief.app.network.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+
+class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
+    private val services = host.services
+    private val store = services.settings
+    private val bindings = host.bindings
+    private fun report(message: String) = host.report(message)
+    override val sources = services.store.sourceDao().observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val query = host.optional(FeedFilterUi::class.java)?.selection ?: flowOf(FeedSelection())
+    override val savedOnly = (host.optional(SavedUi::class.java)?.savedOnly ?: flowOf(false))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    override val filtered = query.map { it.category != FeedCategory.ALL || it.keys.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override val feedArticles = combine(sources, query, savedOnly) { sources, query, saved ->
+        val ids = if (query.category == FeedCategory.ALL && query.keys.isEmpty()) null else
+            bindings.filterOptions(sources, query.category).filter { query.keys.isEmpty() || it.key in query.keys }
+                .flatMap { it.ids }.distinct().sorted()
+        saved to ids
+    }.distinctUntilChanged().flatMapLatest { (saved, ids) ->
+        if (saved) services.store.articleDao().observeSaved()
+        else services.store.articleDao().observeFiltered(ids.orEmpty(), ids != null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val _refreshing = MutableStateFlow(false)
+    override val refreshing = _refreshing.asStateFlow()
+    private var refreshRequested = false
+    init { refresh() }
+
+    override fun feedBecameVisible() {
+        if (!_refreshing.value) refresh(quiet = true)
+    }
+
+    override fun refresh(quiet: Boolean) {
+        // Source changes during a refresh require another pass with the current source list.
+        refreshRequested = true
+        if (_refreshing.value) return
+        _refreshing.value = true
+        viewModelScope.launch {
+            try {
+                while (refreshRequested) {
+                    refreshRequested = false
+                    val outcome = services.refresh()
+                    if (!quiet && outcome.skipped) report("Обновление уже запускалось. Повтор через ${(outcome.retryAfterMillis + 999) / 1000} сек.")
+                    else if (!quiet) report("Новых публикаций: ${outcome.added}" +
+                        if (outcome.errors.isNotEmpty()) "\nОшибки: ${outcome.errors.joinToString("; ")}" else "")
+                }
+            } catch (e: CancellationException) { throw e
+            } catch (e: Exception) {
+                report("Ошибка обновления: ${e.message}")
+            } finally { _refreshing.value = false }
+        }
+    }
+
+
+}
