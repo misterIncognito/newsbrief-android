@@ -27,6 +27,7 @@ class FeedFilterPanelTest {
 
     private class FakeFilter : FeedFilterUi {
         override val feedCategory = MutableStateFlow(FeedCategory.ALL)
+        override val availableCategories = MutableStateFlow(listOf(FeedCategory.ALL, FeedCategory.TECH))
         override val feedSources = MutableStateFlow<Set<String>>(emptySet())
         override val feedOptions = MutableStateFlow(listOf(
             FeedSourceOption("verge", "The Verge", listOf(1)),
@@ -48,9 +49,13 @@ class FeedFilterPanelTest {
         compose.onNodeWithTag("source-filter-panel").assertDoesNotExist()
         compose.onNodeWithTag("open-source-filter").performClick()
         compose.onNodeWithTag("source-filter-panel").assertIsDisplayed()
-        assertTrue(compose.onNodeWithTag("source-filter-panel").fetchSemanticsNode().boundsInRoot.left > 0f)
+        assertTrue(compose.onNodeWithTag("source-filter-panel").fetchSemanticsNode().boundsInRoot.left == 0f)
+        compose.onNodeWithText("Беларусь").assertDoesNotExist()
+        compose.onNodeWithText("Польша").assertDoesNotExist()
         compose.onNodeWithText("The Verge").performClick()
         compose.onNodeWithText("Зеркало").performClick()
+        compose.onNodeWithText("The Verge").assertIsOn()
+        compose.onNodeWithText("Зеркало").assertIsOn()
         compose.runOnIdle { assertEquals(setOf("verge", "zerkalo"), vm.feedSources.value) }
         compose.onNodeWithTag("source-filter-search").performTextInput("Verge")
         compose.onNodeWithText("The Verge").assertExists()

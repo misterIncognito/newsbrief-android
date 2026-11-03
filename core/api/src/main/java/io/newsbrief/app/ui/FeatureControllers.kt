@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 /** Each optional controller is registered and owned by its implementing feature. */
 interface FeedFilterUi {
     val feedCategory: StateFlow<FeedCategory>
+    val availableCategories: StateFlow<List<FeedCategory>>
     val feedSources: StateFlow<Set<String>>
     val feedOptions: StateFlow<List<FeedSourceOption>>
     val selection: StateFlow<FeedSelection>

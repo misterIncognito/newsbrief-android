@@ -1,6 +1,11 @@
 package io.newsbrief.app.data
 
 object FeedFilters {
+    fun availableCategories(sources: List<SourceEntity>): List<FeedCategory> {
+        val available = sources.filter { it.enabled }.flatMap { categories(it) }.toSet()
+        return FeedCategory.entries.filter { it == FeedCategory.ALL || it in available }
+    }
+
     private fun catalogAddress(source: SourceEntity): String =
         if (source.kind == SourceKind.TELEGRAM_PROXY && source.address.startsWith("telegram-proxy:"))
             "https://t.me/s/" + source.address.removePrefix("telegram-proxy:") else source.address
