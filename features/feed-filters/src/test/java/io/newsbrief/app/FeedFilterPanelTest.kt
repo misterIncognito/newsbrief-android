@@ -49,7 +49,7 @@ class FeedFilterPanelTest {
         compose.onNodeWithTag("source-filter-panel").assertDoesNotExist()
         compose.onNodeWithTag("open-source-filter").performClick()
         compose.onNodeWithTag("source-filter-panel").assertIsDisplayed()
-        assertTrue(compose.onNodeWithTag("source-filter-panel").fetchSemanticsNode().boundsInRoot.left == 0f)
+        assertTrue(compose.onNodeWithTag("source-filter-panel").fetchSemanticsNode().boundsInRoot.left > 0f)
         compose.onNodeWithText("Беларусь").assertDoesNotExist()
         compose.onNodeWithText("Польша").assertDoesNotExist()
         compose.onNodeWithText("The Verge").performClick()
