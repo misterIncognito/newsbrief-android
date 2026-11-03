@@ -1,10 +1,16 @@
 # NewsBrief Android
 
+`integration/feed` uses AGP 9.4.1 and Gradle 9.6.0, upgraded with Android Studio’s
+AGP Upgrade Assistant. See [upgrade validation](docs/agp-9.4.1-upgrade.md).
+Development feature branches inherit this shared toolchain; existing release and tags are preserved.
+
 Optional capabilities are real Android library modules under `features/<name>/`, each
 maintained on `feature/<name>`. Every feature's main project dependency is `:core:api`;
 modules communicate through storage, HTTP, source, content, extraction, proxy and UI
 interfaces. Plugins register through their own service descriptors. `:app` owns Android
-startup; `:core:runtime` supplies the host and session fallbacks. `dev` contains no optional
+startup; `:core:runtime` supplies shell navigation, controller lifecycles and session fallbacks.
+Feature ViewModels and state live in their implementing modules; the combined `AppUi`
+and production `NewsRepository` have been removed. `dev` contains no optional
 feature implementation.
 
 `integration/feed` assembles only Feed, RSS Source, Source Providers, Networking and Storage.
