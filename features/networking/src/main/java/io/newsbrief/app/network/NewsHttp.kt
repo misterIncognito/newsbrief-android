@@ -31,7 +31,7 @@ object NewsHttp : HttpTransport {
         var target = resource
         var mustProxy = forceProxy || NewsRouting.requiresProxy(resource)
         repeat(4) { redirect ->
-            val route = router?.route(PageRequest(target, type, mustProxy, preferProxy), worker) ?: PageRouting.route(target, type, worker, mustProxy, preferProxy)
+            val route = (router ?: DirectPageRouter).route(PageRequest(target, type, mustProxy, preferProxy), worker)
             transport.newCall(Request.Builder().url(route).header("User-Agent", "NewsBrief/0.4")
                 .header("Accept", "application/json, application/rss+xml, application/atom+xml, text/html, image/*").build())
                 .execute().use { response ->
