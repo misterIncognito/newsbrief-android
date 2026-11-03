@@ -4,3 +4,7 @@ networking
 source-providers
 rss-source
 storage
+telegram-source
+page-proxy
+news-proxy
+source-discovery
