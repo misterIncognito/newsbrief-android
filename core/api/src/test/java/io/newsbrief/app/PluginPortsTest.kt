@@ -26,9 +26,10 @@ class PluginPortsTest {
     }
     @Test fun independentlyRegisteredLibraryConnectsThroughSharedInterfaces() {
         assertEquals(listOf("fixture-module"), InstalledFeatures.create().map { it.id })
+        val bindings = FeatureBindings.create(listOf(FixtureModulePlugin()))
         val url = "https://example.org/article"
-        assertEquals(url, HttpRequests.download(url, "fetch", "", 1024).toString(Charsets.UTF_8))
-        assertEquals("Article body", ArticleParsing.parse("Article body", url).text)
+        assertEquals(url, bindings.http!!.resource(PageRequest(url, "fetch", false), "", 1024).bytes.toString(Charsets.UTF_8))
+        assertEquals("Article body", bindings.parseArticle!!("Article body", url).text)
     }
     @Test fun emptyCompositionExposesNoTransportParserOrOptionalActions() {
         val bindings = FeatureBindings.create(emptyList())

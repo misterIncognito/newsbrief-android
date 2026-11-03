@@ -81,7 +81,7 @@ class FeatureBindings {
     var presentation: ArticlePresentation? by singleProvider()
     var browser: (@Composable (String, String, Boolean) -> Unit)? by singleProvider()
     companion object {
-        fun create(features: List<AppFeature> = InstalledFeatures.create()): FeatureBindings = FeatureBindings().also { b ->
+        fun create(features: List<AppFeature>): FeatureBindings = FeatureBindings().also { b ->
             features.sortedBy { it.order }.forEach { it.configure(b) }
         }
     }
