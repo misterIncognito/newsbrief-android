@@ -9,7 +9,7 @@ import io.newsbrief.app.ui.*
 class AiFeature : AppFeature {
     override val hasSettings = true
     override val id = "ai"
-    override val title = "Главное"
+    override val title = "AI summary"
     override val order = 70
     override fun configure(bindings: FeatureBindings) {
         bindings.controller(AiUi::class.java, ::AiViewModel)
