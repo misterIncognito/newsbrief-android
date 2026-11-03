@@ -6,6 +6,7 @@
     "app/src/main/res/drawable/ic_launcher.xml",
     "app/src/test/java/io/newsbrief/app/AppPluginAssemblyTest.kt",
     "app/src/test/java/io/newsbrief/app/OptionalFeatureAssemblyTest.kt",
+    "app/src/test/java/io/newsbrief/app/SelectedRuntimeStartupTest.kt",
     "app/src/test/java/io/newsbrief/app/ShellAppTest.kt",
     "core/api/consumer-rules.pro",
     "core/api/src/main/AndroidManifest.xml",

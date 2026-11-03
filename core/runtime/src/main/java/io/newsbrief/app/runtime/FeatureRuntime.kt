@@ -6,13 +6,13 @@ import io.newsbrief.app.network.*
 
 interface FeatureRuntimeOwner { val runtime: FeatureRuntime }
 
-class FeatureRuntime(context: Context, val features: List<AppFeature> = InstalledFeatures.create()) {
+class FeatureRuntime(context: Context, val features: List<AppFeature> = InstalledFeatures.create(), collector: NewsCollector? = null) {
     val bindings = FeatureBindings.create(features)
     private val persistent = bindings.persistentStorage?.invoke(context)
     val store: NewsStore = persistent?.first ?: MemoryNewsStore()
     val settings: AppSettings = persistent?.second ?: MemorySettings()
     private val sourceRegistry = bindings.sources?.invoke(settings) ?: EmptySourceRegistry()
-    val services = FeatureServices(store, settings, registry = sourceRegistry,
+    val services = FeatureServices(store, settings, collector = collector, registry = sourceRegistry,
         bindings = bindings, onFeedUpdated = { bindings.feedUpdated(context) })
     val backgroundTasks = object : io.newsbrief.app.sync.BackgroundTasks {
         override suspend fun refresh() = services.refresh()
