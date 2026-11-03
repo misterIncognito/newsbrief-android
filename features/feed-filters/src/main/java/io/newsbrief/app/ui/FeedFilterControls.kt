@@ -29,6 +29,7 @@ import java.util.Locale
 @Composable
 fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null) {
     val category by vm.feedCategory.collectAsStateWithLifecycle()
+    val categories by vm.availableCategories.collectAsStateWithLifecycle()
     val selected by vm.feedSources.collectAsStateWithLifecycle()
     val options by vm.feedOptions.collectAsStateWithLifecycle()
     val savedOnly = saved?.savedOnly?.collectAsStateWithLifecycle()?.value ?: false
@@ -36,7 +37,7 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null) {
     var search by rememberSaveable { mutableStateOf("") }
     if (savedOnly) return
 
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.End) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.Start) {
         OutlinedButton(onClick = { open = true }, modifier = Modifier.testTag("open-source-filter")) {
             val active = if (selected.isNotEmpty()) " (${selected.size})" else if (category != FeedCategory.ALL) " · ${category.label}" else ""
             Text("Фильтр источников$active")
@@ -45,12 +46,12 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null) {
     if (!open) return
     Dialog(onDismissRequest = { open = false }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.32f)).clickable { open = false },
-            contentAlignment = Alignment.CenterEnd) {
+            contentAlignment = Alignment.CenterStart) {
             Surface(
                 modifier = Modifier.fillMaxHeight().widthIn(max = 360.dp).fillMaxWidth(0.88f)
                     .testTag("source-filter-panel")
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
-                shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp), tonalElevation = 6.dp
+                shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp), tonalElevation = 6.dp
             ) {
                 Column(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -60,7 +61,7 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null) {
                     Text("Категория", style = MaterialTheme.typography.labelLarge)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FeedCategory.entries.forEach { choice ->
+                        categories.forEach { choice ->
                             FilterChip(selected = category == choice, onClick = { vm.filterCategory(choice) },
                                 label = { Text(choice.label) })
                         }
@@ -83,11 +84,15 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null) {
                     LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
                         items(visible, key = { it.key }) { option ->
                             val checked = option.key in selected
-                            Row(Modifier.fillMaxWidth().toggleable(value = checked, role = Role.Checkbox,
-                                onValueChange = { vm.toggleFeedSource(option.key) }).padding(vertical = 4.dp),
+                            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                .background(if (checked) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                    RoundedCornerShape(12.dp))
+                                .toggleable(value = checked, role = Role.Checkbox,
+                                    onValueChange = { vm.toggleFeedSource(option.key) })
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = checked, onCheckedChange = null)
-                                Text(option.label, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                                Text(option.label, modifier = Modifier.weight(1f),
+                                    color = if (checked) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }

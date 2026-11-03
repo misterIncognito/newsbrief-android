@@ -16,6 +16,14 @@ class FeedFiltersViewModel(private val host: FeatureHost) : ViewModel(), FeedFil
     override val feedCategory = _feedCategory.asStateFlow()
     private val _feedSources = MutableStateFlow<Set<String>>(emptySet())
     override val feedSources = _feedSources.asStateFlow()
+    override val availableCategories = services.store.sourceDao().observe()
+        .map { FeedFilters.availableCategories(it) }
+        .onEach { categories ->
+            if (_feedCategory.value !in categories) {
+                _feedCategory.value = FeedCategory.ALL
+                _feedSources.value = emptySet()
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, listOf(FeedCategory.ALL))
     override val feedOptions = combine(services.store.sourceDao().observe(), _feedCategory) { sources, category ->
         bindings.filterOptions(sources, category)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

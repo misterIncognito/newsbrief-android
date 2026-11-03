@@ -7,6 +7,16 @@ import org.junit.Test
 class FeedFiltersTest {
     private fun source(address: String, id: Long, enabled: Boolean = true) = SourceEntity(id = id, name = address, address = address, kind = if (address.contains("t.me/")) SourceKind.TELEGRAM else SourceKind.RSS, enabled = enabled)
 
+    @Test fun categoriesOnlyIncludeEnabledSources() {
+        val tech = source("https://www.theverge.com/rss/index.xml", 1)
+        val belarus = source("https://news.zerkalo.io/rss/all.rss", 2, enabled = false)
+        val poland = source("https://www.polsatnews.pl/rss/polska.xml", 3)
+        assertEquals(listOf(FeedCategory.ALL, FeedCategory.TECH), FeedFilters.availableCategories(listOf(tech, belarus)))
+        assertEquals(listOf(FeedCategory.ALL, FeedCategory.TECH, FeedCategory.POLAND),
+            FeedFilters.availableCategories(listOf(tech, belarus, poland)))
+        assertEquals(listOf(FeedCategory.ALL), FeedFilters.availableCategories(emptyList()))
+    }
+
     @Test fun technologyIncludesRelevantSourcesAndExcludesGeneralAndDisabledSources() {
         val sources = listOf(source("https://www.theverge.com/rss/index.xml", 1),
             source("https://habr.com/ru/rss/articles/?fl=ru", 2), source("https://t.me/s/vcnews", 3),
