@@ -1,5 +1,41 @@
 # NewsBrief Gradle module verification
 
+## Feature state separation — 3 November 2026
+
+Feature UI state and ViewModels now belong to their optional modules. Core retains only
+shared contracts/models, generic shell navigation/messages, plugin composition and session
+storage/settings fallbacks. `AppUi` and the production `NewsRepository` were removed.
+Manual ingestion/source connection and reader persistence moved to their owning features.
+
+| Final assembly | Tests | Failures / errors / skips | Build |
+| --- | ---: | --- | --- |
+| Full assembly | 190 | 0 / 0 / 0 | Debug and Android-test APKs compiled |
+| Working `integration/feed` checkout | 41 | 0 / 0 / 0 | Debug APK built |
+| Empty shell | 20 | 0 / 0 / 0 | Debug APK built |
+| Isolated Synchronization | 22 | 0 / 0 / 0 | Debug APK built |
+
+The module split additionally passed all 19 isolated runtime-feature configurations and
+20 progressive feature-branch merge stages, with a build/test run after each stage. Save,
+Share and Filters were added and tested before Storage and Native Reader. A subsequent
+shared bootstrap fix was validated in the four final assemblies above; implementation
+code and interfaces did not change. Startup hooks see the published runtime and run once.
+
+All 22 canonical branches retain their intended implementation sets and share the final
+contracts/host. Histories are preserved; previous heads are archived under
+`archive/pre-feature-state/`. Main, release and existing tags were not advanced.
+Room schema 8, migrations and entity models remain byte-for-byte unchanged.
+
+- Feed APK: `app/build/outputs/apk/verified/newsbrief-feature-state-feed-debug.apk`
+  SHA-256: `d94d0ee5a5326bbf0570a1af1f1aa5bc5a36c605f77ad6bb04fb2df040277d51`
+- Full APK: `app/build/outputs/apk/verified/newsbrief-feature-state-full-debug.apk`
+  SHA-256: `eaef313c2d8bd9361c2fcc86614ebef8b00f0a533a8aca951d26ff86da2fcfb5`
+
+[Exact validation records and limits](validation/feature-state/README.md) include compiler
+graphs, APK class/descriptor checks, branch/source audits, hashes and build logs. There
+were no device tests, deployment or new live upstream checks. Existing AGP compatibility
+and deprecation warnings remain. The sections below are earlier verification history.
+
+
 **10 October 2026 toolchain update:** `integration/feed` now uses AGP 9.4.1 and Gradle 9.6.0.
 33 feed tests and 180 full-assembly tests passed; both debug APKs built.
 See [upgrade results](docs/agp-9.4.1-upgrade.md). The branch matrix below records the earlier AGP 8.13.2 module refactor.
