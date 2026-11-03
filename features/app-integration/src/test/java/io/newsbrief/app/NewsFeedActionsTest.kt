@@ -128,7 +128,11 @@ class NewsFeedActionsTest {
             compose.onNodeWithText("Каталог").assertExists()
             compose.onNodeWithText("Источники").performClick()
             compose.onNodeWithText("Своя ссылка").performClick()
+            compose.onNodeWithText("RSS / Atom ▾").performClick()
             vm.sourcesUi.sourcePlugins.forEach { compose.onNode(hasText(it.title) and hasClickAction()).assertExists() }
+            compose.onNodeWithText("Telegram").performClick()
+            compose.onNodeWithText("@канал или https://t.me/канал").assertExists()
+            compose.onNodeWithText("Telegram ▾").performClick()
             compose.onNodeWithText("Telegram через прокси").performClick()
             compose.onNodeWithText("@канал, ссылка t.me или ID канала").assertExists()
             compose.onNodeWithText("Отмена").performClick()
