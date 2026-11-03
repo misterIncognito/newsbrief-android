@@ -48,6 +48,9 @@ class MemoryNewsStore : NewsStore {
         override suspend fun setEnabled(id: Long, enabled: Boolean) = access {
             state.value = state.value.copy(sources = state.value.sources.map { if (it.id == id) it.copy(enabled = enabled) else it })
         }
+        override suspend fun updateFetchCursor(id: Long, cursor: String) = access {
+            state.value = state.value.copy(sources = state.value.sources.map { if (it.id == id) it.copy(fetchCursor = cursor) else it })
+        }
         override suspend fun delete(id: Long) = access { state.value = state.value.copy(sources = state.value.sources.filterNot { it.id == id }) }
     }
     private suspend fun update(url: String, change: (ArticleEntity) -> ArticleEntity) = access {
@@ -72,6 +75,7 @@ class MemoryNewsStore : NewsStore {
         override suspend fun updateArticle(article: ArticleEntity) = update(article.link) { article }
         override suspend fun findByLink(url: String) = access { state.value.articles.find { it.link == url } }
         override suspend fun fillSourcePlugin(url: String, pluginId: String) = update(url) { if (it.sourcePluginId.isEmpty()) it.copy(sourcePluginId = pluginId) else it }
+        override suspend fun setReadAt(url: String, readAt: Long?) = update(url) { it.copy(readAt = readAt) }
         override suspend fun requireProxy(url: String) = update(url) { it.copy(proxyRequired = true) }
         override suspend fun updateReader(url: String, title: String, content: String, imageUrl: String, publishedAt: Long,
             author: String, imagesJson: String, linksJson: String) = update(url) {

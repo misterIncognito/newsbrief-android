@@ -4,6 +4,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 object NewsMigrations {
+    val FROM_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE sources ADD COLUMN fetchCursor TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE articles ADD COLUMN readAt INTEGER")
+        }
+    }
+
     val FROM_7_8 = object : Migration(7, 8) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE articles ADD COLUMN sourcePluginId TEXT NOT NULL DEFAULT ''")

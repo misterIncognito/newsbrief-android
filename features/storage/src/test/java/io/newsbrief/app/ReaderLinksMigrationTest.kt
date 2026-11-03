@@ -49,12 +49,13 @@ class ReaderLinksMigrationTest {
                         NewsMigrations.FROM_6_7.migrate(db)
                         db.execSQL("INSERT INTO saved_articles VALUES('https://t.me/devby/16806',789)")
                     }
+                    if (version >= 8) NewsMigrations.FROM_7_8.migrate(db)
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
             }).build())
         legacy.writableDatabase; legacy.close()
         val db = Room.databaseBuilder(context, NewsDatabase::class.java, name)
-            .addMigrations(NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6, NewsMigrations.FROM_6_7, NewsMigrations.FROM_7_8).build()
+            .addMigrations(NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6, NewsMigrations.FROM_6_7, NewsMigrations.FROM_7_8, NewsMigrations.FROM_8_9).build()
         try {
             val article = db.articleDao().findByLink("https://t.me/devby/16806")!!
             assertEquals("Offline full body", article.content)
@@ -65,6 +66,12 @@ class ReaderLinksMigrationTest {
             assertTrue(article.readerLoaded)
             assertEquals(123L, article.publishedAt)
             assertEquals(456L, article.importedAt)
+            assertNull(article.readAt)
+            assertEquals("", db.sourceDao().observe().first().single().fetchCursor)
+            db.articleDao().setReadAt(article.link, 999L)
+            db.sourceDao().updateFetchCursor(1, "16806")
+            assertEquals(999L, db.articleDao().findByLink(article.link)!!.readAt)
+            assertEquals("16806", db.sourceDao().observe().first().single().fetchCursor)
             assertEquals(1, db.sourceDao().count())
             assertTrue(db.sourceDao().enabled().isEmpty())
             assertEquals("Summary", db.digestDao().find("2026-10-08", "SHORT")!!.content)
@@ -90,4 +97,6 @@ class ReaderLinksMigrationTest {
     @Test fun version4PreservesOfflineArticlesDisabledSourcesSummariesAndCatalog() { migrate(4) }
     @Test fun version5PreservesSavedLinksAndPersistsProxyChoiceAfterReopen() { migrate(5) }
     @Test fun version6AddsBookmarksWithoutLosingArticlesSettingsMetadataOrProxyChoice() { migrate(6) }
+    @Test fun version8PreservesDataAndAddsReadStateAndCursor() { migrate(8) }
+
 }

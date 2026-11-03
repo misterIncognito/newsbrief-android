@@ -26,6 +26,8 @@ interface SourceDao {
     suspend fun setEnabled(id: Long, enabled: Boolean)
 
     suspend fun delete(id: Long)
+
+    suspend fun updateFetchCursor(id: Long, cursor: String) { throw UnsupportedOperationException("Source cursors unavailable") }
 }
 
 interface ArticleDao {
@@ -46,6 +48,8 @@ interface ArticleDao {
     suspend fun fillSourcePlugin(url: String, pluginId: String)
 
     suspend fun requireProxy(url: String)
+
+    suspend fun setReadAt(url: String, readAt: Long?) { throw UnsupportedOperationException("Read status unavailable") }
 
     suspend fun updateReader(url: String, title: String, content: String, imageUrl: String,
         publishedAt: Long, author: String, imagesJson: String, linksJson: String = "[]")

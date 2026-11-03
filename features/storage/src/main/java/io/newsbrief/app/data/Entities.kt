@@ -20,6 +20,9 @@ interface RoomSourceDao : SourceDao {
     @Query("UPDATE sources SET enabled = :enabled WHERE id = :id")
     override suspend fun setEnabled(id: Long, enabled: Boolean)
 
+    @Query("UPDATE sources SET fetchCursor = :cursor WHERE id = :id")
+    override suspend fun updateFetchCursor(id: Long, cursor: String)
+
     @Query("DELETE FROM sources WHERE id = :id")
     override suspend fun delete(id: Long)
 }
@@ -53,6 +56,9 @@ interface RoomArticleDao : ArticleDao {
 
     @Query("UPDATE articles SET sourcePluginId = :pluginId WHERE link = :url AND sourcePluginId = ''")
     override suspend fun fillSourcePlugin(url: String, pluginId: String)
+
+    @Query("UPDATE articles SET readAt = :readAt WHERE link = :url")
+    override suspend fun setReadAt(url: String, readAt: Long?)
 
     @Query("UPDATE articles SET proxyRequired = 1 WHERE link = :url")
     override suspend fun requireProxy(url: String)
@@ -94,7 +100,7 @@ interface RoomCatalogSearchDao : CatalogSearchDao {
     override suspend fun prune()
 }
 
-@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class, SavedArticleEntity::class], version = 8, exportSchema = true)
+@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class, SavedArticleEntity::class], version = 9, exportSchema = true)
 abstract class NewsDatabase : RoomDatabase(), NewsStore {
     override suspend fun <T> transaction(block: suspend () -> T): T = withTransaction { block() }
     abstract override fun sourceDao(): RoomSourceDao

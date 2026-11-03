@@ -18,7 +18,8 @@ data class SourceEntity(
     val address: String,
     val kind: String,
     val enabled: Boolean = true,
-    @ColumnInfo(defaultValue = "'[]'") val categoriesJson: String = "[]"
+    @ColumnInfo(defaultValue = "'[]'") val categoriesJson: String = "[]",
+    @ColumnInfo(defaultValue = "''") val fetchCursor: String = ""
 )
 
 @Entity(tableName = "articles", indices = [Index(value = ["link"], unique = true), Index(value = ["publishedAt"])])
@@ -38,7 +39,8 @@ data class ArticleEntity(
     @ColumnInfo(defaultValue = "''") val sourcePluginId: String = "",
     val link: String,
     val publishedAt: Long,
-    val importedAt: Long = System.currentTimeMillis()
+    val importedAt: Long = System.currentTimeMillis(),
+    val readAt: Long? = null
 )
 
 @Entity(tableName = "digests", primaryKeys = ["date", "mode"])
