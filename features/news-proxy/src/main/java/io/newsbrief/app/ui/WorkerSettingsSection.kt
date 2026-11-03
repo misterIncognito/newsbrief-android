@@ -4,7 +4,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-@Composable fun WorkerSettingsSection(vm: AppUi) {
+@Composable fun WorkerSettingsSection(vm: WorkerSettingsUi) {
     val worker by vm.workerUrl.collectAsStateWithLifecycle()
     var value by remember(worker) { mutableStateOf(worker) }
     Text("Прокси для новостей", style = MaterialTheme.typography.titleLarge)
