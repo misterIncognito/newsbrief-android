@@ -16,6 +16,14 @@ class FixtureModulePlugin : AppFeature {
     }
 }
 class PluginPortsTest {
+    @Test fun conflictingProvidersFailInsteadOfReplacingOneAnother() {
+        val first = FixtureModulePlugin()
+        val second = FixtureModulePlugin()
+        val error = assertThrows(IllegalStateException::class.java) {
+            FeatureBindings.create(listOf(first, second))
+        }
+        assertEquals("Duplicate provider: http", error.message)
+    }
     @Test fun independentlyRegisteredLibraryConnectsThroughSharedInterfaces() {
         assertEquals(listOf("fixture-module"), InstalledFeatures.create().map { it.id })
         val url = "https://example.org/article"
