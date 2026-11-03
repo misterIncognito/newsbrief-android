@@ -11,6 +11,34 @@ import org.junit.Test
 @org.junit.runner.RunWith(org.robolectric.RobolectricTestRunner::class)
 @org.robolectric.annotation.Config(sdk = [35], application = android.app.Application::class)
 class SyncLoaderContractTest {
+    @Test fun prefetchUsesProxyFromTheProvidedComposition() = runBlocking {
+        val article = ArticleEntity(sourceId = 1, sourceName = "source", title = "title", excerpt = "",
+            link = "https://example.org/story", publishedAt = 1, readerLoaded = true,
+            content = "body", imageUrl = "https://proxy.example/image")
+        val repository = object : PrefetchArticleStore {
+            override suspend fun lookup(url: String): ArticleEntity? = null
+            override suspend fun prefetchCandidates() = listOf(article)
+            override suspend fun linkedArticle(parent: ArticleEntity, url: String) = parent
+            override suspend fun readArticle(article: ArticleEntity, refresh: Boolean, preserveLongerText: Boolean) = error("unexpected read")
+        }
+        var loaded = ""
+        val images = object : PrefetchImageStore {
+            override fun contains(url: String) = false
+            override suspend fun load(url: String, worker: String): ByteArray { loaded = url; return byteArrayOf() }
+        }
+        val bindings = io.newsbrief.app.runtime.FeatureBindings.create(listOf(io.newsbrief.app.features.SyncFeature()))
+        bindings.images = { images }
+        bindings.pageProxyPlugins += object : PageProxyPlugin {
+            override val id = "test"
+            override fun supports(request: PageRequest) = true
+            override fun endpoint(request: PageRequest, configuration: String) = request.resource
+            override fun originalResource(url: String, configuration: String) = "https://origin.example/image"
+        }
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
+        val outcome = bindings.prefetch!!.invoke(repository, TestSettings(), context).invoke()
+        assertEquals("https://origin.example/image", loaded)
+        assertEquals(1, outcome.images)
+    }
     private val collector = object : NewsCollector {
         override suspend fun collect(source: SourceEntity): List<ArticleEntity> = error("Must delegate to loader")
     }
