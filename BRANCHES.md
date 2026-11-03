@@ -168,7 +168,7 @@ explicitly using `-PnewsbriefIntegrationTests=true` with all test prerequisites 
 ## Develop a plugin
 
 Create `feature/<new-name>` from `dev`, add an Android library under `features/<new-name>`,
-and declare ownership, binding and optional default prerequisites in `tools/features.json`.
+and declare runtime prerequisites in the module's `feature.properties` file.
 Its main project dependency is `implementation(project(":core:api"))`. Implement the relevant
 port and a public no-argument `AppFeature` that registers it, and add its service descriptor.
 The application host requires no implementation import or registration edit. Put module
