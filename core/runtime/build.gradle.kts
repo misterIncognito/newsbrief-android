@@ -8,5 +8,6 @@ dependencies {
     api(project(":core:api"))
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
     implementation("androidx.activity:activity-compose:1.11.0")
+    implementation("androidx.compose.material:material-icons-core")
     testImplementation(project(":core:testing"))
 }

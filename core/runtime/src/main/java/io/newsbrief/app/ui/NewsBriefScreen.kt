@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -20,9 +23,9 @@ import io.newsbrief.app.runtime.FeaturePageNavigation
     val sections = vm.features.filter { it.id != "feed" && (it.title.isNotEmpty() || it.hasSettings) }.sortedBy { it.order }
     var selected by rememberSaveable { mutableStateOf(if (feed != null) "feed" else if (sections.isNotEmpty()) "settings" else "home") }
     var returnPage by rememberSaveable { mutableStateOf("") }
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
     val section = sections.firstOrNull { selected == "section:${it.id}" || selected == "page:${it.id}" }
     val inPage = selected.startsWith("page:")
-    val inSettings = selected == "settings" || section != null
     val overlays by vm.overlays.collectAsStateWithLifecycle()
     val overlay = overlays.lastOrNull()
     val message by vm.message.collectAsStateWithLifecycle()
@@ -56,16 +59,31 @@ import io.newsbrief.app.runtime.FeaturePageNavigation
                 }
                 if (feed != null && sections.isEmpty()) Text(feed.title, style = MaterialTheme.typography.labelMedium)
             }
-            when {
-                overlay != null -> TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
-                section != null -> TextButton(onClick = back) { Text("← Назад") }
-                selected == "feed" -> feed?.Toolbar(vm.host)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (overlay != null) TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
+                else {
+                    if (section != null) IconButton(onClick = back) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                    }
+                    if (selected == "feed") vm.features.sortedBy { it.order }.forEach { it.Toolbar(vm.host, navigation) }
+                    if (feed != null || sections.isNotEmpty()) Box {
+                        IconButton(onClick = { menuOpen = true }) { Icon(Icons.Default.Menu, contentDescription = "Меню") }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            if (feed != null) DropdownMenuItem(text = { Text("Лента") }, onClick = {
+                                vm.features.forEach { it.onFeedSelected(vm.host) }
+                                returnPage = ""; selected = "feed"; menuOpen = false
+                            })
+                            vm.features.sortedBy { it.order }.forEach { feature ->
+                                feature.MenuItems(vm.host, openFeed = { returnPage = ""; selected = "feed" },
+                                    closeMenu = { menuOpen = false })
+                            }
+                            if (sections.isNotEmpty()) DropdownMenuItem(text = { Text("Настройки") }, onClick = {
+                                returnPage = ""; selected = "settings"; menuOpen = false
+                            })
+                        }
+                    }
+                }
             }
-        }
-    }, bottomBar = {
-        if (overlay == null && feed != null && sections.isNotEmpty()) NavigationBar {
-            NavigationBarItem(selected == "feed", { returnPage = ""; selected = "feed" }, icon = { Text("≡") }, label = { Text("Лента", maxLines = 1) })
-            NavigationBarItem(inSettings, { returnPage = ""; selected = "settings" }, icon = { Text("⚙") }, label = { Text("Настройки", maxLines = 1) })
         }
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
