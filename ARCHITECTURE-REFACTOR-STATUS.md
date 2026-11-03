@@ -6,9 +6,11 @@ are retained. `isolated/*` branches add only the named feature over the refactor
 
 Explicit assembly selection, module-owned build prerequisites and duplicate singleton provider checks are implemented. Feature services and the runtime receive their composition explicitly.
 RSS, public Telegram and networking now use the transport/router from their composition. Synchronization receives image origin resolution from the composition instead of a global lookup.
-The central feature registry still contains unrelated contracts; several consumers still
-locate services globally, and other singleton registrations still permit replacement.
-These need further decomposition before the architecture request can be considered complete.
+The old global networking, parsing, source and proxy lookup helpers have been removed.
+However, FeatureBindings remains a central mutable composition registry; consumers still
+resolve unrelated services through it, and some registrations still permit replacement.
+It needs replacement by narrowly scoped, explicit contracts before the architecture
+request can be considered complete.
 
 The shell build/tests and a full-feature build/tests passed at the initial checkpoints.
 The progressive integration run passed through 10 features. Stage 11 was interrupted
