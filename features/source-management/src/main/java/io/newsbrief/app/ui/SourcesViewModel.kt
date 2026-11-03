@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.app.util.failureMessage
 import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,7 +23,7 @@ class SourcesViewModel(private val host: FeatureHost) : ViewModel(), SourcesUi {
             report(if (added) host.context.getString(R.string.nb_source_added) else host.context.getString(R.string.nb_source_exists))
             if (added) refreshFeed()
         } catch (e: CancellationException) { throw e
-        } catch (e: Exception) { report(e.message ?: host.context.getString(R.string.nb_source_failed)) }
+        } catch (e: Exception) { report(host.context.failureMessage(e).takeIf { it.isNotBlank() } ?: host.context.getString(R.string.nb_source_failed)) }
     }
 
     override fun toggleSource(id: Long, value: Boolean) = viewModelScope.launch {

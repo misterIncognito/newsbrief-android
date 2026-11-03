@@ -1,4 +1,7 @@
 package io.newsbrief.app.data
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.requireLocalized
+import io.newsbrief.app.util.LocalizedFailure
 import io.newsbrief.app.runtime.*
 class SourceActionsService(private val services: FeatureServices) : SourceActions {
     private val db = services.store
@@ -6,7 +9,7 @@ class SourceActionsService(private val services: FeatureServices) : SourceAction
     private val sourcePlugins = services.sources
     private val onFeedUpdated = services.onFeedUpdated
     override suspend fun add(name: String, kind: String, address: String): Boolean {
-        require(name.isNotBlank()) { "Укажи название источника" }
+        requireLocalized(name.isNotBlank(), R.string.nb_err_source_name, "Укажи название источника")
         val address = sourcePlugins.canonicalAddress(address, kind)
         return db.sourceDao().insert(SourceEntity(name = name.trim().take(70), kind = kind, address = address)) != -1L
     }
@@ -18,7 +21,7 @@ class SourceActionsService(private val services: FeatureServices) : SourceAction
         val items = collector.collect(candidate).filter {
             it.publishedAt <= System.currentTimeMillis() + 5 * 60_000L
         }
-        require(items.isNotEmpty()) { "Источник не отдаёт доступных публикаций. Попробуй другой результат." }
+        requireLocalized(items.isNotEmpty(), R.string.nb_err_source_empty, "Источник не отдаёт доступных публикаций. Попробуй другой результат.")
         val added = db.transaction {
             val id = db.sourceDao().insert(candidate)
             if (id == -1L) return@transaction false

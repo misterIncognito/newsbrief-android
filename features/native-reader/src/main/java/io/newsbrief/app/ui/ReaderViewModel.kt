@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.app.util.failureMessage
 import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -39,7 +40,7 @@ class ReaderViewModel(private val host: FeatureHost) : ViewModel(), ReaderUi {
                 if (_readerSource.value?.link == article.link) _reader.value = result
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
-                report(host.context.getString(R.string.nb_reader_error, e.message.orEmpty()))
+                report(host.context.getString(R.string.nb_reader_error, host.context.failureMessage(e)))
             } finally { if (currentCoroutineContext().isActive) _readerBusy.value = false }
         }
     }

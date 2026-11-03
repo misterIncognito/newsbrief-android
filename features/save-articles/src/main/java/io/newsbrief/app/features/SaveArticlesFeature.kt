@@ -16,7 +16,7 @@ class SaveArticlesFeature : AppFeature {
         bindings.controller(SavedUi::class.java, ::SavedArticlesViewModel)
         bindings.saveArticle = SaveArticleService::toggle
         bindings.articleActions += SaveArticleAction()
-        bindings.feedEmptyMessage = { if (it.controller(SavedUi::class.java).savedOnly.value) "Здесь будут сохранённые публикации. Нажми «Сохранить» под новостью." else null }
+        bindings.feedEmptyMessage = { if (it.controller(SavedUi::class.java).savedOnly.value) it.context.getString(R.string.nb_saved_empty) else null }
     }
     override fun onFeedSelected(host: FeatureHost) { host.controller(SavedUi::class.java).showSaved(false) }
     @Composable override fun MenuItems(host: FeatureHost, openFeed: () -> Unit, closeMenu: () -> Unit) {

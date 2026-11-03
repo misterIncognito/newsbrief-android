@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.app.util.failureMessage
 import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -43,7 +44,7 @@ class AiViewModel(private val host: FeatureHost) : ViewModel(), AiUi {
             report(host.context.getString(R.string.nb_digest_ready))
         } catch (e: CancellationException) { throw e
         } catch (e: Exception) {
-            report(host.context.getString(R.string.nb_digest_failed, e.message.orEmpty()))
+            report(host.context.getString(R.string.nb_digest_failed, host.context.failureMessage(e)))
         } finally { _generating.value = false }
     }
 

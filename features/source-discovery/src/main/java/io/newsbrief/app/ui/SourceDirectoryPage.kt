@@ -31,7 +31,11 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DirectoryProvider.entries.forEach { provider ->
                 FilterChip(selected = provider == state.provider, onClick = { vm.directoryProvider(provider) },
-                    label = { Text(provider.label) })
+                    label = { Text(when (provider) {
+                        DirectoryProvider.RSS -> stringResource(R.string.nb_directory_provider_rss)
+                        DirectoryProvider.TELEGRAM -> "Telegram"
+                        DirectoryProvider.CURATED -> stringResource(R.string.nb_directory_provider_curated)
+                    }) })
             }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -72,7 +76,7 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
             } else stringResource(R.string.nb_displayed_count, displayed.size)
             Text("${state.searchedQuery} · $status" + if (it.cached) stringResource(R.string.nb_cached_suffix) else "",
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp))
-            it.notice?.let { notice -> Text(notice, modifier = Modifier.padding(horizontal = 18.dp)) }
+            it.notice?.let { notice -> Text(it.noticeResource?.let { id -> stringResource(id) } ?: notice, modifier = Modifier.padding(horizontal = 18.dp)) }
             if (displayed.isEmpty()) Text(if (it.items.isNotEmpty()) stringResource(R.string.nb_empty_page) else stringResource(R.string.nb_no_results), modifier = Modifier.padding(18.dp))
             if (it.category == null && it.total != null && (it.total ?: 0) > it.items.size) Text(stringResource(R.string.nb_text_051),
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 18.dp))

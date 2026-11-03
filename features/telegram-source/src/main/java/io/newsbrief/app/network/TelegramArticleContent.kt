@@ -1,5 +1,8 @@
 package io.newsbrief.app.network
 
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.LocalizedFailure
+import io.newsbrief.app.util.requireLocalized
 import io.newsbrief.app.data.*
 
 class TelegramArticleContent(private val settings: SourceSettings) : TelegramContent {
@@ -10,7 +13,7 @@ class TelegramArticleContent(private val settings: SourceSettings) : TelegramCon
         val raw = fetch(preview, "fetch", settings.workerUrl(), 2_500_000).toString(Charsets.UTF_8)
         val post = TelegramPreviewParser().parse(raw, SourceEntity(id = article.sourceId,
             name = article.sourceName, address = preview, kind = SourceKind.TELEGRAM))
-            .firstOrNull { it.link == article.link } ?: error("Публикация Telegram недоступна")
+            .firstOrNull { it.link == article.link } ?: throw LocalizedFailure(R.string.nb_err_tg_post_unavailable, "Публикация Telegram недоступна")
         return cached.copy(text = article.content.ifBlank { post.content },
             imageUrl = cached.imageUrl.ifBlank { post.imageUrl },
             images = cached.images.ifEmpty { ArticleImages.decode(post.imagesJson) },

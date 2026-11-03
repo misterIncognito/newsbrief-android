@@ -1,6 +1,8 @@
 package io.newsbrief.app.ui
 
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import io.newsbrief.app.util.failureMessage
 import io.newsbrief.modules.core.api.R
 
 import androidx.compose.runtime.getValue
@@ -74,7 +76,9 @@ fun ReaderPage(vm: ReaderUi, host: io.newsbrief.app.runtime.FeatureHost) {
                 }
             }
         }
-        reader?.notice?.let { Text(it, color = MaterialTheme.colorScheme.error,
+        reader?.notice?.let { Text(reader?.noticeFailure?.let { error ->
+            stringResource(R.string.nb_reader_load_failed, LocalContext.current.failureMessage(error).take(90))
+        } ?: it, color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodySmall) }
         OutlinedButton(onClick = { vm.openReader(item, refresh = true) }, enabled = !busy) {
             Text(stringResource(R.string.nb_text_025))

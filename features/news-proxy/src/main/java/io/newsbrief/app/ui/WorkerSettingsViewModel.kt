@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.app.util.failureMessage
 import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,7 +21,7 @@ class WorkerSettingsViewModel(private val host: FeatureHost) : ViewModel(), Work
             store.setWorkerUrl(value)
             _workerUrl.value = store.workerUrl()
             report(host.context.getString(R.string.nb_proxy_saved))
-        } catch (e: Exception) { report(host.context.getString(R.string.nb_proxy_error, e.message.orEmpty())) }
+        } catch (e: Exception) { report(host.context.getString(R.string.nb_proxy_error, host.context.failureMessage(e))) }
     }
 
 

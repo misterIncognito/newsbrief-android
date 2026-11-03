@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.app.util.failureMessage
 import io.newsbrief.modules.core.api.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -50,11 +51,12 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
                     val outcome = services.refresh()
                     if (!quiet && outcome.skipped) report(host.context.getString(R.string.nb_feed_retry, (outcome.retryAfterMillis + 999) / 1000))
                     else if (!quiet) report(host.context.getString(R.string.nb_feed_new, outcome.added) +
-                        if (outcome.errors.isNotEmpty()) host.context.getString(R.string.nb_feed_errors, outcome.errors.joinToString("; ")) else "")
+                        if (outcome.errors.isNotEmpty()) host.context.getString(R.string.nb_feed_errors,
+                            if (outcome.sourceFailures.size == outcome.errors.size) outcome.sourceFailures.joinToString("; ") { listOf(it.sourceName, host.context.failureMessage(it.error).take(120)).filter { part -> part.isNotBlank() }.joinToString(": ") } else outcome.errors.joinToString("; ")) else "")
                 }
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
-                report(host.context.getString(R.string.nb_feed_error, e.message.orEmpty()))
+                report(host.context.getString(R.string.nb_feed_error, host.context.failureMessage(e)))
             } finally { _refreshing.value = false }
         }
     }

@@ -1,5 +1,8 @@
 package io.newsbrief.app.ai
 
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.LocalizedFailure
+import io.newsbrief.app.util.requireLocalized
 import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.data.DigestEntity
 import io.newsbrief.app.data.DigestMode
@@ -15,14 +18,14 @@ import kotlinx.coroutines.withContext
 /** A small OpenAI-compatible chat-completions adapter; providers are selected in Settings. */
 class AiClient(private val store: AiSettings) {
     suspend fun generate(articles: List<ArticleEntity>, mode: String): DigestEntity = withContext(Dispatchers.IO) {
-        require(articles.isNotEmpty()) { "За последние 24 часа нет публикаций" }
+        requireLocalized(articles.isNotEmpty(), R.string.nb_err_no_recent, "За последние 24 часа нет публикаций")
         val config = store.read()
         val apiKey = store.loadApiKey(config.provider)
-        require(apiKey.isNotBlank()) { "Добавь API-ключ ${config.provider} в настройках" }
+        requireLocalized(apiKey.isNotBlank(), R.string.nb_err_ai_key, "Добавь API-ключ ${config.provider} в настройках", config.provider)
         val endpoint = when (config.provider) {
             AiSettings.QWEN -> "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
             AiSettings.OPENAI -> "https://api.openai.com/v1/chat/completions"
-            else -> error("Неизвестный ИИ-провайдер")
+            else -> throw LocalizedFailure(R.string.nb_err_ai_provider, "Неизвестный ИИ-провайдер")
         }
         // Keep one call below a moderate context size; numbers match the attached references.
         val picked = articles.take(40)
@@ -77,10 +80,10 @@ class AiClient(private val store: AiSettings) {
             if (code !in 200..299) {
                 val detail = runCatching { JSONObject(result).optJSONObject("error")?.optString("message") }
                     .getOrNull() ?: result.take(180)
-                error("Ошибка ИИ HTTP $code: $detail")
+                throw LocalizedFailure(R.string.nb_err_ai_http, "Ошибка ИИ HTTP $code: $detail", code, detail)
             }
             JSONObject(result).getJSONArray("choices").getJSONObject(0).getJSONObject("message")
-                .optString("content").ifBlank { error("Модель вернула пустой ответ") }
+                .optString("content").ifBlank { throw LocalizedFailure(R.string.nb_err_ai_empty, "Модель вернула пустой ответ") }
         } finally {
             connection.disconnect()
         }

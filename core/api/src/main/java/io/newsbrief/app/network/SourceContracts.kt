@@ -1,5 +1,8 @@
 package io.newsbrief.app.network
 
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.LocalizedFailure
+import io.newsbrief.app.util.requireLocalized
 import io.newsbrief.app.data.*
 
 /** Stable IDs are stored in sources.kind and articles.sourcePluginId. */
@@ -26,8 +29,8 @@ interface SourceRegistry : NewsCollector {
 
 class EmptySourceRegistry : SourceRegistry {
     override val available = emptyList<SourcePluginInfo>()
-    override fun plugin(id: String): NewsSourcePlugin = error("Источники пока не подключены")
-    override fun canonicalAddress(input: String, id: String): String = error("Источники пока не подключены")
+    override fun plugin(id: String): NewsSourcePlugin = throw LocalizedFailure(R.string.nb_err_no_sources, "Источники пока не подключены")
+    override fun canonicalAddress(input: String, id: String): String = throw LocalizedFailure(R.string.nb_err_no_sources, "Источники пока не подключены")
     override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
 }
 

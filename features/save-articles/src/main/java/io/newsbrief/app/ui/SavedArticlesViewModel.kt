@@ -1,4 +1,6 @@
 package io.newsbrief.app.ui
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.failureMessage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.runtime.*
@@ -20,9 +22,9 @@ class SavedArticlesViewModel(private val host: FeatureHost) : ViewModel(), Saved
     override fun toggleSaved(article: ArticleEntity) = viewModelScope.launch {
         if (!saving.add(article.link)) return@launch
         try {
-            (bindings.saveArticle ?: error("Сохранение статей не подключено"))(services.store, article)
+            (bindings.saveArticle ?: error(host.context.getString(R.string.nb_save_unavailable)))(services.store, article)
         } catch (e: CancellationException) { throw e }
-        catch (e: Exception) { report("Не удалось выполнить действие: ${e.message}") }
+        catch (e: Exception) { report(host.context.getString(R.string.nb_action_failed, host.context.failureMessage(e))) }
         finally { saving.remove(article.link) }
     }
 

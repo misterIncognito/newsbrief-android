@@ -1,5 +1,6 @@
 package io.newsbrief.app.ui
 
+import io.newsbrief.modules.core.api.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -13,6 +14,6 @@ fun externalArticleIntent(url: String): Intent {
 fun openExternalArticle(context: Context, url: String) {
     try { context.startActivity(externalArticleIntent(url)) }
     catch (_: android.content.ActivityNotFoundException) {
-        Toast.makeText(context, "Нет доступного браузера", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.nb_no_browser), Toast.LENGTH_SHORT).show()
     }
 }

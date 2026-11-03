@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.app.util.failureMessage
 import io.newsbrief.modules.features.telegram_proxy.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -32,7 +33,7 @@ class TelegramProxyViewModel(private val host: FeatureHost) : ViewModel(), Teleg
                 _proxyChannels.value = ProxyChannelsState(open = true, channels = channels)
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { _proxyChannels.value = ProxyChannelsState(open = true,
-                error = host.context.getString(R.string.nb_tg_channels_error, e.localizedMessage.orEmpty().take(120))) }
+                error = host.context.getString(R.string.nb_tg_channels_error, host.context.failureMessage(e).take(120))) }
         }
     }
     override fun saveTelegramProxy(url: String, key: String) {
@@ -42,7 +43,7 @@ class TelegramProxyViewModel(private val host: FeatureHost) : ViewModel(), Teleg
             _telegramProxyUrl.value = store.telegramProxyUrl()
             _hasTelegramProxyKey.value = store.hasTelegramProxyKey()
             report(host.context.getString(R.string.nb_tg_saved))
-        } catch (e: Exception) { report(host.context.getString(R.string.nb_tg_save_error, e.localizedMessage.orEmpty())) }
+        } catch (e: Exception) { report(host.context.getString(R.string.nb_tg_save_error, host.context.failureMessage(e))) }
     }
     override fun removeTelegramProxyKey() {
         store.saveTelegramProxyKey(""); _hasTelegramProxyKey.value = false
@@ -57,7 +58,7 @@ class TelegramProxyViewModel(private val host: FeatureHost) : ViewModel(), Teleg
             report(if (added) host.context.getString(io.newsbrief.modules.core.api.R.string.nb_source_added) else host.context.getString(io.newsbrief.modules.core.api.R.string.nb_source_exists))
             if (added) refreshFeed()
         } catch (e: CancellationException) { throw e
-        } catch (e: Exception) { report(e.message ?: host.context.getString(io.newsbrief.modules.core.api.R.string.nb_source_failed)) }
+        } catch (e: Exception) { report(host.context.failureMessage(e).takeIf { it.isNotBlank() } ?: host.context.getString(io.newsbrief.modules.core.api.R.string.nb_source_failed)) }
     }
 
 

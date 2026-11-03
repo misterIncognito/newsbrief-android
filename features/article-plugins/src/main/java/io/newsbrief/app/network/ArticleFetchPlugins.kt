@@ -1,5 +1,8 @@
 package io.newsbrief.app.network
 
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.LocalizedFailure
+import io.newsbrief.app.util.requireLocalized
 import io.newsbrief.app.data.*
 import kotlinx.coroutines.CancellationException
 import org.jsoup.Jsoup
@@ -15,7 +18,7 @@ class ArticleFetchRegistry(val plugins: List<ArticleFetchPlugin>,
         for (plugin in plugins) if (plugin.supports(request)) {
             plugin.fetch(request)?.let { return it }
         }
-        error("Нет подходящего плагина для статьи")
+        throw LocalizedFailure(R.string.nb_err_no_article_plugin, "Нет подходящего плагина для статьи")
     }
     companion object {
         fun builtIns(telegram: TelegramContent? = null, extra: List<ArticleFetchPlugin> = emptyList(),

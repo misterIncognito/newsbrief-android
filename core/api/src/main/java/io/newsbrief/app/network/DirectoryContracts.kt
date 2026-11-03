@@ -12,7 +12,7 @@ data class DirectorySource(
 data class DirectoryResults(
     val items: List<DirectorySource>, val total: Int? = null, val directorySize: Int? = null,
     val cached: Boolean = false, val notice: String? = null,
-    val category: String? = null, val nextOffset: Int? = null
+    val category: String? = null, val nextOffset: Int? = null, val noticeResource: Int? = null
 )
 interface DirectoryNetwork {
     suspend fun search(provider: DirectoryProvider, query: String): DirectoryResults

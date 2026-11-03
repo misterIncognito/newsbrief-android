@@ -1,4 +1,6 @@
 package io.newsbrief.app.ui
+import io.newsbrief.modules.core.api.R
+import io.newsbrief.app.util.failureMessage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.runtime.*
@@ -47,7 +49,7 @@ class DirectoryViewModel(private val host: FeatureHost) : ViewModel(), Directory
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 if (generation == directoryGeneration) _directoryState.value = _directoryState.value.copy(
-                    busy = false, error = e.message ?: "Каталог недоступен")
+                    busy = false, error = host.context.failureMessage(e).takeIf { it.isNotBlank() } ?: host.context.getString(R.string.nb_directory_unavailable))
             }
         }
     }
@@ -70,7 +72,7 @@ class DirectoryViewModel(private val host: FeatureHost) : ViewModel(), Directory
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 if (generation == directoryGeneration) _directoryState.value = _directoryState.value.copy(
-                    busy = false, error = e.message ?: "Не удалось загрузить следующую страницу")
+                    busy = false, error = host.context.failureMessage(e).takeIf { it.isNotBlank() } ?: host.context.getString(R.string.nb_directory_more_error))
             }
         }
     }
@@ -79,12 +81,12 @@ class DirectoryViewModel(private val host: FeatureHost) : ViewModel(), Directory
         _directoryState.value = _directoryState.value.copy(addingAddress = source.address, addMessage = null)
         viewModelScope.launch {
             try {
-                val added = checkNotNull(services.sourceActions) { "Провайдеры источников не подключены" }.connect(source)
+                val added = checkNotNull(services.sourceActions) { host.context.getString(R.string.nb_sources_missing) }.connect(source)
                 _directoryState.value = _directoryState.value.copy(addMessage =
-                    if (added) "${source.title}: источник добавлен, публикации загружены" else "Источник уже добавлен")
+                    if (added) host.context.getString(R.string.nb_directory_added, source.title) else host.context.getString(R.string.nb_directory_exists))
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
-                _directoryState.value = _directoryState.value.copy(addMessage = "Не удалось добавить ${source.title}: ${e.message}")
+                _directoryState.value = _directoryState.value.copy(addMessage = host.context.getString(R.string.nb_directory_add_error, source.title, host.context.failureMessage(e)))
             } finally { _directoryState.value = _directoryState.value.copy(addingAddress = null) }
         }
     }
