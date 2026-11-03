@@ -18,6 +18,18 @@ import java.util.Base64
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ArticleImageCacheTest {
     private val app get() = ApplicationProvider.getApplicationContext<Application>()
+    @Test fun protectedArticleUsesInjectedProxyTransport() = runBlocking {
+        val directory = File(app.cacheDir, "protected-injected-image").apply { deleteRecursively() }
+        try {
+            val image = Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jG6kAAAAASUVORK5CYII=")
+            var required = false
+            val cache = ArticleImageCache(directory, proxyDownload = { _, _, force -> required = force; image })
+            val article = io.newsbrief.app.data.ArticleEntity(sourceId = 1, sourceName = "s", title = "t", excerpt = "",
+                link = "https://example.org/story", publishedAt = 1, proxyRequired = true)
+            assertArrayEquals(image, cache.loadForArticle("https://cdn.example/image.png", "https://worker.example", article))
+            assertTrue(required)
+        } finally { directory.deleteRecursively() }
+    }
     @Test fun prefetchedImageIsReadOfflineByAnotherCacheInstance() = runBlocking {
         val directory = File(app.cacheDir, "prefetch-image-test").apply { deleteRecursively() }
         try {

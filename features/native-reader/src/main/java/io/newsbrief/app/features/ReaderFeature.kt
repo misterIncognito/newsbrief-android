@@ -22,7 +22,13 @@ class ReaderFeature : AppFeature, ArticlePresentation {
                 plugins = extractor, telegram = bindings.telegramContent(settings),
                 download = { url, type, worker, limit -> fetch(url, type, worker, limit, false) })
         }
-        bindings.images = { ArticleImageCache(java.io.File(it.filesDir, "reader-images")) }
+        bindings.images = { context ->
+            ArticleImageCache(java.io.File(context.filesDir, "reader-images"),
+                proxyDownload = { url, worker, required ->
+                    (bindings.http ?: error("Networking plugin is unavailable"))
+                        .resource(PageRequest(url, "image", required, preferProxy = true), worker, 8_000_000).bytes
+                })
+        }
         bindings.articleStore = { io.newsbrief.app.data.ReaderArticleStore(it) }
         bindings.navigation += NavigationHandler("article", 20) { host, article -> host.controller(ReaderUi::class.java).openReader(article) }
         bindings.presentation = this

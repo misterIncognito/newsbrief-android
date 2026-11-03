@@ -39,7 +39,8 @@ internal fun annotatedPostText(text: String, links: List<ArticleLink>, color: Co
 /** Telegram posts are complete feed items; only embedded links navigate away. */
 @Composable
 internal fun TelegramFeedPost(article: ArticleEntity, workerUrl: String,
-    onLink: (String) -> Unit, onBrowser: (String) -> Unit, actions: @Composable () -> Unit = {}) {
+    onLink: (String) -> Unit, onBrowser: (String) -> Unit, actions: @Composable () -> Unit = {},
+    host: io.newsbrief.app.runtime.FeatureHost? = null) {
     val links = remember(article.linksJson) { ArticleLinks.decode(article.linksJson) }
     val text = article.content.ifBlank { article.excerpt }.ifBlank { article.title }
     val primary = ArticleLinks.fullArticle(links)
@@ -58,7 +59,7 @@ internal fun TelegramFeedPost(article: ArticleEntity, workerUrl: String,
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("${article.sourceName} · $date", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary)
-            photos.forEach { NewsImage(it, article.link, workerUrl, 200, article.proxyRequired) }
+            photos.forEach { NewsImage(it, article.link, workerUrl, 200, article.proxyRequired, host) }
             SelectionContainer {
                 Text(linkedText,
                     modifier = Modifier.testTag("telegram-post-body"), style = MaterialTheme.typography.bodyLarge)

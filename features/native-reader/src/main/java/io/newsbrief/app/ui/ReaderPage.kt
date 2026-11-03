@@ -47,7 +47,7 @@ fun ReaderPage(vm: ReaderUi, host: io.newsbrief.app.runtime.FeatureHost) {
         ArticleActionRow(item.copy(title = reader?.title?.ifBlank { item.title } ?: item.title), host)
         val image = reader?.imageUrl?.ifBlank { item.imageUrl } ?: item.imageUrl
         val images = reader?.images.orEmpty().ifEmpty { listOf(image).filter { it.isNotBlank() } }
-        images.forEach { NewsImage(it, item.link, worker, 220, item.proxyRequired) }
+        images.forEach { NewsImage(it, item.link, worker, 220, item.proxyRequired, host) }
         reader?.author?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
         if (busy) CircularProgressIndicator()
         if (primary != null && ArticleLinks.isTelegramPost(item)) {

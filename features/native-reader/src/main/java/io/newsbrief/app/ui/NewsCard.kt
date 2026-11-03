@@ -31,12 +31,12 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi, host: io.newsbrief.app.runtim
         TelegramFeedPost(article, workerUrl,
             onLink = { vm.openFeedLink(article, it) },
             onBrowser = { vm.openBrowser(it, forceProxy = true) },
-            actions = { ArticleActionRow(article, host) })
+            actions = { ArticleActionRow(article, host) }, host = host)
         return
     }
     Card(Modifier.fillMaxWidth().clickable { vm.openReader(article) }) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            if (article.imageUrl.isNotBlank()) NewsImage(article.imageUrl, article.link, workerUrl, 145, article.proxyRequired)
+            if (article.imageUrl.isNotBlank()) NewsImage(article.imageUrl, article.link, workerUrl, 145, article.proxyRequired, host)
             Text("${article.sourceName} · ${formatDate(article.publishedAt)}",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             Text(article.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
