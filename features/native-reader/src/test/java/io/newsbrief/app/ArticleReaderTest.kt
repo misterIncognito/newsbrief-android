@@ -10,6 +10,22 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = android.app.Application::class)
 class ArticleReaderTest {
+    @Test fun readerUsesTransportFromItsOwnComposition() = kotlinx.coroutines.runBlocking {
+        val bindings = io.newsbrief.app.runtime.FeatureBindings.create(listOf(io.newsbrief.app.features.ReaderFeature()))
+        val requests = mutableListOf<io.newsbrief.app.network.PageRequest>()
+        bindings.http = object : io.newsbrief.app.network.HttpTransport {
+            override fun resource(request: io.newsbrief.app.network.PageRequest, configuration: String, maxBytes: Int): io.newsbrief.app.network.DownloadedResource {
+                requests += request
+                val html = "<html><main><h1>Title</h1><p>Article text.</p></main></html>"
+                return io.newsbrief.app.network.DownloadedResource(html.toByteArray(), "text/html", "UTF-8", request.resource)
+            }
+        }
+        val article = io.newsbrief.app.data.ArticleEntity(sourceId = 1, sourceName = "Source", title = "Title", excerpt = "",
+            link = "https://example.org/story", publishedAt = 123)
+        val reader = bindings.article!!.invoke(io.newsbrief.app.data.MemorySettings(), null)
+        assertEquals("Article text.", reader.load(article, refresh = true).text)
+        assertEquals(listOf(article.link), requests.map { it.resource })
+    }
     @Test fun workerContractPreservesParagraphsDateAndImages() {
         val result = ArticleReader.parseArticle("""{
             "title":"A &amp; B", "text":"Flattened fallback", "paragraphs":["First paragraph.","Second paragraph."],

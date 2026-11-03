@@ -13,7 +13,15 @@ class ReaderFeature : AppFeature, ArticlePresentation {
         bindings.controller(ReaderUi::class.java, ::ReaderViewModel)
         bindings.parseArticle = ArticleReader::parseArticle
         bindings.ampAlternative = AmpDiscovery::alternative
-        bindings.article = { settings, extractor -> ArticleReader(settings, plugins = extractor, telegram = bindings.telegramContent(settings)) }
+        bindings.article = { settings, extractor ->
+            fun fetch(url: String, type: String, worker: String, limit: Int, required: Boolean): ByteArray =
+                (bindings.http ?: error("Networking plugin is unavailable"))
+                    .resource(PageRequest(url, type, required), worker, limit).bytes
+            ArticleReader(settings,
+                proxyDownload = { url, type, worker, limit -> fetch(url, type, worker, limit, true) },
+                plugins = extractor, telegram = bindings.telegramContent(settings),
+                download = { url, type, worker, limit -> fetch(url, type, worker, limit, false) })
+        }
         bindings.images = { ArticleImageCache(java.io.File(it.filesDir, "reader-images")) }
         bindings.articleStore = { io.newsbrief.app.data.ReaderArticleStore(it) }
         bindings.navigation += NavigationHandler("article", 20) { host, article -> host.controller(ReaderUi::class.java).openReader(article) }
