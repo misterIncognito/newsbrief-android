@@ -2,9 +2,10 @@
 
 NewsBrief now has real Android library modules. `:app` contains Android startup only.
 `dev` contains the shell and shared core, with **no optional feature implementation**.
-Each capability lives under `features/<name>/` on `feature/<name>`. The minimal application
-assembly is `integration/feed`; the complete convenience assembly is `feature/app-integration`.
-Runtime prerequisites are merged from their own branches, not copied into another module.
+The historical `feature/<name>` branches are preserved. New `isolated/<name>` branches
+start from `refactor/explicit-feature-architecture` and add only their own module.
+Runtime prerequisites must be merged and selected separately. `integration/feed` remains
+the previously validated feed assembly based on the historical branches.
 
 ## Shared contracts and host
 
@@ -69,7 +70,7 @@ Excluded modules contribute no classes or descriptors to the APK.
 
 ## Feature modules and branches
 
-Each row has a matching `feature/<name>` branch. Prerequisites below describe the default
+Each runtime row has a matching `isolated/<name>` branch. Prerequisites below describe the
 runnable assembly, **not implementation imports or library compiler dependencies**.
 
 | Name / Gradle module `:features:<name>` | Implementation | Default runtime prerequisites |
@@ -105,16 +106,19 @@ their own networking after NewsBrief passes them the original URL.
 ## Build and merge progressively
 
 ```sh
-git switch -c my-app dev
-git merge feature/feed
-git merge feature/rss-source
-git merge feature/storage
+git switch -c my-app refactor/explicit-feature-architecture
+git merge isolated/feed
+git merge isolated/networking
+git merge isolated/source-providers
+git merge isolated/rss-source
+git merge isolated/storage
 ./gradlew verifyModuleInterfaces :app:testDebugUnitTest :app:assembleDebug \
   -PnewsbriefFeatures=feed,networking,source-providers,rss-source,storage
 ```
 
-Build/run after every merge. Feed alone starts empty unless data is provided. RSS brings
-its default provider registry and transport branches. Storage adds persistence; without it
+Build/run after each merge, selecting only merged features and their prerequisites. Feed
+alone starts empty unless data is provided. RSS needs the separately merged provider registry
+and transport. Storage adds persistence; without it
 the host uses session memory and does not open or delete existing database/settings files.
 Session-only changes are not automatically imported when Storage is added.
 
@@ -127,12 +131,13 @@ appear, but those providers are skipped during refresh. Deleted sources are not 
 Add only the desired capability to your own application branch:
 
 ```sh
-git merge feature/save-articles
-git merge feature/share-articles
-git merge feature/source-management
-git merge feature/source-discovery
-git merge feature/news-proxy
-git merge feature/telegram-proxy
+git merge isolated/save-articles
+git merge isolated/share-articles
+git merge isolated/source-management
+git merge isolated/source-discovery
+git merge isolated/page-proxy
+git merge isolated/news-proxy
+git merge isolated/telegram-proxy
 ```
 
 Save does not require Share or Room; it uses the store interface. Reader and Embedded Browser
