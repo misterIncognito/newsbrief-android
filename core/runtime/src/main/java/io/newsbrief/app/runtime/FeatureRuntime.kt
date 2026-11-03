@@ -6,7 +6,7 @@ import io.newsbrief.app.network.*
 
 interface FeatureRuntimeOwner { val runtime: FeatureRuntime }
 
-class FeatureRuntime(context: Context, val features: List<AppFeature> = InstalledFeatures.create(), collector: NewsCollector? = null) {
+class FeatureRuntime(private val context: Context, val features: List<AppFeature> = InstalledFeatures.create(), collector: NewsCollector? = null) {
     val bindings = FeatureBindings.create(features)
     private val persistent = bindings.persistentStorage?.invoke(context)
     val store: NewsStore = persistent?.first ?: MemoryNewsStore()
@@ -19,5 +19,12 @@ class FeatureRuntime(context: Context, val features: List<AppFeature> = Installe
         override suspend fun prefetch() = prefetchArticles?.invoke() ?: io.newsbrief.app.sync.PrefetchOutcome(0, 0, 0)
     }
     private val prefetchArticles = services.articles?.let { bindings.prefetch?.invoke(it, settings, context) }
-    init { bindings.start(context) }
+    private var started = false
+    /** Called after the Application has published this fully constructed runtime. */
+    @Synchronized fun start() {
+        if (started) return
+        started = true
+        try { bindings.start(context) }
+        catch (error: Throwable) { started = false; throw error }
+    }
 }
