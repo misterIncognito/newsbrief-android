@@ -9,11 +9,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import io.newsbrief.app.data.ArticleEntity
+import io.newsbrief.app.network.ArticleLinks
 
 internal fun articleShareIntent(article: ArticleEntity): Intent = Intent(Intent.ACTION_SEND).apply {
     type = "text/plain"
-    putExtra(Intent.EXTRA_TITLE, article.title)
-    putExtra(Intent.EXTRA_TEXT, "${article.title}\n${article.link}")
+    if (ArticleLinks.isTelegramPost(article)) {
+        putExtra(Intent.EXTRA_TEXT, article.link)
+    } else {
+        putExtra(Intent.EXTRA_TITLE, article.title)
+        putExtra(Intent.EXTRA_TEXT, "${article.title}\n${article.link}")
+    }
 }
 
 

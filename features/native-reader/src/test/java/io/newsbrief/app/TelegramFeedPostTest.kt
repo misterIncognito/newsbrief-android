@@ -59,4 +59,16 @@ class TelegramFeedPostTest {
         compose.onNodeWithText("Открыть в браузере").performClick()
         compose.runOnIdle { assertEquals(url, opened) }
     }
+    @Test fun attachedPreviewLinkIsVisibleAndOpensFromTheFeed() {
+        var opened: String? = null
+        val previewUrl = "https://www.bbc.com/russian/articles/example"
+        val item = post.copy(content = "A Telegram message", linksJson =
+            """[{"label":"BBC article preview","url":"$previewUrl"}]""")
+        compose.setContent {
+            MaterialTheme { TelegramFeedPost(item, NewsRouting.DEFAULT_WORKER, onLink = { opened = it }, onBrowser = {}) }
+        }
+        compose.onNodeWithText("BBC article preview").performClick()
+        compose.runOnIdle { assertEquals(previewUrl, opened) }
+    }
+
 }
