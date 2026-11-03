@@ -15,13 +15,6 @@ class FeedFeature : AppFeature {
         bindings.controller(FeedUi::class.java, ::FeedViewModel)
         bindings.commands["refresh"] = { it.controller(FeedUi::class.java).refresh() }
     }
-    @Composable override fun Toolbar(host: FeatureHost) {
-        val vm = host.controller(FeedUi::class.java)
-        val refreshing by vm.refreshing.collectAsStateWithLifecycle()
-        androidx.compose.material3.TextButton(onClick = { vm.refresh() }, enabled = !refreshing) {
-            androidx.compose.material3.Text(if (refreshing) "Загрузка…" else "Обновить")
-        }
-    }
     @Composable override fun Screen(host: FeatureHost) {
         val vm = host.controller(FeedUi::class.java)
         val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
