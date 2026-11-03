@@ -79,7 +79,7 @@ class TelegramLinkProxyTest {
         for (mainFrame in listOf(true, false)) {
             val route = BrowserRouting.route("https://unknown.example/page", mainFrame, "https://devby.io/story", forceDocumentProxy = true)
             assertTrue(route.forceProxy)
-            assertTrue(NewsRouting.endpoint("https://unknown.example/page", route.type, NewsRouting.DEFAULT_WORKER, route.forceProxy)
+            assertTrue(routeWithNewsWorker("https://unknown.example/page", route.type, NewsRouting.DEFAULT_WORKER, route.forceProxy)
                 .startsWith(NewsRouting.DEFAULT_WORKER + "/fetch?"))
         }
         assertFalse(BrowserRouting.route("https://unknown.example/page", true, "").forceProxy)

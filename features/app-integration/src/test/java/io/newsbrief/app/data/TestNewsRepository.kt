@@ -4,7 +4,7 @@ import io.newsbrief.app.runtime.*
 class TestNewsRepository(val db: NewsStore, collector: NewsCollector, settings: AppSettings,
     directoryNetwork: DirectoryNetwork? = null, sourcePlugins: SourceRegistry? = null,
     articleReader: ArticleLoader? = null, clock: () -> Long = System::currentTimeMillis,
-    onFeedUpdated: () -> Unit = {}, extensions: FeatureBindings = FeatureBindings.create()) : PrefetchArticleStore {
+    onFeedUpdated: () -> Unit = {}, extensions: FeatureBindings = FeatureBindings.create(io.newsbrief.app.runtime.InstalledFeatures.create())) : PrefetchArticleStore {
     val services = FeatureServices(db, settings, collector, sourcePlugins, directoryNetwork, articleReader, clock, onFeedUpdated, extensions)
     companion object { const val SYNC_COOLDOWN_MILLIS = 3 * 60_000L }
     fun observeSources() = db.sourceDao().observe()
