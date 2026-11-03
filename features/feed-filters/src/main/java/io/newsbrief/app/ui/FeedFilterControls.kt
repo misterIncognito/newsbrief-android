@@ -16,6 +16,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -25,9 +27,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.data.FeedCategory
 import java.util.Locale
 
+private val FilterIcon = ImageVector.Builder(name = "Filter", defaultWidth = 24.dp, defaultHeight = 24.dp,
+    viewportWidth = 24f, viewportHeight = 24f).apply {
+    path(fill = androidx.compose.ui.graphics.SolidColor(Color.Black)) {
+        moveTo(10f, 18f); horizontalLineTo(14f); verticalLineTo(16f); horizontalLineTo(10f); close()
+        moveTo(3f, 6f); verticalLineTo(8f); horizontalLineTo(21f); verticalLineTo(6f); close()
+        moveTo(6f, 13f); horizontalLineTo(18f); verticalLineTo(11f); horizontalLineTo(6f); close()
+    }
+}.build()
+
 /** Optional feed contribution; all selection and panel state belongs to this feature. */
 @Composable
-fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null) {
+fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null, openSources: (() -> Unit)? = null) {
     val category by vm.feedCategory.collectAsStateWithLifecycle()
     val categories by vm.availableCategories.collectAsStateWithLifecycle()
     val selected by vm.feedSources.collectAsStateWithLifecycle()
@@ -37,26 +48,28 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null) {
     var search by rememberSaveable { mutableStateOf("") }
     if (savedOnly) return
 
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.Start) {
-        OutlinedButton(onClick = { open = true }, modifier = Modifier.testTag("open-source-filter")) {
-            val active = if (selected.isNotEmpty()) " (${selected.size})" else if (category != FeedCategory.ALL) " · ${category.label}" else ""
-            Text("Фильтр источников$active")
-        }
+    IconButton(onClick = { open = true }, modifier = Modifier.testTag("open-source-filter")) {
+        BadgedBox(badge = {
+            if (selected.isNotEmpty() || category != FeedCategory.ALL) Badge()
+        }) { Icon(FilterIcon, contentDescription = "Фильтр ленты") }
     }
     if (!open) return
     Dialog(onDismissRequest = { open = false }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.32f)).clickable { open = false },
-            contentAlignment = Alignment.CenterStart) {
+            contentAlignment = Alignment.CenterEnd) {
             Surface(
                 modifier = Modifier.fillMaxHeight().widthIn(max = 360.dp).fillMaxWidth(0.88f)
                     .testTag("source-filter-panel")
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
-                shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp), tonalElevation = 6.dp
+                shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp), tonalElevation = 6.dp
             ) {
                 Column(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("Фильтр ленты", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                         TextButton(onClick = { open = false }) { Text("Готово") }
+                    }
+                    if (openSources != null) {
+                        TextButton(onClick = { open = false; openSources() }) { Text("Управление источниками") }
                     }
                     Text("Категория", style = MaterialTheme.typography.labelLarge)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
