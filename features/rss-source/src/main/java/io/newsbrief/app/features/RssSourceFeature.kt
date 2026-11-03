@@ -8,7 +8,9 @@ class RssSourceFeature : AppFeature {
     override val id = "rss-source"
     override fun configure(bindings: FeatureBindings) {
         bindings.sourcePlugins += { settings -> RssSourcePlugin { url ->
-            HttpRequests.download(url, "fetch", settings.workerUrl(), 3_000_000).toString(Charsets.UTF_8)
+            val transport = bindings.http ?: error("Networking plugin is unavailable")
+            transport.resource(PageRequest(url, "fetch", proxyRequired = false), settings.workerUrl(), 3_000_000)
+                .bytes.toString(Charsets.UTF_8)
         } }
         bindings.sourceDefaults += listOf(
             SourceEntity(name = "BBC Русская служба", address = "https://feeds.bbci.co.uk/russian/rss.xml", kind = SourceKind.RSS),
