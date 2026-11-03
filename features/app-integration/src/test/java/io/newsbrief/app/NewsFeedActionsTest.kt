@@ -79,7 +79,6 @@ class NewsFeedActionsTest {
             } }
             compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
             waitFor { calls.get() >= 1 && !vm.feed.refreshing.value }
-            compose.onNodeWithText("Лента").performClick()
             waitFor { calls.get() >= 1 && !vm.feed.refreshing.value && vm.feed.feedArticles.value.size == 30 }
             compose.onNodeWithTag("news-feed").performScrollToIndex(15)
             compose.onNodeWithText("Story 15", substring = true).performClick()
@@ -92,12 +91,16 @@ class NewsFeedActionsTest {
             waitFor { vm.readerUi.readerSource.value == null && calls.get() == beforeReturn && !vm.feed.refreshing.value }
             compose.onNodeWithText("Story 15", substring = true).assertIsDisplayed()
             assertEquals(beforeReturn, calls.get())
+            compose.onNodeWithContentDescription("Меню").performClick()
             compose.onNodeWithText("Сохранённые").performClick()
             waitFor { vm.feed.feedArticles.value.size == 1 }
             compose.onNodeWithText("Story 15", substring = true).assertExists()
             compose.onNodeWithText("✓ Сохранено").performClick()
             waitFor { vm.feed.feedArticles.value.isEmpty() }
             compose.onNodeWithText("Здесь будут сохранённые публикации.", substring = true).assertExists()
+            compose.onNodeWithContentDescription("Меню").performClick()
+            compose.onNodeWithText("Лента").performClick()
+            waitFor { vm.feed.feedArticles.value.size == 30 }
             assertNotNull(runBlocking { repo.lookup("https://source.example/story/15") })
         } finally { model?.closeFeatures(); db.close(); Dispatchers.resetMain() }
     }
@@ -124,13 +127,14 @@ class NewsFeedActionsTest {
             compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
             compose.onNodeWithText("Каталог").assertDoesNotExist()
             compose.onNodeWithText("Telegram-прокси").assertDoesNotExist()
+            compose.onNodeWithContentDescription("Меню").performClick()
             compose.onNodeWithText("Настройки").performClick()
             compose.onNodeWithText("Каталог").assertExists()
             compose.onNodeWithText("AI summary").assertExists()
             compose.onNodeWithText("Источники").performClick()
             compose.onNodeWithText("Из каталога").performClick()
             compose.onNodeWithText("Найти новые источники").assertExists()
-            compose.onNodeWithText("← Назад").performClick()
+            compose.onNodeWithContentDescription("Назад").performClick()
             compose.onNodeWithText("Мои источники").assertExists()
             compose.onNodeWithText("Своя ссылка").performClick()
             compose.onNodeWithText("RSS / Atom ▾").performClick()
@@ -141,6 +145,7 @@ class NewsFeedActionsTest {
             compose.onNodeWithText("Telegram через прокси").performClick()
             compose.onNodeWithText("@канал, ссылка t.me или ID канала").assertExists()
             compose.onNodeWithText("Отмена").performClick()
+            compose.onNodeWithContentDescription("Меню").performClick()
             compose.onNodeWithText("Настройки").performClick()
             compose.onNodeWithText("Telegram-прокси").performClick()
             compose.onNodeWithText("HTTPS URL Telegram-прокси").performScrollTo().assertExists()
@@ -149,7 +154,7 @@ class NewsFeedActionsTest {
             waitFor { vm.telegram.proxyChannels.value.error != null }
             compose.onNodeWithText("Настрой HTTPS-адрес и ключ Telegram-прокси", substring = true).assertExists()
             compose.onNodeWithText("Закрыть").performClick()
-            compose.onNodeWithText("← Назад").performClick()
+            compose.onNodeWithContentDescription("Назад").performClick()
             compose.onNodeWithText("HTTPS URL Telegram-прокси").performScrollTo().assertExists()
             compose.onNodeWithText("Ключ доступа Telegram-прокси").performScrollTo().assertExists()
         } finally { model?.closeFeatures(); db.close(); Dispatchers.resetMain() }
@@ -181,7 +186,6 @@ class NewsFeedActionsTest {
             val owner = Owner()
             compose.setContent { CompositionLocalProvider(LocalLifecycleOwner provides owner) { MaterialTheme { NewsBriefScreen(vm) } } }
             compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
-            compose.onNodeWithText("Лента").performClick()
             waitFor { vm.feed.feedArticles.value.size == 3 }
             compose.onNodeWithTag("open-source-filter").performClick()
             compose.onNodeWithText("Alpha").performScrollTo().performClick()

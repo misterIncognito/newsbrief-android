@@ -44,12 +44,13 @@ class OptionalFeatureAssemblyTest {
         val shell = NewsViewModel(app, FeatureServices(MemoryNewsStore(), MemorySettings(), bindings = bindings), features)
         try {
             compose.setContent { MaterialTheme { NewsBriefScreen(shell) } }
+            compose.onNodeWithContentDescription("Меню").performClick()
             compose.onNodeWithText("Настройки").performClick()
             compose.onNodeWithText("Источники").performClick()
             if ("source-discovery" in selected) {
                 compose.onNodeWithText("Из каталога").performClick()
                 compose.onNodeWithText("Найти новые источники").assertExists()
-                compose.onNodeWithText("← Назад").performClick()
+                compose.onNodeWithContentDescription("Назад").performClick()
                 compose.onNodeWithText("Мои источники").assertExists()
             } else compose.onNodeWithText("Из каталога").assertDoesNotExist()
         } finally { shell.closeFeatures(); Dispatchers.resetMain() }
@@ -88,6 +89,12 @@ class OptionalFeatureAssemblyTest {
             if ("feed-filters" in selected) {
                 compose.onNodeWithTag("open-source-filter").performClick()
                 compose.onNodeWithTag("source-filter-panel").assertExists()
+                if ("source-management" in selected) {
+                    compose.onNodeWithText("Управление источниками").performClick()
+                    compose.onNodeWithText("Мои источники").assertExists()
+                    compose.onNodeWithContentDescription("Назад").performClick()
+                    compose.onNodeWithTag("open-source-filter").performClick()
+                } else compose.onNodeWithText("Управление источниками").assertDoesNotExist()
                 compose.onNodeWithText("Готово").performClick()
             } else compose.onNodeWithTag("open-source-filter").assertDoesNotExist()
             if ("native-reader" !in selected && "embedded-browser" !in selected) {
