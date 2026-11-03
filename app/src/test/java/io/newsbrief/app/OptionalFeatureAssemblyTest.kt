@@ -35,6 +35,25 @@ class OptionalFeatureAssemblyTest {
             "native-reader" to ReaderUi::class.java, "embedded-browser" to BrowserUi::class.java)
         assertEquals(owners.filterKeys { it in selected }.values.toSet(), bindings.controllers.keys)
     }
+    @Test fun sourceCatalogButtonFollowsInstalledFeatures() {
+        if ("feed" !in selected || "source-management" !in selected) return
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val features = InstalledFeatures.create()
+        val bindings = FeatureBindings.create(features)
+        val shell = NewsViewModel(app, FeatureServices(MemoryNewsStore(), MemorySettings(), bindings = bindings), features)
+        try {
+            compose.setContent { MaterialTheme { NewsBriefScreen(shell) } }
+            compose.onNodeWithText("Настройки").performClick()
+            compose.onNodeWithText("Источники").performClick()
+            if ("source-discovery" in selected) {
+                compose.onNodeWithText("Из каталога").performClick()
+                compose.onNodeWithText("Найти новые источники").assertExists()
+                compose.onNodeWithText("← Назад").performClick()
+                compose.onNodeWithText("Мои источники").assertExists()
+            } else compose.onNodeWithText("Из каталога").assertDoesNotExist()
+        } finally { shell.closeFeatures(); Dispatchers.resetMain() }
+    }
     @Test fun feedAcceptsOptionalControlsAndKeepsDefaultExternalNavigation() {
         if ("feed" !in selected) return
         val dispatcher = UnconfinedTestDispatcher(); Dispatchers.setMain(dispatcher)
