@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,7 +17,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -78,16 +80,27 @@ fun SourcesPage(vm: SourcesUi) {
 private fun AddSourceDialog(plugins: List<io.newsbrief.app.network.SourcePluginInfo>, onClose: () -> Unit, onAdd: (String, String, String) -> Unit) {
     var name by rememberSaveable { mutableStateOf("") }
     var address by rememberSaveable { mutableStateOf("") }
-    var kind by rememberSaveable { mutableStateOf(SourceKind.RSS) }
+    var kind by rememberSaveable { mutableStateOf(plugins.firstOrNull { it.id == SourceKind.RSS }?.id ?: plugins.firstOrNull()?.id.orEmpty()) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text("Подключить источник") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    plugins.forEach { plugin ->
-                        FilterChip(selected = kind == plugin.id, onClick = { kind = plugin.id },
-                            label = { Text(plugin.title) })
+                    Text("Тип источника", style = MaterialTheme.typography.labelMedium)
+                    Box {
+                        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text((plugins.firstOrNull { it.id == kind }?.title ?: "Выберите тип") + " ▾")
+                        }
+                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            plugins.forEach { plugin ->
+                                DropdownMenuItem(text = { Text(plugin.title) }, onClick = {
+                                    kind = plugin.id
+                                    expanded = false
+                                })
+                            }
+                        }
                     }
                 }
                 OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true,
