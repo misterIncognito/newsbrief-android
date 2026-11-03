@@ -1,5 +1,14 @@
 # NewsBrief Android
 
+## Screenshots
+
+These captures show the `integration/isolated-feed` build running on an Android emulator.
+News content and available sources change over time.
+
+| News feed | Source filter | Native reader |
+| --- | --- | --- |
+| <img src="docs/screenshots/feed.png" alt="News feed with article cards and save and share actions" width="220"> | <img src="docs/screenshots/source-filter.png" alt="Source filter with a selected technology source" width="220"> | <img src="docs/screenshots/reader.png" alt="Native article reader with browser, save and share actions" width="220"> |
+
 `integration/feed` uses AGP 9.4.1 and Gradle 9.6.0, upgraded with Android Studio’s
 AGP Upgrade Assistant. See [upgrade validation](docs/agp-9.4.1-upgrade.md).
 Development feature branches inherit this shared toolchain; existing release and tags are preserved.
