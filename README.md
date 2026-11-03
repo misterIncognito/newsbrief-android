@@ -295,3 +295,11 @@ Worker Readability и HTML издателя. Нативный Reader и пред
 используют прокси. Оригинальная статья The Warsaw проверена на Motorola внутри
 NewsBrief. Версия 0.4.12 установлена без удаления данных; 154 теста и одна проверка
 на телефоне прошли. Подробности: [FEED-BROWSER-0412.md](FEED-BROWSER-0412.md).
+
+### GitHub Actions: debug APK
+
+The **Android build** workflow runs the unit tests, module interface checks, and a
+full debug build on pushes and pull requests. It can also be started manually
+from GitHub Actions once the workflow is present on the default branch. After a
+successful run, download **newsbrief-debug-apk** from the run's Artifacts section.
+Artifacts are retained for 30 days. This is a debug build, not a signed release.
