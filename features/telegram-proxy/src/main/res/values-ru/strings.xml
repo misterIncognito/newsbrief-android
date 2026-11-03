@@ -1,3 +1,24 @@
 <resources>
     <string name="nb_feature_telegram_proxy">Telegram-прокси</string>
+    <string name="nb_telegram_proxy_source_title">Telegram через прокси</string>
+    <string name="nb_telegram_proxy_source_hint">@канал, ссылка t.me или ID канала</string>
+    <string name="nb_tg_proxy">Telegram-прокси</string>
+    <string name="nb_tg_channels">Каналы Telegram-прокси</string>
+    <string name="nb_tg_channels_description">Доступные каналы, которые уже собирает сервис. Подключение добавляет их в ленту.</string>
+    <string name="nb_tg_search">Поиск канала</string>
+    <string name="nb_tg_empty">На сервисе пока нет доступных каналов</string>
+    <string name="nb_tg_connected">Подключён</string>
+    <string name="nb_tg_add">Добавить</string>
+    <string name="nb_tg_close">Закрыть</string>
+    <string name="nb_tg_refresh">Обновить</string>
+    <string name="nb_tg_url">HTTPS URL Telegram-прокси</string>
+    <string name="nb_tg_key_saved">Ключ доступа сохранён</string>
+    <string name="nb_tg_key_missing">Ключ доступа не добавлен</string>
+    <string name="nb_tg_key">Ключ доступа Telegram-прокси</string>
+    <string name="nb_tg_save">Сохранить Telegram-прокси</string>
+    <string name="nb_tg_remove">Удалить ключ Telegram-прокси</string>
+    <string name="nb_tg_channels_error">Не удалось загрузить каналы: %1$s</string>
+    <string name="nb_tg_saved">Настройки Telegram-прокси сохранены</string>
+    <string name="nb_tg_save_error">Не удалось сохранить Telegram-прокси: %1$s</string>
+    <string name="nb_tg_key_removed">Ключ Telegram-прокси удалён</string>
 </resources>

@@ -1,4 +1,5 @@
 package io.newsbrief.app.ui
+import io.newsbrief.modules.features.telegram_proxy.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.newsbrief.app.runtime.*
@@ -31,7 +32,7 @@ class TelegramProxyViewModel(private val host: FeatureHost) : ViewModel(), Teleg
                 _proxyChannels.value = ProxyChannelsState(open = true, channels = channels)
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { _proxyChannels.value = ProxyChannelsState(open = true,
-                error = "Не удалось загрузить каналы: ${e.message.orEmpty().take(120)}") }
+                error = host.context.getString(R.string.nb_tg_channels_error, e.localizedMessage.orEmpty().take(120))) }
         }
     }
     override fun saveTelegramProxy(url: String, key: String) {
@@ -40,23 +41,23 @@ class TelegramProxyViewModel(private val host: FeatureHost) : ViewModel(), Teleg
             if (key.isNotBlank()) store.saveTelegramProxyKey(key)
             _telegramProxyUrl.value = store.telegramProxyUrl()
             _hasTelegramProxyKey.value = store.hasTelegramProxyKey()
-            report("Настройки Telegram-прокси сохранены")
-        } catch (e: Exception) { report("Не удалось сохранить Telegram-прокси: ${e.message}") }
+            report(host.context.getString(R.string.nb_tg_saved))
+        } catch (e: Exception) { report(host.context.getString(R.string.nb_tg_save_error, e.localizedMessage.orEmpty())) }
     }
     override fun removeTelegramProxyKey() {
         store.saveTelegramProxyKey(""); _hasTelegramProxyKey.value = false
-        report("Ключ Telegram-прокси удалён")
+        report(host.context.getString(R.string.nb_tg_key_removed))
     }
 
     override val sources = services.store.sourceDao().observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     private suspend fun refreshFeed() { if (!host.command("refresh")) services.refresh() }
     override fun addSource(name: String, kind: String, address: String) = viewModelScope.launch {
         try {
-            val added = checkNotNull(services.sourceActions) { "Провайдеры источников не подключены" }.add(name, kind, address)
-            report(if (added) "Источник добавлен" else "Такой источник уже подключён")
+            val added = checkNotNull(services.sourceActions) { host.context.getString(io.newsbrief.modules.core.api.R.string.nb_sources_missing) }.add(name, kind, address)
+            report(if (added) host.context.getString(io.newsbrief.modules.core.api.R.string.nb_source_added) else host.context.getString(io.newsbrief.modules.core.api.R.string.nb_source_exists))
             if (added) refreshFeed()
         } catch (e: CancellationException) { throw e
-        } catch (e: Exception) { report(e.message ?: "Не удалось добавить источник") }
+        } catch (e: Exception) { report(e.message ?: host.context.getString(io.newsbrief.modules.core.api.R.string.nb_source_failed)) }
     }
 
 

@@ -3,7 +3,11 @@ package io.newsbrief.app.network
 import io.newsbrief.app.data.*
 
 /** Stable IDs are stored in sources.kind and articles.sourcePluginId. */
-data class SourcePluginInfo(val id: String, val title: String, val addressHint: String)
+data class SourcePluginInfo(val id: String, val title: String, val addressHint: String,
+    val titleResource: Int? = null, val addressHintResource: Int? = null) {
+    fun title(context: android.content.Context): String = titleResource?.let(context::getString) ?: title
+    fun addressHint(context: android.content.Context): String = addressHintResource?.let(context::getString) ?: addressHint
+}
 
 interface NewsSourcePlugin {
     val info: SourcePluginInfo

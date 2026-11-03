@@ -1,3 +1,24 @@
 <resources>
     <string name="nb_feature_telegram_proxy">Telegram proxy</string>
+    <string name="nb_telegram_proxy_source_title">Telegram via proxy</string>
+    <string name="nb_telegram_proxy_source_hint">@channel, t.me link or channel ID</string>
+    <string name="nb_tg_proxy">Telegram proxy</string>
+    <string name="nb_tg_channels">Telegram proxy channels</string>
+    <string name="nb_tg_channels_description">Available channels already collected by the service. Connect them to add them to your feed.</string>
+    <string name="nb_tg_search">Search channels</string>
+    <string name="nb_tg_empty">No channels are available on the service yet</string>
+    <string name="nb_tg_connected">Connected</string>
+    <string name="nb_tg_add">Add</string>
+    <string name="nb_tg_close">Close</string>
+    <string name="nb_tg_refresh">Refresh</string>
+    <string name="nb_tg_url">Telegram proxy HTTPS URL</string>
+    <string name="nb_tg_key_saved">Access key saved</string>
+    <string name="nb_tg_key_missing">No access key added</string>
+    <string name="nb_tg_key">Telegram proxy access key</string>
+    <string name="nb_tg_save">Save Telegram proxy</string>
+    <string name="nb_tg_remove">Remove Telegram proxy key</string>
+    <string name="nb_tg_channels_error">Could not load channels: %1$s</string>
+    <string name="nb_tg_saved">Telegram proxy settings saved</string>
+    <string name="nb_tg_save_error">Could not save Telegram proxy: %1$s</string>
+    <string name="nb_tg_key_removed">Telegram proxy key removed</string>
 </resources>

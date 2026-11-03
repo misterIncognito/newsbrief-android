@@ -1,6 +1,7 @@
 package io.newsbrief.app.ui
 
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import io.newsbrief.modules.core.api.R
 
 import androidx.compose.runtime.getValue
@@ -39,6 +40,7 @@ import io.newsbrief.app.data.SourceKind
 
 @Composable
 fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null) {
+    val context = LocalContext.current
     val sources by vm.sources.collectAsStateWithLifecycle()
     var dialogVisible by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
@@ -61,7 +63,7 @@ fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null) {
                             verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(source.name, style = MaterialTheme.typography.titleMedium)
-                                Text(vm.sourcePlugins.firstOrNull { it.id == source.kind }?.title ?: source.kind, style = MaterialTheme.typography.labelSmall,
+                                Text(vm.sourcePlugins.firstOrNull { it.id == source.kind }?.title(context) ?: source.kind, style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Switch(checked = source.enabled, onCheckedChange = { vm.toggleSource(source.id, it) })
@@ -82,6 +84,7 @@ fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null) {
 
 @Composable
 private fun AddSourceDialog(plugins: List<io.newsbrief.app.network.SourcePluginInfo>, onClose: () -> Unit, onAdd: (String, String, String) -> Unit) {
+    val context = LocalContext.current
     var name by rememberSaveable { mutableStateOf("") }
     var address by rememberSaveable { mutableStateOf("") }
     var kind by rememberSaveable { mutableStateOf(plugins.firstOrNull { it.id == SourceKind.RSS }?.id ?: plugins.firstOrNull()?.id.orEmpty()) }
@@ -95,11 +98,11 @@ private fun AddSourceDialog(plugins: List<io.newsbrief.app.network.SourcePluginI
                     Text(stringResource(R.string.nb_text_032), style = MaterialTheme.typography.labelMedium)
                     Box {
                         OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text((plugins.firstOrNull { it.id == kind }?.title ?: stringResource(R.string.nb_choose_type)) + " ▾")
+                            Text((plugins.firstOrNull { it.id == kind }?.title(context) ?: stringResource(R.string.nb_choose_type)) + " ▾")
                         }
                         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                             plugins.forEach { plugin ->
-                                DropdownMenuItem(text = { Text(plugin.title) }, onClick = {
+                                DropdownMenuItem(text = { Text(plugin.title(context)) }, onClick = {
                                     kind = plugin.id
                                     expanded = false
                                 })
@@ -110,7 +113,7 @@ private fun AddSourceDialog(plugins: List<io.newsbrief.app.network.SourcePluginI
                 OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true,
                     label = { Text(stringResource(R.string.nb_text_034)) })
                 OutlinedTextField(value = address, onValueChange = { address = it }, singleLine = true,
-                    label = { Text(plugins.firstOrNull { it.id == kind }?.addressHint.orEmpty()) })
+                    label = { Text(plugins.firstOrNull { it.id == kind }?.addressHint(context).orEmpty()) })
             }
         },
         confirmButton = {

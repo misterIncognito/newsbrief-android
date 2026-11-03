@@ -1,0 +1,3 @@
+<resources>
+    <string name="nb_rss_address_hint">HTTPS-ссылка на RSS или Atom</string>
+</resources>
