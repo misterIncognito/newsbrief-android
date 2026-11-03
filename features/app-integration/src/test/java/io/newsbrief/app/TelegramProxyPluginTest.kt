@@ -53,7 +53,7 @@ class TelegramProxyPluginTest {
         assertEquals(listOf("/api/auth", "/api/channel/channel", "/api/posts/12345:7"), requests)
         val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
         try {
-            val repo = NewsRepository(db, SourcePluginRegistry.builtIns(SettingsStore(app), listOf(TelegramProxySourcePlugin(client))), SettingsStore(app), articleReader = reader)
+            val repo = TestNewsRepository(db, SourcePluginRegistry.builtIns(SettingsStore(app), listOf(TelegramProxySourcePlugin(client))), SettingsStore(app), articleReader = reader)
             repo.toggleSaved(article)
             repo.removeSource(source.id)
             val saved = repo.observeSaved().first().single()
@@ -78,13 +78,13 @@ class TelegramProxyPluginTest {
             db.sourceDao().insert(source)
             val registry = SourcePluginRegistry.builtIns(settings, listOf(TelegramProxySourcePlugin(client)))
             var now = 1_000_000L
-            val repo = NewsRepository(db, registry, settings, clock = { now })
+            val repo = TestNewsRepository(db, registry, settings, clock = { now })
             assertEquals(1, repo.refresh().added)
             val original = repo.observeLatest().first().single()
             db.articleDao().updateArticle(original.copy(imageUrl = "https://cdn.example/cover.jpg"))
             repo.toggleSaved(original)
             text = "Edited full post"
-            now += NewsRepository.SYNC_COOLDOWN_MILLIS
+            now += TestNewsRepository.SYNC_COOLDOWN_MILLIS
             assertEquals(0, repo.refresh().added)
             val edited = repo.observeSaved().first().single()
             assertEquals(text, edited.content); assertEquals(original.importedAt, edited.importedAt)

@@ -6,7 +6,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.data.AiSettings
 
-@Composable fun AiSettingsSection(vm: AppUi) {
+@Composable fun AiSettingsSection(vm: AiUi) {
     val config by vm.config.collectAsStateWithLifecycle()
     val saved by vm.hasKey.collectAsStateWithLifecycle()
     var model by remember(config) { mutableStateOf(config.model) }

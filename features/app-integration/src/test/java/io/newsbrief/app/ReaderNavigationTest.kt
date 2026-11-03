@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.*
 import io.newsbrief.app.network.NewsCollector
-import io.newsbrief.app.ui.NewsViewModel
+import io.newsbrief.app.ui.TestAppModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -26,7 +26,7 @@ class ReaderNavigationTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val app = ApplicationProvider.getApplicationContext<Application>()
         val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
-        var vm: NewsViewModel? = null
+        var vm: TestAppModel? = null
         try {
             val settings = SettingsStore(app).apply {
                 markSourcesCatalogV2Seeded(); markSourcesCatalogV3Seeded()
@@ -37,22 +37,22 @@ class ReaderNavigationTest {
                 linksJson = "[{\"label\":\"Подробнее\",\"url\":\"https://devby.io/news/story\"}]")
             val article = post.copy(link = "https://devby.io/news/story", title = "Full article", content = "Saved full article", linksJson = "[]")
             db.articleDao().insertAll(listOf(post, article))
-            val repo = NewsRepository(db, object : NewsCollector {
+            val repo = TestNewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
             }, settings)
-            val model = NewsViewModel(app, repo, settings); vm = model
-            model.openReader(post)
-            withTimeout(5000) { model.reader.first { it?.text == "Saved post" } }
-            model.openReaderLink(article.link).join()
-            withTimeout(5000) { model.reader.first { it?.text == "Saved full article" } }
-            assertEquals(article.link, model.readerSource.value!!.link)
-            model.closeReader()
-            withTimeout(5000) { model.reader.first { it?.text == "Saved post" } }
-            assertEquals(post.link, model.readerSource.value!!.link)
-            model.closeReader()
-            assertNull(model.readerSource.value)
-            assertNull(model.reader.value)
-            assertFalse(model.readerBusy.value)
-        } finally { vm?.viewModelScope?.cancel(); db.close(); Dispatchers.resetMain() }
+            val model = TestAppModel(app, repo, settings); vm = model
+            model.readerUi.openReader(post)
+            withTimeout(5000) { model.readerUi.reader.first { it?.text == "Saved post" } }
+            model.readerUi.openReaderLink(article.link).join()
+            withTimeout(5000) { model.readerUi.reader.first { it?.text == "Saved full article" } }
+            assertEquals(article.link, model.readerUi.readerSource.value!!.link)
+            model.readerUi.closeReader()
+            withTimeout(5000) { model.readerUi.reader.first { it?.text == "Saved post" } }
+            assertEquals(post.link, model.readerUi.readerSource.value!!.link)
+            model.readerUi.closeReader()
+            assertNull(model.readerUi.readerSource.value)
+            assertNull(model.readerUi.reader.value)
+            assertFalse(model.readerUi.readerBusy.value)
+        } finally { vm?.closeFeatures(); db.close(); Dispatchers.resetMain() }
     }
 }

@@ -12,8 +12,9 @@ class AiFeature : AppFeature {
     override val title = "Главное"
     override val order = 70
     override fun configure(bindings: FeatureBindings) {
+        bindings.controller(AiUi::class.java, ::AiViewModel)
         bindings.generate = { articles, mode, settings -> AiClient(settings).generate(DigestArticleSelector.pick(articles), mode) }
     }
-    @Composable override fun Screen(vm: AppUi) { DigestPage(vm) }
-    @Composable override fun Settings(vm: AppUi) { AiSettingsSection(vm) }
+    @Composable override fun Screen(host: FeatureHost) { DigestPage(host.controller(AiUi::class.java)) }
+    @Composable override fun Settings(host: FeatureHost) { AiSettingsSection(host.controller(AiUi::class.java)) }
 }

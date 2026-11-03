@@ -185,7 +185,7 @@ class AmpArticleTest {
                 requests++; assertEquals("fetch", type)
                 (if (target == url) original else amp).toByteArray()
             }, download = { _, _, _, _ -> error("Direct request forbidden") })
-            val repo = NewsRepository(db, object : NewsCollector {
+            val repo = TestNewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
             }, settings, articleReader = reader)
             val images = mutableSetOf<String>()

@@ -16,7 +16,7 @@ internal fun articleShareIntent(article: ArticleEntity): Intent = Intent(Intent.
 
 
 class ShareArticleAction : ArticleAction {
-    @Composable override fun Content(article: ArticleEntity, vm: ReaderUi) { ShareArticleButton(article) }
+    @Composable override fun Content(article: ArticleEntity, host: io.newsbrief.app.runtime.FeatureHost) { ShareArticleButton(article) }
 }
 @Composable internal fun ShareArticleButton(article: ArticleEntity) {
         val context = LocalContext.current

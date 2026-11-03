@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.*
 import io.newsbrief.app.network.NewsCollector
-import io.newsbrief.app.ui.NewsViewModel
+import io.newsbrief.app.ui.TestAppModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -42,7 +42,7 @@ class SourceRefreshTest {
             val secondId = db.sourceDao().insert(second)
             val saved = article(first.copy(id = firstId), "Offline full text")
             db.articleDao().insertAll(listOf(saved, article(second.copy(id = secondId))))
-            val repo = NewsRepository(db, object : NewsCollector {
+            val repo = TestNewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
             }, settings())
             assertEquals(2, repo.observeLatest().first().size)
@@ -61,7 +61,7 @@ class SourceRefreshTest {
     @Test fun addingSourceDuringRefreshQueuesAnotherPass() = runBlocking {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
-        var vm: NewsViewModel? = null
+        var vm: TestAppModel? = null
         val release = CompletableDeferred<Unit>()
         try {
             db.sourceDao().insert(SourceEntity(name = "First", address = "https://first.example/rss", kind = SourceKind.RSS))
@@ -75,20 +75,20 @@ class SourceRefreshTest {
                 }
             }
             val store = settings()
-            val repo = NewsRepository(db, collector, store)
-            val model = NewsViewModel(app, repo, store)
+            val repo = TestNewsRepository(db, collector, store)
+            val model = TestAppModel(app, repo, store)
             vm = model
             withTimeout(5000) { started.await() }
-            model.addSource("Second", SourceKind.RSS, "https://second.example/rss").join()
-            assertTrue(model.refreshing.value)
+            model.sourcesUi.addSource("Second", SourceKind.RSS, "https://second.example/rss").join()
+            assertTrue(model.feed.refreshing.value)
             release.complete(Unit)
-            withTimeout(5000) { model.refreshing.first { !it } }
+            withTimeout(5000) { model.feed.refreshing.first { !it } }
             assertEquals(setOf("First", "Second"), repo.observeLatest().first().map { it.sourceName }.toSet())
             assertEquals(2, calls.count { it == "First" })
             assertEquals(1, calls.count { it == "Second" })
         } finally {
             release.complete(Unit)
-            vm?.viewModelScope?.cancel()
+            vm?.closeFeatures()
             db.close()
             Dispatchers.resetMain()
         }
@@ -101,7 +101,7 @@ class SourceRefreshTest {
             val oldId = db.sourceDao().insert(source)
             val cached = article(source.copy(id = oldId), "Saved reader text")
             db.articleDao().insertAll(listOf(cached))
-            val repo = NewsRepository(db, object : NewsCollector {
+            val repo = TestNewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity) = listOf(article(source))
             }, settings())
             repo.removeSource(oldId)
@@ -115,21 +115,21 @@ class SourceRefreshTest {
     @Test fun enablingSourceFetchesItsArticlesAutomatically() = runBlocking {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
-        var vm: NewsViewModel? = null
+        var vm: TestAppModel? = null
         try {
             val id = db.sourceDao().insert(SourceEntity(name = "Enabled later", address = "https://later.example/rss",
                 kind = SourceKind.RSS, enabled = false))
             val store = settings()
-            val repo = NewsRepository(db, object : NewsCollector {
+            val repo = TestNewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity) = listOf(article(source))
             }, store)
-            val model = NewsViewModel(app, repo, store)
+            val model = TestAppModel(app, repo, store)
             vm = model
-            model.toggleSource(id, true).join()
-            withTimeout(5000) { model.refreshing.first { !it } }
+            model.sourcesUi.toggleSource(id, true).join()
+            withTimeout(5000) { model.feed.refreshing.first { !it } }
             assertEquals("Enabled later", repo.observeLatest().first().single().sourceName)
         } finally {
-            vm?.viewModelScope?.cancel()
+            vm?.closeFeatures()
             db.close()
             Dispatchers.resetMain()
         }
@@ -137,40 +137,40 @@ class SourceRefreshTest {
     @Test fun returningToFeedRespectsCooldownAndCoalescesWithoutChangingFilters() = runBlocking {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
-        var vm: NewsViewModel? = null
+        var vm: TestAppModel? = null
         val started = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
         try {
             db.sourceDao().insert(SourceEntity(name = "Source", address = "https://source.example/rss", kind = SourceKind.RSS))
             var calls = 0
             var now = 1_000_000L
-            val repo = NewsRepository(db, object : NewsCollector {
+            val repo = TestNewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity): List<ArticleEntity> {
                     calls++
                     if (calls == 1) { started.complete(Unit); release.await() }
                     return listOf(article(source).copy(link = "https://source.example/story/$calls"))
                 }
             }, settings(), clock = { now })
-            val model = NewsViewModel(app, repo, settings()); vm = model
+            val model = TestAppModel(app, repo, settings()); vm = model
             withTimeout(5000) { started.await() }
-            model.filterCategory(FeedCategory.TECH)
-            model.filterSource("source-filter")
-            repeat(5) { model.feedBecameVisible() }
+            model.filters.filterCategory(FeedCategory.TECH)
+            model.filters.filterSource("source-filter")
+            repeat(5) { model.feed.feedBecameVisible() }
             release.complete(Unit)
-            withTimeout(5000) { model.refreshing.first { !it } }
+            withTimeout(5000) { model.feed.refreshing.first { !it } }
             assertEquals(1, calls)
             model.clearMessage()
-            model.feedBecameVisible()
-            withTimeout(5000) { model.refreshing.first { !it } }
+            model.feed.feedBecameVisible()
+            withTimeout(5000) { model.feed.refreshing.first { !it } }
             assertEquals(1, calls)
-            now += NewsRepository.SYNC_COOLDOWN_MILLIS
-            model.feedBecameVisible()
-            withTimeout(5000) { model.refreshing.first { !it } }
+            now += TestNewsRepository.SYNC_COOLDOWN_MILLIS
+            model.feed.feedBecameVisible()
+            withTimeout(5000) { model.feed.refreshing.first { !it } }
             assertEquals(2, calls)
             assertEquals(2, repo.observeLatest().first().size)
-            assertEquals(FeedCategory.TECH, model.feedCategory.value)
-            assertEquals(setOf("source-filter"), model.feedSources.value)
+            assertEquals(FeedCategory.TECH, model.filters.feedCategory.value)
+            assertEquals(setOf("source-filter"), model.filters.feedSources.value)
             assertNull(model.message.value)
-        } finally { release.complete(Unit); vm?.viewModelScope?.cancel(); db.close(); Dispatchers.resetMain() }
+        } finally { release.complete(Unit); vm?.closeFeatures(); db.close(); Dispatchers.resetMain() }
     }
 }

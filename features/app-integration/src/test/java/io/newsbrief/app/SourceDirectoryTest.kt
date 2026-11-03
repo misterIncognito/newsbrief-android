@@ -35,7 +35,7 @@ class SourceDirectoryTest {
         override suspend fun search(provider: DirectoryProvider, query: String) = block(provider, query)
     }
     private fun repository(db: NewsDatabase, collect: suspend (SourceEntity) -> List<ArticleEntity>) =
-        NewsRepository(db, object : NewsCollector {
+        TestNewsRepository(db, object : NewsCollector {
             override suspend fun collect(source: SourceEntity) = collect(source)
         }, SettingsStore(app))
     private fun article(source: SourceEntity, content: String = "New feed text") = ArticleEntity(

@@ -22,18 +22,18 @@ class TelegramReaderLiveTest {
     private fun openFullArticle(postUrl: String, host: String) {
         assumeTrue(InstrumentationRegistry.getArguments().getString("verifyArticleReaders") == "true")
         val app = compose.activity.application as NewsBriefApp
-        val post = runBlocking { app.repository.lookup(postUrl) }
+        val post = runBlocking { app.runtime.store.articleDao().findByLink(postUrl) }
         assumeTrue("The smoke-test post must already exist on this phone", post != null)
         val vm = ViewModelProvider(compose.activity)[NewsViewModel::class.java]
-        compose.runOnUiThread { vm.openReader(post!!) }
-        compose.waitUntil(40_000) { vm.reader.value != null && !vm.readerBusy.value }
-        assertNull(vm.reader.value!!.notice)
+        compose.runOnUiThread { vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).openReader(post!!) }
+        compose.waitUntil(40_000) { vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).reader.value != null && !vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).readerBusy.value }
+        assertNull(vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).reader.value!!.notice)
         val label = "Читать полную статью · $host"
         compose.onNodeWithText(label).performScrollTo().performClick()
         compose.waitUntil(40_000) {
-            vm.readerSource.value?.link != postUrl && vm.reader.value != null && !vm.readerBusy.value
+            vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).readerSource.value?.link != postUrl && vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).reader.value != null && !vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).readerBusy.value
         }
-        val article = vm.reader.value!!
+        val article = vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).reader.value!!
         assertNull(article.notice)
         assertTrue("Full article text should be available", article.text.length > 500)
         assertTrue(article.originalUrl.startsWith("https://$host/"))
@@ -49,9 +49,9 @@ class TelegramReaderLiveTest {
             loaded
         }
         compose.onNodeWithText("← К статье").performClick()
-        compose.waitUntil(10_000) { vm.browserUrl.value == null }
+        compose.waitUntil(10_000) { vm.host.controller(io.newsbrief.app.ui.BrowserUi::class.java).browserUrl.value == null }
         compose.onNodeWithText("← Назад").performClick()
-        compose.waitUntil(10_000) { vm.readerSource.value?.link == postUrl && vm.reader.value != null }
+        compose.waitUntil(10_000) { vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).readerSource.value?.link == postUrl && vm.host.controller(io.newsbrief.app.ui.ReaderUi::class.java).reader.value != null }
         compose.onNodeWithText(label).assertExists()
     }
 

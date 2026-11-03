@@ -8,6 +8,8 @@ import io.newsbrief.app.runtime.*
 class SourceProvidersFeature : AppFeature {
     override val id = "source-providers"
     override fun configure(bindings: FeatureBindings) {
+        bindings.feedLoader = { ManualFeedLoader(it.store, it.collector, it.onFeedUpdated) }
+        bindings.sourceActions = { SourceActionsService(it) }
         bindings.sources = { settings -> SourcePluginRegistry(bindings.sourcePlugins.map { it(settings) }) }
         bindings.seed = { db, settings ->
             if (bindings.sourceDefaults.isNotEmpty() && db.sourceDao().count() == 0 && !settings.isSourcesCatalogV5Seeded()) {

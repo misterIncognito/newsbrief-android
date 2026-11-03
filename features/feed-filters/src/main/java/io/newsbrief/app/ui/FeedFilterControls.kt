@@ -27,11 +27,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.data.FeedCategory
 
-@Composable fun FeedFilterControls(vm: FeedUi) {
+@Composable fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null) {
     val category by vm.feedCategory.collectAsStateWithLifecycle()
     val selectedSources by vm.feedSources.collectAsStateWithLifecycle()
     val options by vm.feedOptions.collectAsStateWithLifecycle()
-    val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
+    val savedOnly by (saved?.savedOnly ?: kotlinx.coroutines.flow.MutableStateFlow(false)).collectAsStateWithLifecycle()
     val filtered = category != FeedCategory.ALL || selectedSources.isNotEmpty()
         if (!savedOnly) {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),

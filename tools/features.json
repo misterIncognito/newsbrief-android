@@ -1,6 +1,12 @@
 {
   "foundation": [
-    "core/api/build.gradle.kts",
+    "app/src/main/AndroidManifest.xml",
+    "app/src/main/java/io/newsbrief/app/MainActivity.kt",
+    "app/src/main/java/io/newsbrief/app/NewsBriefApp.kt",
+    "app/src/main/res/drawable/ic_launcher.xml",
+    "app/src/test/java/io/newsbrief/app/AppPluginAssemblyTest.kt",
+    "app/src/test/java/io/newsbrief/app/OptionalFeatureAssemblyTest.kt",
+    "app/src/test/java/io/newsbrief/app/ShellAppTest.kt",
     "core/api/consumer-rules.pro",
     "core/api/src/main/AndroidManifest.xml",
     "core/api/src/main/java/io/newsbrief/app/data/AppSettings.kt",
@@ -30,41 +36,32 @@
     "core/api/src/main/java/io/newsbrief/app/network/SourceContracts.kt",
     "core/api/src/main/java/io/newsbrief/app/network/TelegramContent.kt",
     "core/api/src/main/java/io/newsbrief/app/runtime/AppFeature.kt",
+    "core/api/src/main/java/io/newsbrief/app/runtime/FeatureHost.kt",
+    "core/api/src/main/java/io/newsbrief/app/runtime/FeatureServices.kt",
     "core/api/src/main/java/io/newsbrief/app/runtime/InstalledFeatures.kt",
     "core/api/src/main/java/io/newsbrief/app/sync/BackgroundTasks.kt",
     "core/api/src/main/java/io/newsbrief/app/ui/AiUi.kt",
-    "core/api/src/main/java/io/newsbrief/app/ui/AppUi.kt",
     "core/api/src/main/java/io/newsbrief/app/ui/ArticleContributions.kt",
     "core/api/src/main/java/io/newsbrief/app/ui/ArticleNavigation.kt",
     "core/api/src/main/java/io/newsbrief/app/ui/DateFormatting.kt",
+    "core/api/src/main/java/io/newsbrief/app/ui/FeatureControllers.kt",
     "core/api/src/main/java/io/newsbrief/app/ui/FeedUi.kt",
     "core/api/src/main/java/io/newsbrief/app/ui/ReaderUi.kt",
     "core/api/src/main/java/io/newsbrief/app/ui/SourcesUi.kt",
     "core/api/src/main/java/io/newsbrief/app/util/FeedRules.kt",
     "core/api/src/test/java/io/newsbrief/app/FeedRulesTest.kt",
     "core/api/src/test/java/io/newsbrief/app/PluginPortsTest.kt",
-    "core/api/src/test/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
-    "core/runtime/build.gradle.kts",
     "core/runtime/src/main/AndroidManifest.xml",
-    "core/runtime/src/main/java/io/newsbrief/app/data/ManualFeedLoader.kt",
     "core/runtime/src/main/java/io/newsbrief/app/data/MemoryNewsStore.kt",
     "core/runtime/src/main/java/io/newsbrief/app/data/MemorySettings.kt",
-    "core/runtime/src/main/java/io/newsbrief/app/data/NewsRepository.kt",
     "core/runtime/src/main/java/io/newsbrief/app/runtime/FeatureRuntime.kt",
     "core/runtime/src/main/java/io/newsbrief/app/ui/NewsBriefScreen.kt",
     "core/runtime/src/main/java/io/newsbrief/app/ui/NewsBriefShell.kt",
     "core/runtime/src/main/java/io/newsbrief/app/ui/NewsViewModel.kt",
+    "core/runtime/src/test/java/io/newsbrief/app/FeatureHostLifecycleTest.kt",
     "core/runtime/src/test/java/io/newsbrief/app/MemoryNewsStoreTest.kt",
-    "core/testing/build.gradle.kts",
     "core/testing/src/main/AndroidManifest.xml",
-    "core/testing/src/main/java/io/newsbrief/app/TestSettings.kt",
-    "app/src/main/AndroidManifest.xml",
-    "app/src/main/java/io/newsbrief/app/MainActivity.kt",
-    "app/src/main/java/io/newsbrief/app/NewsBriefApp.kt",
-    "app/src/main/res/drawable/ic_launcher.xml",
-    "app/src/test/java/io/newsbrief/app/AppPluginAssemblyTest.kt",
-    "app/src/test/java/io/newsbrief/app/ShellAppTest.kt",
-    "app/build.gradle.kts"
+    "core/testing/src/main/java/io/newsbrief/app/TestSettings.kt"
   ],
   "features": {
     "networking": {
@@ -106,6 +103,7 @@
         "features/news-proxy/src/main/java/io/newsbrief/app/network/CloudflarePageProxy.kt",
         "features/news-proxy/src/main/java/io/newsbrief/app/network/WorkerArticlePlugin.kt",
         "features/news-proxy/src/main/java/io/newsbrief/app/ui/WorkerSettingsSection.kt",
+        "features/news-proxy/src/main/java/io/newsbrief/app/ui/WorkerSettingsViewModel.kt",
         "features/news-proxy/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
         "features/news-proxy/src/test/java/io/newsbrief/app/NewsRoutingTest.kt"
       ],
@@ -144,6 +142,8 @@
       "files": [
         "features/source-providers/build.gradle.kts",
         "features/source-providers/src/main/AndroidManifest.xml",
+        "features/source-providers/src/main/java/io/newsbrief/app/data/ManualFeedLoader.kt",
+        "features/source-providers/src/main/java/io/newsbrief/app/data/SourceActionsService.kt",
         "features/source-providers/src/main/java/io/newsbrief/app/features/SourceProvidersFeature.kt",
         "features/source-providers/src/main/java/io/newsbrief/app/network/Collectors.kt",
         "features/source-providers/src/main/java/io/newsbrief/app/network/SourcePlugins.kt",
@@ -211,6 +211,7 @@
         "features/telegram-proxy/src/main/java/io/newsbrief/app/network/TelegramProxyContent.kt",
         "features/telegram-proxy/src/main/java/io/newsbrief/app/network/TelegramProxySourcePlugin.kt",
         "features/telegram-proxy/src/main/java/io/newsbrief/app/ui/TelegramProxyChannelsPage.kt",
+        "features/telegram-proxy/src/main/java/io/newsbrief/app/ui/TelegramProxyViewModel.kt",
         "features/telegram-proxy/src/main/java/io/newsbrief/app/ui/TelegramSettingsSection.kt",
         "features/telegram-proxy/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
         "features/telegram-proxy/src/test/java/io/newsbrief/app/TelegramProxyServiceTest.kt"
@@ -229,6 +230,7 @@
         "features/source-management/src/main/AndroidManifest.xml",
         "features/source-management/src/main/java/io/newsbrief/app/features/SourceManagementFeature.kt",
         "features/source-management/src/main/java/io/newsbrief/app/ui/SourcesPage.kt",
+        "features/source-management/src/main/java/io/newsbrief/app/ui/SourcesViewModel.kt",
         "features/source-management/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature"
       ],
       "binding": "io.newsbrief.app.features.SourceManagementFeature",
@@ -246,6 +248,7 @@
         "features/source-discovery/src/main/java/io/newsbrief/app/data/SourceDirectoryRepository.kt",
         "features/source-discovery/src/main/java/io/newsbrief/app/features/SourceDiscoveryFeature.kt",
         "features/source-discovery/src/main/java/io/newsbrief/app/network/SourceDirectory.kt",
+        "features/source-discovery/src/main/java/io/newsbrief/app/ui/DirectoryViewModel.kt",
         "features/source-discovery/src/main/java/io/newsbrief/app/ui/SourceDirectoryPage.kt",
         "features/source-discovery/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
         "features/source-discovery/src/test/java/io/newsbrief/app/SourceCatalogTest.kt"
@@ -264,6 +267,7 @@
         "features/feed-filters/src/main/java/io/newsbrief/app/data/FeedFilters.kt",
         "features/feed-filters/src/main/java/io/newsbrief/app/features/FeedFiltersFeature.kt",
         "features/feed-filters/src/main/java/io/newsbrief/app/ui/FeedFilterControls.kt",
+        "features/feed-filters/src/main/java/io/newsbrief/app/ui/FeedFiltersViewModel.kt",
         "features/feed-filters/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
         "features/feed-filters/src/test/java/io/newsbrief/app/FeedFiltersTest.kt"
       ],
@@ -278,6 +282,7 @@
       "files": [
         "features/native-reader/build.gradle.kts",
         "features/native-reader/src/main/AndroidManifest.xml",
+        "features/native-reader/src/main/java/io/newsbrief/app/data/ReaderArticleStore.kt",
         "features/native-reader/src/main/java/io/newsbrief/app/features/ReaderFeature.kt",
         "features/native-reader/src/main/java/io/newsbrief/app/network/AmpDiscovery.kt",
         "features/native-reader/src/main/java/io/newsbrief/app/network/ArticleImageCache.kt",
@@ -285,6 +290,7 @@
         "features/native-reader/src/main/java/io/newsbrief/app/ui/NewsCard.kt",
         "features/native-reader/src/main/java/io/newsbrief/app/ui/NewsImage.kt",
         "features/native-reader/src/main/java/io/newsbrief/app/ui/ReaderPage.kt",
+        "features/native-reader/src/main/java/io/newsbrief/app/ui/ReaderViewModel.kt",
         "features/native-reader/src/main/java/io/newsbrief/app/ui/TelegramFeedPost.kt",
         "features/native-reader/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
         "features/native-reader/src/test/java/io/newsbrief/app/ArticleImageCacheTest.kt",
@@ -306,6 +312,7 @@
         "features/embedded-browser/src/main/AndroidManifest.xml",
         "features/embedded-browser/src/main/java/io/newsbrief/app/features/EmbeddedBrowserFeature.kt",
         "features/embedded-browser/src/main/java/io/newsbrief/app/network/BrowserRouting.kt",
+        "features/embedded-browser/src/main/java/io/newsbrief/app/ui/BrowserViewModel.kt",
         "features/embedded-browser/src/main/java/io/newsbrief/app/ui/EmbeddedBrowserPage.kt",
         "features/embedded-browser/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
         "features/embedded-browser/src/test/java/io/newsbrief/app/BrowserPolicyTest.kt",
@@ -328,7 +335,7 @@
         "features/synchronization/src/main/java/io/newsbrief/app/worker/PrefetchWorker.kt",
         "features/synchronization/src/main/java/io/newsbrief/app/worker/RefreshWorker.kt",
         "features/synchronization/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
-        "features/synchronization/src/test/java/io/newsbrief/app/SyncPortsTest.kt"
+        "features/synchronization/src/test/java/io/newsbrief/app/SyncLoaderContractTest.kt"
       ],
       "binding": "io.newsbrief.app.features.SyncFeature",
       "module": ":features:synchronization",
@@ -344,6 +351,7 @@
         "features/feed/src/main/java/io/newsbrief/app/ui/FeedCard.kt",
         "features/feed/src/main/java/io/newsbrief/app/ui/FeedPage.kt",
         "features/feed/src/main/java/io/newsbrief/app/ui/FeedRefreshContainer.kt",
+        "features/feed/src/main/java/io/newsbrief/app/ui/FeedViewModel.kt",
         "features/feed/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
         "features/feed/src/test/java/io/newsbrief/app/FeedAutoRefreshTest.kt",
         "features/feed/src/test/java/io/newsbrief/app/FeedRuntimeTest.kt"
@@ -360,6 +368,7 @@
         "features/save-articles/src/main/java/io/newsbrief/app/data/SaveArticleService.kt",
         "features/save-articles/src/main/java/io/newsbrief/app/features/SaveArticlesFeature.kt",
         "features/save-articles/src/main/java/io/newsbrief/app/ui/SaveArticleAction.kt",
+        "features/save-articles/src/main/java/io/newsbrief/app/ui/SavedArticlesViewModel.kt",
         "features/save-articles/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
         "features/save-articles/src/test/java/io/newsbrief/app/SaveArticleTest.kt"
       ],
@@ -390,6 +399,7 @@
         "features/ai/src/main/java/io/newsbrief/app/data/DigestArticleSelector.kt",
         "features/ai/src/main/java/io/newsbrief/app/features/AiFeature.kt",
         "features/ai/src/main/java/io/newsbrief/app/ui/AiSettingsSection.kt",
+        "features/ai/src/main/java/io/newsbrief/app/ui/AiViewModel.kt",
         "features/ai/src/main/java/io/newsbrief/app/ui/DigestPage.kt",
         "features/ai/src/main/resources/META-INF/services/io.newsbrief.app.runtime.AppFeature",
         "features/ai/src/test/java/io/newsbrief/app/DigestArticleSelectorTest.kt"
@@ -440,10 +450,13 @@
         "features/app-integration/src/test/java/io/newsbrief/app/SavedArticlesTest.kt",
         "features/app-integration/src/test/java/io/newsbrief/app/SourceDirectoryTest.kt",
         "features/app-integration/src/test/java/io/newsbrief/app/SourceRefreshTest.kt",
+        "features/app-integration/src/test/java/io/newsbrief/app/SyncPortsTest.kt",
         "features/app-integration/src/test/java/io/newsbrief/app/TelegramCatalogTest.kt",
         "features/app-integration/src/test/java/io/newsbrief/app/TelegramLinkProxyTest.kt",
         "features/app-integration/src/test/java/io/newsbrief/app/TelegramProxyPluginTest.kt",
-        "features/app-integration/src/test/java/io/newsbrief/app/TelegramReaderLinksTest.kt"
+        "features/app-integration/src/test/java/io/newsbrief/app/TelegramReaderLinksTest.kt",
+        "features/app-integration/src/test/java/io/newsbrief/app/data/TestNewsRepository.kt",
+        "features/app-integration/src/test/java/io/newsbrief/app/ui/TestAppModel.kt"
       ],
       "testRequires": [
         "ai",

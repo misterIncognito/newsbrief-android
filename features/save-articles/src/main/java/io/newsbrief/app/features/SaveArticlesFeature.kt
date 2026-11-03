@@ -7,9 +7,10 @@ import io.newsbrief.app.ui.*
 class SaveArticlesFeature : AppFeature {
     override val id = "save-articles"
     override fun configure(bindings: FeatureBindings) {
+        bindings.controller(SavedUi::class.java, ::SavedArticlesViewModel)
         bindings.saveArticle = SaveArticleService::toggle
         bindings.articleActions += SaveArticleAction()
-        bindings.feedControls += { SavedFeedControls(it) }
-        bindings.feedEmptyMessage = { if (it.savedOnly.value) "Здесь будут сохранённые публикации. Нажми «Сохранить» под новостью." else null }
+        bindings.feedControls += { SavedFeedControls(it.controller(SavedUi::class.java)) }
+        bindings.feedEmptyMessage = { if (it.controller(SavedUi::class.java).savedOnly.value) "Здесь будут сохранённые публикации. Нажми «Сохранить» под новостью." else null }
     }
 }

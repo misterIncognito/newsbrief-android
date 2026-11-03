@@ -34,19 +34,26 @@ class FeedRuntimeTest {
         assertNull(bindings.persistentStorage); assertNull(bindings.article); assertNull(bindings.generate); assertNull(bindings.refresh)
         val sourceId = runBlocking { store.sourceDao().insert(SourceEntity(name = "Fixture RSS", address = "https://example.org/rss", kind = SourceKind.RSS)) }
         var calls = 0
-        val repo = NewsRepository(store, object : NewsCollector {
+        val collector = object : NewsCollector {
             override suspend fun collect(source: SourceEntity): List<ArticleEntity> {
                 calls++
                 return listOf(ArticleEntity(sourceId = sourceId, sourceName = source.name, title = "Real feed item", excerpt = "Preview",
                     content = "Full content supplied by the feed", link = "https://example.org/story", publishedAt = 1000))
             }
-        }, settings, extensions = bindings)
+        }
+        bindings.feedLoader = { FeedLoader {
+            val source = runBlocking { store.sourceDao().enabled().single() }
+            val items = collector.collect(source)
+            val inserted = store.articleDao().insertAll(items)
+            RefreshResult(inserted.count { it != -1L }, 1, emptyList())
+        } }
+        val services = io.newsbrief.app.runtime.FeatureServices(store, settings, collector, bindings = bindings)
         val app = ApplicationProvider.getApplicationContext<Application>()
-        val vm = NewsViewModel(app, repo, settings, features)
+        val vm = NewsViewModel(app, services, features)
         fun waitFor(test: () -> Boolean) { compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); compose.waitForIdle(); test() } }
         try {
             compose.setContent { MaterialTheme { NewsBriefScreen(vm) } }
-            waitFor { vm.feedArticles.value.size == 1 }
+            waitFor { vm.host.controller(FeedUi::class.java).feedArticles.value.size == 1 }
             assertTrue(calls > 0)
             compose.onNodeWithText("Лента").assertExists()
             compose.onNodeWithText("Главное").assertDoesNotExist()
@@ -61,8 +68,8 @@ class FeedRuntimeTest {
             val intent = org.robolectric.Shadows.shadowOf(app).nextStartedActivity
             assertEquals(android.content.Intent.ACTION_VIEW, intent.action)
             assertEquals("https://example.org/story", intent.data.toString())
-            assertNull(vm.readerSource.value)
+            assertTrue(vm.overlays.value.isEmpty())
             compose.onNodeWithText("Full content supplied by the feed").assertDoesNotExist()
-        } finally { vm.viewModelScope.cancel(); Dispatchers.resetMain() }
+        } finally { vm.closeFeatures(); Dispatchers.resetMain() }
     }
 }

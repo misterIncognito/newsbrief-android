@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.*
 import io.newsbrief.app.network.*
-import io.newsbrief.app.ui.NewsViewModel
+import io.newsbrief.app.ui.TestAppModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.*
@@ -27,7 +27,7 @@ class TelegramLinkProxyTest {
     @Test fun feedLinkUsesProxyAndBackReturnsStraightToFeedWithSavedRoute() = runBlocking {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
-        var vm: NewsViewModel? = null
+        var vm: TestAppModel? = null
         try {
             val settings = SettingsStore(app).apply {
                 markSourcesCatalogV2Seeded(); markSourcesCatalogV3Seeded()
@@ -39,32 +39,32 @@ class TelegramLinkProxyTest {
                 assertEquals(url, target); assertEquals("fetch", type); proxied++
                 """{"title":"Full article","text":"Full body"}""".toByteArray()
             }, download = { _, _, _, _ -> error("Direct request must not happen") })
-            val repo = NewsRepository(db, object : NewsCollector {
+            val repo = TestNewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
             }, settings, articleReader = reader)
-            val model = NewsViewModel(app, repo, settings); vm = model
-            model.openFeedLink(post, url).join()
-            withTimeout(5000) { model.reader.first { it?.text == "Full body" } }
+            val model = TestAppModel(app, repo, settings); vm = model
+            model.readerUi.openFeedLink(post, url).join()
+            withTimeout(5000) { model.readerUi.reader.first { it?.text == "Full body" } }
             assertEquals(1, proxied)
-            assertEquals(url, model.readerSource.value!!.link)
-            assertTrue(model.readerSource.value!!.proxyRequired)
+            assertEquals(url, model.readerUi.readerSource.value!!.link)
+            assertTrue(model.readerUi.readerSource.value!!.proxyRequired)
             assertTrue(repo.lookup(url)!!.proxyRequired)
-            model.openBrowser(url, model.readerSource.value!!.proxyRequired)
-            assertTrue(model.browserForceProxy.value)
-            assertEquals(url, model.browserUrl.value)
-            assertTrue(BrowserRouting.route(url, true, url, forceDocumentProxy = model.browserForceProxy.value).forceProxy)
-            model.closeBrowser(); model.closeReader()
-            assertNull(model.readerSource.value)
+            model.browser.openBrowser(url, model.readerUi.readerSource.value!!.proxyRequired)
+            assertTrue(model.browser.browserForceProxy.value)
+            assertEquals(url, model.browser.browserUrl.value)
+            assertTrue(BrowserRouting.route(url, true, url, forceDocumentProxy = model.browser.browserForceProxy.value).forceProxy)
+            model.browser.closeBrowser(); model.readerUi.closeReader()
+            assertNull(model.readerUi.readerSource.value)
             val offline = repo.readArticle(repo.lookup(url)!!)
             assertEquals("Full body", offline.text)
             assertEquals(1, proxied)
             val oldDirect = post.copy(link = "https://other.example/cached", content = "Earlier direct cache", proxyRequired = false)
             db.articleDao().insertAll(listOf(oldDirect))
-            model.openFeedLink(post, oldDirect.link).join()
-            withTimeout(5000) { model.reader.first { it?.text == "Earlier direct cache" } }
+            model.readerUi.openFeedLink(post, oldDirect.link).join()
+            withTimeout(5000) { model.readerUi.reader.first { it?.text == "Earlier direct cache" } }
             assertTrue(repo.lookup(oldDirect.link)!!.proxyRequired)
             assertEquals(1, proxied)
-        } finally { vm?.viewModelScope?.cancel(); db.close(); Dispatchers.resetMain() }
+        } finally { vm?.closeFeatures(); db.close(); Dispatchers.resetMain() }
     }
     @Test fun failedTelegramArticleProxyDoesNotUseDirectTransport() = runBlocking {
         var calls = 0
