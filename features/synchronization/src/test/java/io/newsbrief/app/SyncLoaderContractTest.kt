@@ -35,7 +35,7 @@ class SyncLoaderContractTest {
             override fun originalResource(url: String, configuration: String) = "https://origin.example/image"
         }
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
-        val outcome = bindings.prefetch!!.invoke(repository, TestSettings(), context).invoke()
+        val outcome = bindings.prefetch!!.invoke(repository, MemorySettings(), context).invoke()
         assertEquals("https://origin.example/image", loaded)
         assertEquals(1, outcome.images)
     }
