@@ -24,10 +24,3 @@ class SaveArticleAction : ArticleAction {
 @Composable internal fun SaveArticleButton(saved: Boolean, onSave: () -> Unit) {
     TextButton(onClick = onSave) { Text(if (saved) "✓ Сохранено" else "Сохранить") }
 }
-@Composable fun SavedFeedControls(vm: SavedUi) {
-    val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(!savedOnly, { vm.showSaved(false) }, label = { Text("Все новости") })
-        FilterChip(savedOnly, { vm.showSaved(true) }, label = { Text("Сохранённые") })
-    }
-}
