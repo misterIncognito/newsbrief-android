@@ -44,6 +44,7 @@ The shell's retained `NewsViewModel` name refers only to messages, a generic ove
 stack and the lifecycle of the controller store. It contains no reader, feed, filtering,
 saving, AI, catalog, browser or proxy state and does not reference their controller contracts.
 Controllers are created lazily, retained once per shell and cleared with the shell.
+Plugin startup runs once, after the Application publishes its fully constructed runtime.
 Uninstalled features register no factories, state or jobs. Duplicate contract registrations
 are rejected. Features resolve optional peers through contracts, never implementations.
 
@@ -190,3 +191,26 @@ the previously installed APK are unchanged by this refactor.
 `./gradlew verifyModuleInterfaces` checks the resolved compiler graph, not just declarations.
 Tests verify service discovery and interface connections; APK inspection verifies exact
 plugin descriptors and selected/excluded implementations. See [BUILD-RESULTS.md](BUILD-RESULTS.md).
+
+## Verified feature-state workflow
+
+The state split is recorded on `refactor/feature-state`. All canonical `feature/<name>`
+branches and `integration/feed` have the same final shared contracts and host. Their
+previous heads are preserved under `archive/pre-feature-state/`. The actual one-at-a-time
+merge sequence is retained on `verify/feature-state-merges`; each of its 20 addition stages
+passed tests and built a debug APK. See [current results](BUILD-RESULTS.md).
+
+For a stateful plugin, implement a narrow API contract in its own module-owned ViewModel,
+register its factory in `configure`, and resolve it only at that feature's screen boundary:
+
+```kotlin
+bindings.controller(MyFeatureUi::class.java, ::MyFeatureViewModel)
+// Inside this feature's Screen(host):
+MyFeaturePage(host.controller(MyFeatureUi::class.java))
+```
+
+The ViewModel owns its mutable flows and coroutine jobs. Do not add those fields or
+feature-specific controller access to the shell. Use `host.optional(OtherFeatureUi::class.java)`
+for an optional peer, and keep a sensible behavior when that peer is absent. Generic article
+navigation handlers and article actions let readers, browsers, Save and Share extend the
+basic feed without making their implementations dependencies of it.
