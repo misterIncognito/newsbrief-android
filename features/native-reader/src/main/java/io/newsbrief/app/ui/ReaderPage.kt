@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun ReaderPage(vm: ReaderUi) {
+fun ReaderPage(vm: ReaderUi, host: io.newsbrief.app.runtime.FeatureHost) {
     val source by vm.readerSource.collectAsStateWithLifecycle()
     val reader by vm.reader.collectAsStateWithLifecycle()
     val busy by vm.readerBusy.collectAsStateWithLifecycle()
@@ -44,7 +44,7 @@ fun ReaderPage(vm: ReaderUi) {
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(reader?.title?.ifBlank { item.title } ?: item.title,
             style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        ArticleActionRow(item.copy(title = reader?.title?.ifBlank { item.title } ?: item.title), vm)
+        ArticleActionRow(item.copy(title = reader?.title?.ifBlank { item.title } ?: item.title), host)
         val image = reader?.imageUrl?.ifBlank { item.imageUrl } ?: item.imageUrl
         val images = reader?.images.orEmpty().ifEmpty { listOf(image).filter { it.isNotBlank() } }
         images.forEach { NewsImage(it, item.link, worker, 220, item.proxyRequired) }

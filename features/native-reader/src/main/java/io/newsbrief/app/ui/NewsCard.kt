@@ -22,7 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.data.ArticleEntity
 
 @Composable
-fun NewsCard(article: ArticleEntity, vm: ReaderUi) {
+fun NewsCard(article: ArticleEntity, vm: ReaderUi, host: io.newsbrief.app.runtime.FeatureHost) {
     val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
     if (ArticleLinks.isTelegramPost(article)) {
         LaunchedEffect(article.link) {
@@ -31,7 +31,7 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi) {
         TelegramFeedPost(article, workerUrl,
             onLink = { vm.openFeedLink(article, it) },
             onBrowser = { vm.openBrowser(it, forceProxy = true) },
-            actions = { ArticleActionRow(article, vm) })
+            actions = { ArticleActionRow(article, host) })
         return
     }
     Card(Modifier.fillMaxWidth().clickable { vm.openReader(article) }) {
@@ -44,7 +44,7 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi) {
                 style = MaterialTheme.typography.bodyMedium)
             Text("Читать в NewsBrief →", style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary)
-            ArticleActionRow(article, vm)
+            ArticleActionRow(article, host)
         }
     }
 }
