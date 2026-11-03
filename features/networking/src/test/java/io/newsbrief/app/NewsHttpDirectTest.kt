@@ -9,6 +9,15 @@ import io.newsbrief.app.features.NetworkingFeature
 import io.newsbrief.app.runtime.FeatureBindings
 
 class NewsHttpDirectTest {
+    @Test fun missingRouterNeverMakesDirectRequestForProtectedSource() {
+        var calls = 0
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            calls++
+            Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK").body("rss".toResponseBody()).build()
+        }.build()
+        assertTrue(runCatching { NewsHttp.download("https://meduza.io/rss/all", "fetch", "", 100, transport = client) }.isFailure)
+        assertEquals(0, calls)
+    }
     @Test fun configuredTransportUsesRouterFromItsOwnComposition() {
         val bindings = FeatureBindings.create(listOf(NetworkingFeature()))
         var routed = false
