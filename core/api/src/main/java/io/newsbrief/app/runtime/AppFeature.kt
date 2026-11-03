@@ -18,6 +18,9 @@ interface AppFeature {
     @Composable fun Screen(host: FeatureHost) {}
     @Composable fun Settings(host: FeatureHost) {}
     @Composable fun Toolbar(host: FeatureHost) {}
+    @Composable fun Toolbar(host: FeatureHost, navigation: FeaturePageNavigation) { Toolbar(host) }
+    @Composable fun MenuItems(host: FeatureHost, openFeed: () -> Unit, closeMenu: () -> Unit) {}
+    fun onFeedSelected(host: FeatureHost) {}
 }
 interface ArticlePresentation {
     @Composable fun Card(article: ArticleEntity, host: FeatureHost)
