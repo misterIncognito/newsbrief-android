@@ -75,7 +75,7 @@ class TelegramReaderLinksTest {
     @Test fun zerkaloPublisherMirrorRemainsStrictlyProxied() {
         val url = "https://zerkalo-6oct.site/news/economics/138172.html?tg=6"
         assertTrue(NewsRouting.requiresProxy(url))
-        assertTrue(NewsRouting.endpoint(url, "article", NewsRouting.DEFAULT_WORKER).startsWith(NewsRouting.DEFAULT_WORKER + "/article?url="))
+        assertTrue(routeWithNewsWorker(url, "article", NewsRouting.DEFAULT_WORKER).startsWith(NewsRouting.DEFAULT_WORKER + "/article?url="))
         assertFalse(NewsRouting.requiresProxy("https://zerkalo-6oct.site.evil.example/news"))
         assertFalse(NewsRouting.requiresProxy("https://notzerkalo-6oct.site/news"))
         val links = listOf(ArticleLink("Telegram", "https://t.me/another/2"), ArticleLink("Читать", url))
