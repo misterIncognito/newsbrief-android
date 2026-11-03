@@ -48,8 +48,8 @@ class MemoryNewsStore : NewsStore {
         override suspend fun setEnabled(id: Long, enabled: Boolean) = access {
             state.value = state.value.copy(sources = state.value.sources.map { if (it.id == id) it.copy(enabled = enabled) else it })
         }
-        override suspend fun updateFetchCursor(id: Long, cursor: String) = access {
-            state.value = state.value.copy(sources = state.value.sources.map { if (it.id == id) it.copy(fetchCursor = cursor) else it })
+        override suspend fun updateFetchProgress(id: Long, cursor: String?, expected: String, historyGap: Boolean) = access {
+            state.value = state.value.copy(sources = state.value.sources.map { if (it.id == id && it.fetchCursor == expected) it.copy(fetchCursor = cursor ?: it.fetchCursor, historyGap = historyGap) else it })
         }
         override suspend fun delete(id: Long) = access { state.value = state.value.copy(sources = state.value.sources.filterNot { it.id == id }) }
     }
@@ -61,6 +61,14 @@ class MemoryNewsStore : NewsStore {
         override fun observeRecent(from: Long) = state.map { it.visible(from).take(250) }
         override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean) = state.map {
             it.visible().filter { a -> !filtered || a.sourceId in sourceIds }.take(250)
+        }
+        override fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long>) = state.map {
+            it.visible().filter { a -> (a.readAt == null || a.id in includeIds) && (!filtered || a.sourceId in sourceIds) }.take(250)
+        }
+        override suspend fun markVisibleRead(ids: List<Long>, readAt: Long) = access {
+            state.value = state.value.copy(articles = state.value.articles.map {
+                if (it.id in ids && it.readAt == null) it.copy(readAt = readAt) else it
+            })
         }
         override suspend fun recent(from: Long, limit: Int) = access { state.value.visible(from).take(limit) }
         override suspend fun insertAll(items: List<ArticleEntity>) = access {

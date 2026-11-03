@@ -68,6 +68,8 @@ fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null) {
                             }
                             Switch(checked = source.enabled, onCheckedChange = { vm.toggleSource(source.id, it) })
                         }
+                        if (source.historyGap) Text(stringResource(io.newsbrief.modules.features.source_management.R.string.source_history_gap),
+                            color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         Text(source.address.removePrefix("telegram-proxy:"), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         TextButton(onClick = { vm.deleteSource(source.id) }) { Text(stringResource(R.string.nb_text_030)) }

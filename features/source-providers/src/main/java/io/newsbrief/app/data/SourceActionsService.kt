@@ -18,12 +18,14 @@ class SourceActionsService(private val services: FeatureServices) : SourceAction
         val address = sourcePlugins.canonicalAddress(source.address, source.kind)
         val candidate = SourceEntity(name = source.title, address = address, kind = source.kind,
             categoriesJson = org.json.JSONArray(source.categories.map { it.name }).toString())
-        val items = collector.collect(candidate).filter {
+        val batch = collector.collectSince(candidate)
+        val items = batch.articles.filter {
             it.publishedAt <= System.currentTimeMillis() + 5 * 60_000L
         }
         requireLocalized(items.isNotEmpty(), R.string.nb_err_source_empty, "Источник не отдаёт доступных публикаций. Попробуй другой результат.")
         val added = db.transaction {
-            val id = db.sourceDao().insert(candidate)
+            val checkpoint = batch.nextCursor?.takeIf { items.size == batch.articles.size }.orEmpty()
+            val id = db.sourceDao().insert(candidate.copy(fetchCursor = checkpoint, historyGap = batch.historyGap))
             if (id == -1L) return@transaction false
             val articles = items.map { it.copy(sourceId = id, sourceName = candidate.name) }
             val inserted = db.articleDao().insertAll(articles)
@@ -44,7 +46,7 @@ class SourceActionsService(private val services: FeatureServices) : SourceAction
     private suspend fun mergePluginPost(incoming: ArticleEntity) {
         val existing = db.articleDao().findByLink(incoming.link) ?: return
         if (existing.sourceId != incoming.sourceId) return
-        val merged = sourcePlugins.merge(existing, incoming)
+        val merged = sourcePlugins.merge(existing, incoming).copy(readAt = existing.readAt)
         if (merged != existing) db.articleDao().updateArticle(merged)
     }
 

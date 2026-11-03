@@ -4,10 +4,40 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 object NewsMigrations {
+    val FROM_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE sources ADD COLUMN historyGap INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
     val FROM_8_9 = object : Migration(8, 9) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE sources ADD COLUMN fetchCursor TEXT NOT NULL DEFAULT ''")
             db.execSQL("ALTER TABLE articles ADD COLUMN readAt INTEGER")
+            // Existing installations already have a recent feed. Use the newest saved
+            // article as the starting anchor, so the first refresh can catch up from it.
+            db.query("SELECT id, kind FROM sources").use { sources ->
+                while (sources.moveToNext()) {
+                    val sourceId = sources.getLong(0)
+                    val kind = sources.getString(1)
+                    var rssAnchor: String? = null
+                    var telegramId: Long? = null
+                    db.query("SELECT link FROM articles WHERE sourceId = ? ORDER BY publishedAt DESC", arrayOf(sourceId)).use { articles ->
+                        while (articles.moveToNext()) {
+                            val link = articles.getString(0)
+                            if (kind == "RSS" && rssAnchor == null && link.startsWith("https://")) rssAnchor = link
+                            if (kind == "TELEGRAM" || kind == "TELEGRAM_PROXY") {
+                                val uri = runCatching { java.net.URI(link) }.getOrNull() ?: continue
+                                val tail = uri.path.orEmpty().substringAfterLast('/').substringAfterLast(':')
+                                val id = tail.toLongOrNull()
+                                if (id != null && id > (telegramId ?: 0L)) telegramId = id
+                            }
+                        }
+                    }
+                    val anchor = if (kind == "RSS") rssAnchor else telegramId?.toString()
+                    if (anchor != null) db.execSQL("UPDATE sources SET fetchCursor = ? WHERE id = ?", arrayOf<Any>(anchor, sourceId))
+                }
+            }
         }
     }
 

@@ -20,8 +20,8 @@ interface RoomSourceDao : SourceDao {
     @Query("UPDATE sources SET enabled = :enabled WHERE id = :id")
     override suspend fun setEnabled(id: Long, enabled: Boolean)
 
-    @Query("UPDATE sources SET fetchCursor = :cursor WHERE id = :id")
-    override suspend fun updateFetchCursor(id: Long, cursor: String)
+    @Query("UPDATE sources SET fetchCursor = COALESCE(:cursor, fetchCursor), historyGap = :historyGap WHERE id = :id AND fetchCursor = :expected")
+    override suspend fun updateFetchProgress(id: Long, cursor: String?, expected: String, historyGap: Boolean)
 
     @Query("DELETE FROM sources WHERE id = :id")
     override suspend fun delete(id: Long)
@@ -40,6 +40,14 @@ interface RoomArticleDao : ArticleDao {
         "WHERE s.enabled = 1 AND (:filtered = 0 OR a.sourceId IN (:sourceIds)) " +
         "ORDER BY a.publishedAt DESC LIMIT 250")
     override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean): Flow<List<ArticleEntity>>
+
+    @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
+        "WHERE s.enabled = 1 AND (a.readAt IS NULL OR a.id IN (:includeIds)) AND (:filtered = 0 OR a.sourceId IN (:sourceIds)) " +
+        "ORDER BY a.publishedAt DESC LIMIT 250")
+    override fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long>): Flow<List<ArticleEntity>>
+
+    @Query("UPDATE articles SET readAt = :readAt WHERE id IN (:ids) AND readAt IS NULL")
+    override suspend fun markVisibleRead(ids: List<Long>, readAt: Long)
 
     @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
         "WHERE s.enabled = 1 AND a.publishedAt >= :from ORDER BY a.publishedAt DESC LIMIT :limit")
@@ -100,7 +108,7 @@ interface RoomCatalogSearchDao : CatalogSearchDao {
     override suspend fun prune()
 }
 
-@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class, SavedArticleEntity::class], version = 9, exportSchema = true)
+@Database(entities = [SourceEntity::class, ArticleEntity::class, DigestEntity::class, CatalogSearchEntity::class, SavedArticleEntity::class], version = 10, exportSchema = true)
 abstract class NewsDatabase : RoomDatabase(), NewsStore {
     override suspend fun <T> transaction(block: suspend () -> T): T = withTransaction { block() }
     abstract override fun sourceDao(): RoomSourceDao

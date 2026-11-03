@@ -29,6 +29,7 @@ class FeedParsers {
         var inside = false
         var title = ""
         var link = ""
+        var guid = ""
         var description = ""
         var fullText = ""
         var imageUrl = ""
@@ -44,7 +45,7 @@ class FeedParsers {
                     val name = parser.name.substringAfter(':').lowercase(Locale.ROOT)
                     if (name == "item" || name == "entry") {
                         inside = true
-                        title = ""; link = ""; description = ""; fullText = ""; imageUrl = ""; date = ""; author = ""
+                        title = ""; link = ""; guid = ""; description = ""; fullText = ""; imageUrl = ""; date = ""; author = ""
                         capture = ""; buffer.setLength(0); images.clear()
                     } else if (inside) {
                         if (name == "link") {
@@ -68,7 +69,7 @@ class FeedParsers {
                             }
                             buffer.append(">")
                         }
-                        if (capture.isBlank() && name in setOf("title", "link", "description", "summary", "encoded", "content", "pubdate", "published", "updated", "date", "author", "creator")) {
+                        if (capture.isBlank() && name in setOf("title", "link", "id", "guid", "description", "summary", "encoded", "content", "pubdate", "published", "updated", "date", "author", "creator")) {
                             capture = name
                             buffer.setLength(0)
                         }
@@ -83,6 +84,7 @@ class FeedParsers {
                         when (capture) {
                             "title" -> title = Jsoup.parse(value).text()
                             "link" -> if (link.isBlank()) link = value
+                            "id", "guid" -> if (guid.isBlank() && value.startsWith("https://")) guid = value
                             "description", "summary", "encoded", "content" -> {
                                 val html = Jsoup.parse(value, link.ifBlank { source.address })
                                 images += html.select("img[src]").map { it.absUrl("src") }.filter { it.startsWith("https://") }
@@ -102,17 +104,19 @@ class FeedParsers {
                         buffer.setLength(0)
                     }
                     if (inside && (name == "item" || name == "entry")) {
-                        if (link.startsWith("https://") && title.isNotBlank()) {
+                        val candidateLink = link.ifBlank { guid }
+                        val resolvedLink = runCatching { java.net.URI(source.address).resolve(candidateLink).toString() }.getOrDefault("")
+                        if (candidateLink.isNotBlank() && ArticleLinks.valid(resolvedLink)) {
                             items += ArticleEntity(
                                 sourceId = source.id,
                                 sourceName = source.name,
-                                title = title.take(240),
+                                title = title.ifBlank { source.name }.take(240),
                                 excerpt = description.take(1_600),
                                 content = fullText.take(60_000),
                                 imageUrl = imageUrl,
                                 author = author,
                                 imagesJson = org.json.JSONArray(images.distinct()).toString(),
-                                link = link,
+                                link = resolvedLink,
                                 publishedAt = parseDate(date) ?: System.currentTimeMillis()
                             )
                         }
@@ -121,7 +125,6 @@ class FeedParsers {
                 }
             }
             parser.next()
-            if (items.size >= 120) break
         }
         return items
     }

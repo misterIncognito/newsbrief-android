@@ -86,13 +86,49 @@ class TelegramProxyClient(
                 address = "telegram-proxy:${channelKey(key)}")
         }
     }
-    fun posts(source: SourceEntity): List<ArticleEntity> {
+    fun posts(source: SourceEntity): List<ArticleEntity> = postsSince(source.copy(fetchCursor = "")).articles
+
+    fun postsSince(source: SourceEntity): SourceBatch {
+        val checkpoint = source.fetchCursor.takeIf { it.isNotBlank() }?.toLongOrNull()
+        require(source.fetchCursor.isBlank() || checkpoint != null) { "Invalid Telegram proxy checkpoint" }
         val channel = request("/channel/${channelKey(source.address)}")
         requireLocalized(channel.optInt("enabled") == 1, R.string.nb_err_tg_not_enabled, "Канал ещё не собирается Telegram-прокси")
-        val page = request("/posts", mapOf("channel" to channel.getString("id"), "top" to "100"))
-        val rows = page.getJSONArray("posts")
-        return (0 until rows.length()).mapNotNull { parsePost(rows.getJSONObject(it), source, config().baseUrl) }
+        val channelId = channel.getString("id")
+        var pageCursor: String? = null
+        var newest: Long? = null
+        val visited = mutableSetOf<String>()
+        val posts = linkedMapOf<String, ArticleEntity>()
+        repeat(100) {
+            val query = mutableMapOf("channel" to channelId, "top" to "100")
+            pageCursor?.let { query["cursor"] = it }
+            val page = request("/posts", query)
+            val rows = page.getJSONArray("posts")
+            val ids = (0 until rows.length()).map { index ->
+                val row = rows.getJSONObject(index)
+                val parts = row.getString("id").split(':')
+                require(parts.size == 2 && parts[0] == channelId) { "Invalid Telegram proxy post ID" }
+                val id = parts[1].toLongOrNull() ?: error("Invalid Telegram proxy message ID")
+                parsePost(row, source, config().baseUrl)?.let { posts.putIfAbsent(it.link, it) }
+                id
+            }
+            if (ids.isEmpty()) {
+                if (checkpoint == null && pageCursor == null) return SourceBatch(emptyList())
+                return SourceBatch(posts.values.toList(), historyGap = true)
+            }
+            if (newest == null) newest = ids.max()
+            if (checkpoint == null || ids.min() <= checkpoint) {
+                return SourceBatch(posts.values.toList(), maxOf(checkpoint ?: 0L, newest!!).toString())
+            }
+            val next = page.optString("nextCursor").takeIf { it.isNotBlank() && it != "null" }
+                ?: return SourceBatch(posts.values.toList(), historyGap = true)
+            require(next.matches(Regex("[0-9]{1,20}:[0-9]{1,20}")) && visited.add(next)) {
+                "Invalid or repeated Telegram proxy page cursor"
+            }
+            pageCursor = next
+        }
+        return SourceBatch(posts.values.toList(), historyGap = true)
     }
+
     fun post(article: ArticleEntity): ReaderArticle {
         val uri = URI(article.link)
         val id = if (ArticleLinks.telegramPreview(article.link) != null) {
@@ -123,7 +159,6 @@ class TelegramProxyClient(
         }
         fun parsePost(row: JSONObject, source: SourceEntity, baseUrl: String): ArticleEntity? {
             val text = row.optString("text").take(60_000)
-            if (text.isBlank()) return null
             val id = row.getString("id")
             requireLocalized(id.matches(Regex("[0-9]{1,20}:[0-9]{1,20}")), R.string.nb_err_tg_post_id, "Неверный ID публикации")
             val links = mutableListOf<ArticleLink>()
@@ -148,7 +183,7 @@ class TelegramProxyClient(
             requireLocalized(date in 0..Long.MAX_VALUE / 1000, R.string.nb_err_tg_date, "Неверная дата публикации")
             // The API currently exposes mediaType only; never invent downloadable image URLs.
             return ArticleEntity(sourceId = source.id, sourceName = source.name, sourcePluginId = SourceKind.TELEGRAM_PROXY,
-                title = FeedRules.headline(text), excerpt = text.take(1600), content = text,
+                title = if (text.isBlank()) source.name else FeedRules.headline(text), excerpt = text.take(1600), content = text,
                 readerLoaded = true, proxyRequired = true, linksJson = ArticleLinks.encode(links), link = link, publishedAt = date * 1000)
         }
     }

@@ -1,6 +1,7 @@
 package io.newsbrief.app.data
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /** Feature-facing ports. Room and disk implementations belong to storage. */
 interface FeedStore {
@@ -27,7 +28,7 @@ interface SourceDao {
 
     suspend fun delete(id: Long)
 
-    suspend fun updateFetchCursor(id: Long, cursor: String) { throw UnsupportedOperationException("Source cursors unavailable") }
+    suspend fun updateFetchProgress(id: Long, cursor: String?, expected: String, historyGap: Boolean) { throw UnsupportedOperationException("Source cursors unavailable") }
 }
 
 interface ArticleDao {
@@ -36,6 +37,8 @@ interface ArticleDao {
     fun observeRecent(from: Long): Flow<List<ArticleEntity>>
 
     fun observeFiltered(sourceIds: List<Long>, filtered: Boolean): Flow<List<ArticleEntity>>
+    fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long> = emptyList()): Flow<List<ArticleEntity>> =
+        observeFiltered(sourceIds, filtered).map { articles -> articles.filter { it.readAt == null || it.id in includeIds } }
 
     suspend fun recent(from: Long, limit: Int): List<ArticleEntity>
 
@@ -49,6 +52,7 @@ interface ArticleDao {
 
     suspend fun requireProxy(url: String)
 
+    suspend fun markVisibleRead(ids: List<Long>, readAt: Long) { throw UnsupportedOperationException("Read status unavailable") }
     suspend fun setReadAt(url: String, readAt: Long?) { throw UnsupportedOperationException("Read status unavailable") }
 
     suspend fun updateReader(url: String, title: String, content: String, imageUrl: String,

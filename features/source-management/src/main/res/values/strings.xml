@@ -1,3 +1,4 @@
 <resources>
     <string name="nb_feature_source_management">Sources</string>
+    <string name="source_history_gap">Some older posts may be unavailable. Pull down to retry.</string>
 </resources>

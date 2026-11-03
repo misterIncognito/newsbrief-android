@@ -192,4 +192,5 @@
     <string name="nb_err_no_sources">No source providers connected yet</string>
     <string name="nb_reader_load_failed">Could not load the full article: %1$s</string>
     <string name="nb_err_feed_unavailable">Feed loader is not connected.</string>
+    <string name="nb_source_history_gap">Some older posts could not be recovered from this source.</string>
 </resources>

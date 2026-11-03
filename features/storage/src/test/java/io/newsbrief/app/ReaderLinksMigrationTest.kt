@@ -50,12 +50,17 @@ class ReaderLinksMigrationTest {
                         db.execSQL("INSERT INTO saved_articles VALUES('https://t.me/devby/16806',789)")
                     }
                     if (version >= 8) NewsMigrations.FROM_7_8.migrate(db)
+                    if (version >= 9) {
+                        NewsMigrations.FROM_8_9.migrate(db)
+                        db.execSQL("UPDATE sources SET fetchCursor = '16806'")
+                        db.execSQL("UPDATE articles SET readAt = 999")
+                    }
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
             }).build())
         legacy.writableDatabase; legacy.close()
         val db = Room.databaseBuilder(context, NewsDatabase::class.java, name)
-            .addMigrations(NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6, NewsMigrations.FROM_6_7, NewsMigrations.FROM_7_8, NewsMigrations.FROM_8_9).build()
+            .addMigrations(NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6, NewsMigrations.FROM_6_7, NewsMigrations.FROM_7_8, NewsMigrations.FROM_8_9, NewsMigrations.FROM_9_10).build()
         try {
             val article = db.articleDao().findByLink("https://t.me/devby/16806")!!
             assertEquals("Offline full body", article.content)
@@ -66,10 +71,11 @@ class ReaderLinksMigrationTest {
             assertTrue(article.readerLoaded)
             assertEquals(123L, article.publishedAt)
             assertEquals(456L, article.importedAt)
-            assertNull(article.readAt)
-            assertEquals("", db.sourceDao().observe().first().single().fetchCursor)
+            assertEquals(if (version >= 9) 999L else null, article.readAt)
+            assertEquals("16806", db.sourceDao().observe().first().single().fetchCursor)
+            assertFalse(db.sourceDao().observe().first().single().historyGap)
             db.articleDao().setReadAt(article.link, 999L)
-            db.sourceDao().updateFetchCursor(1, "16806")
+            db.sourceDao().updateFetchProgress(1, "16806", "16806", false)
             assertEquals(999L, db.articleDao().findByLink(article.link)!!.readAt)
             assertEquals("16806", db.sourceDao().observe().first().single().fetchCursor)
             assertEquals(1, db.sourceDao().count())
@@ -98,5 +104,7 @@ class ReaderLinksMigrationTest {
     @Test fun version5PreservesSavedLinksAndPersistsProxyChoiceAfterReopen() { migrate(5) }
     @Test fun version6AddsBookmarksWithoutLosingArticlesSettingsMetadataOrProxyChoice() { migrate(6) }
     @Test fun version8PreservesDataAndAddsReadStateAndCursor() { migrate(8) }
+
+    @Test fun version9PreservesReadStateAndCursor() { migrate(9) }
 
 }

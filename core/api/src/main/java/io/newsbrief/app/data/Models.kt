@@ -19,7 +19,8 @@ data class SourceEntity(
     val kind: String,
     val enabled: Boolean = true,
     @ColumnInfo(defaultValue = "'[]'") val categoriesJson: String = "[]",
-    @ColumnInfo(defaultValue = "''") val fetchCursor: String = ""
+    @ColumnInfo(defaultValue = "''") val fetchCursor: String = "",
+    @ColumnInfo(defaultValue = "0") val historyGap: Boolean = false
 )
 
 @Entity(tableName = "articles", indices = [Index(value = ["link"], unique = true), Index(value = ["publishedAt"])])

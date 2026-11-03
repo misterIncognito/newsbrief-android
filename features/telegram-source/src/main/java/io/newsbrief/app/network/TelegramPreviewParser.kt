@@ -26,7 +26,6 @@ class TelegramPreviewParser {
             val textElement = wrapper.selectFirst(".tgme_widget_message_text")
             val links = textElement?.let { ArticleLinks.extract(it) }.orEmpty()
             val content = textElement?.let { FeedMarkup.htmlText(it) }.orEmpty()
-            if (content.isBlank()) return@mapNotNull null
             val published = wrapper.selectFirst("time[datetime]")?.attr("datetime").orEmpty()
             val images = wrapper.select(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb")
                 .mapNotNull { photo ->
@@ -35,7 +34,7 @@ class TelegramPreviewParser {
             ArticleEntity(
                 sourceId = source.id,
                 sourceName = source.name,
-                title = FeedRules.headline(content),
+                title = if (content.isBlank()) source.name else FeedRules.headline(content),
                 excerpt = content.take(1_600),
                 content = content.take(60_000),
                 imageUrl = images.firstOrNull().orEmpty(),

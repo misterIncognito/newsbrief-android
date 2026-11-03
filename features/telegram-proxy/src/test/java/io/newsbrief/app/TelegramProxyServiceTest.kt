@@ -128,4 +128,45 @@ class TelegramProxyServiceTest {
         assertTrue(ArticleLinks.isTelegramPost(article)); assertEquals(2, ArticleLinks.decode(article.linksJson).size)
     }
 
+    @Test fun catchesUpUsingServiceCursorsAndKeepsReadState() = runBlocking {
+        val cursors = mutableListOf<String?>()
+        fun row(id: Int) = post("Post $id").put("id", "12345:$id").put("messageId", id)
+            .put("sourceUrl", "https://t.me/channel/$id").put("entities", JSONArray())
+        val service = client { request ->
+            when (request.url.encodedPath) {
+                "/api/auth" -> auth()
+                "/api/channel/channel" -> 200 to """{"id":"12345","enabled":1}"""
+                "/api/posts" -> {
+                    val cursor = request.url.queryParameter("cursor"); cursors += cursor
+                    if (cursor == null) 200 to JSONObject().put("posts", JSONArray().put(row(105)).put(row(104)))
+                        .put("nextCursor", "2000:77").toString()
+                    else 200 to JSONObject().put("posts", JSONArray().put(row(101)).put(row(100))).toString()
+                }
+                else -> error("Unexpected endpoint")
+            }
+        }
+        val plugin = TelegramProxySourcePlugin(service)
+        val batch = plugin.collectSince(source.copy(fetchCursor = "100"))
+        assertEquals(listOf(null, "2000:77"), cursors)
+        assertEquals("105", batch.nextCursor)
+        assertEquals(setOf("100", "101", "104", "105"), batch.articles.map { it.link.substringAfterLast('/') }.toSet())
+        val old = batch.articles.first().copy(readAt = 123L, id = 42)
+        assertEquals(123L, plugin.merge(old, batch.articles.first()).readAt)
+    }
+
+    @Test fun unavailableProxyPageDoesNotAdvanceTheCheckpoint() = runBlocking {
+        val service = client { request ->
+            when (request.url.encodedPath) {
+                "/api/auth" -> auth()
+                "/api/channel/channel" -> 200 to """{"id":"12345","enabled":1}"""
+                "/api/posts" -> 200 to JSONObject().put("posts", JSONArray().put(post().put("id", "12345:105"))).toString()
+                else -> error("Unexpected endpoint")
+            }
+        }
+        val batch = TelegramProxySourcePlugin(service).collectSince(source.copy(fetchCursor = "100"))
+        assertTrue(batch.historyGap)
+        assertNull(batch.nextCursor)
+        assertEquals(1, batch.articles.size)
+    }
+
 }

@@ -49,7 +49,7 @@ class NewsMigrationTest {
         legacy.writableDatabase
         legacy.close()
         val migrated = Room.databaseBuilder(context, NewsDatabase::class.java, name)
-            .addMigrations(NewsMigrations.FROM_1_2, NewsMigrations.FROM_2_3, NewsMigrations.FROM_3_4, NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6, NewsMigrations.FROM_6_7, NewsMigrations.FROM_7_8, NewsMigrations.FROM_8_9).build()
+            .addMigrations(NewsMigrations.FROM_1_2, NewsMigrations.FROM_2_3, NewsMigrations.FROM_3_4, NewsMigrations.FROM_4_5, NewsMigrations.FROM_5_6, NewsMigrations.FROM_6_7, NewsMigrations.FROM_7_8, NewsMigrations.FROM_8_9, NewsMigrations.FROM_9_10).build()
         try {
             val item = migrated.articleDao().findByLink("https://example.org/story")!!
             assertEquals("Saved title", item.title)
@@ -63,6 +63,8 @@ class NewsMigrationTest {
             assertEquals(2, migrated.sourceDao().count())
             assertEquals("Saved source", migrated.sourceDao().enabled().single().name)
             assertEquals("[]", migrated.sourceDao().enabled().single().categoriesJson)
+            assertEquals("https://example.org/story", migrated.sourceDao().enabled().single().fetchCursor)
+            assertNull(item.readAt)
             migrated.catalogSearchDao().save(io.newsbrief.app.data.CatalogSearchEntity("RSS:tech", "{}", 123))
             assertEquals("{}", migrated.catalogSearchDao().find("RSS:tech")!!.responseJson)
             assertEquals("Saved summary", migrated.digestDao().find("2026-10-08", "SHORT")!!.content)
