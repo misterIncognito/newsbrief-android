@@ -11,5 +11,8 @@ class SourceManagementFeature : AppFeature {
     override fun configure(bindings: FeatureBindings) {
         bindings.controller(SourcesUi::class.java, ::SourcesViewModel)
     }
-    @Composable override fun Screen(host: FeatureHost) { SourcesPage(host.controller(SourcesUi::class.java)) }
+    @Composable override fun Screen(host: FeatureHost, navigation: FeaturePageNavigation) {
+        SourcesPage(host.controller(SourcesUi::class.java),
+            openCatalog = if (navigation.hasPage("source-discovery")) { { navigation.openPage("source-discovery") } } else null)
+    }
 }

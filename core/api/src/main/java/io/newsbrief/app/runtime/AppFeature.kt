@@ -16,8 +16,14 @@ interface AppFeature {
     val order: Int get() = 0
     fun configure(bindings: FeatureBindings) {}
     @Composable fun Screen(host: FeatureHost) {}
+    @Composable fun Screen(host: FeatureHost, navigation: FeaturePageNavigation) { Screen(host) }
     @Composable fun Settings(host: FeatureHost) {}
     @Composable fun Toolbar(host: FeatureHost) {}
+}
+/** Scoped page navigation supplied by the shell; a feature remains usable without another feature. */
+interface FeaturePageNavigation {
+    fun hasPage(featureId: String): Boolean
+    fun openPage(featureId: String)
 }
 interface ArticlePresentation {
     @Composable fun Card(article: ArticleEntity, host: FeatureHost)
