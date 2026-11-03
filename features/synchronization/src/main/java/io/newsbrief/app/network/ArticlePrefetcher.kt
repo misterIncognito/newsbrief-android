@@ -8,7 +8,7 @@ import kotlinx.coroutines.sync.withPermit
 
 class ArticlePrefetcher(private val repository: PrefetchArticleStore, private val settings: WorkerSettings,
     private val images: PrefetchImageStore,
-    private val originalImageUrl: (String, String) -> String = ArticleImages::originalUrl) {
+    private val originalImageUrl: (String, String) -> String = { url, _ -> url }) {
     data class Target(val article: ArticleEntity, val originSource: Long)
     data class Result(val articles: Int, val images: Int, val failures: Int)
 
