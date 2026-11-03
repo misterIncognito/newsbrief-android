@@ -53,7 +53,7 @@ class TelegramProxyPluginTest {
         assertEquals(listOf("/api/auth", "/api/channel/channel", "/api/posts/12345:7"), requests)
         val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
         try {
-            val repo = TestNewsRepository(db, SourcePluginRegistry.builtIns(SettingsStore(app), listOf(TelegramProxySourcePlugin(client))), SettingsStore(app), articleReader = reader)
+            val repo = TestNewsRepository(db, SourcePluginRegistry(listOf(TelegramProxySourcePlugin(client))), SettingsStore(app), articleReader = reader)
             repo.toggleSaved(article)
             repo.removeSource(source.id)
             val saved = repo.observeSaved().first().single()
@@ -76,7 +76,7 @@ class TelegramProxyPluginTest {
             val settings = SettingsStore(app)
             settings.markSourcesCatalogV2Seeded(); settings.markSourcesCatalogV3Seeded(); settings.markSourcesCatalogV4Seeded(); settings.markSourcesCatalogV5Seeded()
             db.sourceDao().insert(source)
-            val registry = SourcePluginRegistry.builtIns(settings, listOf(TelegramProxySourcePlugin(client)))
+            val registry = SourcePluginRegistry(listOf(TelegramProxySourcePlugin(client)))
             var now = 1_000_000L
             val repo = TestNewsRepository(db, registry, settings, clock = { now })
             assertEquals(1, repo.refresh().added)

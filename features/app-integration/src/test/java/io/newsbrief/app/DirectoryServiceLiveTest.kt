@@ -17,6 +17,13 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = android.app.Application::class)
 class DirectoryServiceLiveTest {
+    private fun collectors(): WebCollectors {
+        val settings = SettingsStore(ApplicationProvider.getApplicationContext<Application>())
+        val bindings = io.newsbrief.app.runtime.FeatureBindings.create(listOf(
+            io.newsbrief.app.features.NetworkingFeature(), io.newsbrief.app.features.RssSourceFeature(),
+            io.newsbrief.app.features.TelegramSourceFeature()))
+        return WebCollectors(SourcePluginRegistry(bindings.sourcePlugins.map { it(settings) }))
+    }
     @Test fun realRssDirectoryReturnsDiscoverableFeeds() = runBlocking {
         val result = PublicDirectoryNetwork().search(DirectoryProvider.RSS, "technology")
         assertTrue(result.items.isNotEmpty())
@@ -58,7 +65,7 @@ class DirectoryServiceLiveTest {
             val source = PublicDirectoryNetwork().search(DirectoryProvider.RSS, "technology").items.first {
                 it.address.contains("theguardian.com/technology/rss")
             }
-            val repo = TestNewsRepository(db, WebCollectors(), SettingsStore(app))
+            val repo = TestNewsRepository(db, collectors(), SettingsStore(app))
             assertTrue(repo.addDiscoveredSource(source))
             val saved = db.sourceDao().enabled().single()
             assertTrue(FeedCategory.TECH in FeedFilters.categories(saved))
@@ -72,7 +79,7 @@ class DirectoryServiceLiveTest {
         val source = PublicDirectoryNetwork().search(DirectoryProvider.TELEGRAM, "ИИ").items.first {
             it.address.endsWith("/hiaimedia")
         }
-        val items = WebCollectors().collect(SourceEntity(name = source.title, address = source.address, kind = source.kind))
+        val items = collectors().collect(SourceEntity(name = source.title, address = source.address, kind = source.kind))
         assertTrue(items.isNotEmpty())
         assertTrue(items.any { it.content.length > 100 })
         println("Discovered Hi, AI channel: ${items.size} readable Telegram posts")
