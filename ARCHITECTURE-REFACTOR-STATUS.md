@@ -4,7 +4,7 @@ This is a work in progress. Existing `dev`, `feature/*`, and `integration/feed` 
 are retained. `isolated/*` branches add only the named feature over the refactor base;
 `integration/isolated-feed` assembles feed, networking, source providers, RSS and storage.
 
-Explicit assembly selection and duplicate singleton provider checks are implemented.
+Explicit assembly selection, module-owned build prerequisites and duplicate singleton provider checks are implemented. Feature services and the runtime receive their composition explicitly.
 RSS, public Telegram and networking now use the transport/router from their composition.
 The central feature registry still contains unrelated contracts; several consumers still
 locate services globally, and other singleton registrations still permit replacement.
