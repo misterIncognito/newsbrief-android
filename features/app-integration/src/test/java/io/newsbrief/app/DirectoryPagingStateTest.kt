@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.newsbrief.app.data.*
 import io.newsbrief.app.network.*
-import io.newsbrief.app.ui.NewsViewModel
+import io.newsbrief.app.ui.TestAppModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
 @OptIn(ExperimentalCoroutinesApi::class)
 class DirectoryPagingStateTest {
     private val source = DirectorySource("AI News", "https://t.me/s/ai_news", SourceKind.TELEGRAM)
-    private suspend fun withModel(network: DirectoryNetwork, block: suspend (NewsViewModel) -> Unit) {
+    private suspend fun withModel(network: DirectoryNetwork, block: suspend (TestAppModel) -> Unit) {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val app = ApplicationProvider.getApplicationContext<Application>()
         val db = Room.inMemoryDatabaseBuilder(app, NewsDatabase::class.java).build()
@@ -31,12 +31,12 @@ class DirectoryPagingStateTest {
             markSourcesCatalogV2Seeded(); markSourcesCatalogV3Seeded()
             markSourcesCatalogV4Seeded(); markSourcesCatalogV5Seeded()
         }
-        val repo = NewsRepository(db, object : NewsCollector {
+        val repo = TestNewsRepository(db, object : NewsCollector {
             override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
         }, store, network)
-        val model = NewsViewModel(app, repo, store)
+        val model = TestAppModel(app, repo, store)
         try { block(model) } finally {
-            model.viewModelScope.cancel(); db.close(); Dispatchers.resetMain()
+            model.closeFeatures(); db.close(); Dispatchers.resetMain()
         }
     }
     @Test fun loadMoreAppendsUniqueChannelsAndFailureKeepsThePreviousPage() = runBlocking {
@@ -51,15 +51,15 @@ class DirectoryPagingStateTest {
             }
         }
         withModel(network) { vm ->
-            vm.directoryQuery("ИИ"); vm.directoryProvider(DirectoryProvider.TELEGRAM)
-            withTimeout(5000) { vm.directoryState.first { !it.busy && it.results != null } }
-            vm.loadMoreDirectory()
-            withTimeout(5000) { vm.directoryState.first { !it.busy && it.results?.nextOffset == 50 } }
-            assertEquals(2, vm.directoryState.value.results!!.items.size)
-            fail = true; vm.loadMoreDirectory()
-            withTimeout(5000) { vm.directoryState.first { !it.busy && it.error != null } }
-            assertEquals(2, vm.directoryState.value.results!!.items.size)
-            assertEquals(50, vm.directoryState.value.results!!.nextOffset)
+            vm.directory.directoryQuery("ИИ"); vm.directory.directoryProvider(DirectoryProvider.TELEGRAM)
+            withTimeout(5000) { vm.directory.directoryState.first { !it.busy && it.results != null } }
+            vm.directory.loadMoreDirectory()
+            withTimeout(5000) { vm.directory.directoryState.first { !it.busy && it.results?.nextOffset == 50 } }
+            assertEquals(2, vm.directory.directoryState.value.results!!.items.size)
+            fail = true; vm.directory.loadMoreDirectory()
+            withTimeout(5000) { vm.directory.directoryState.first { !it.busy && it.error != null } }
+            assertEquals(2, vm.directory.directoryState.value.results!!.items.size)
+            assertEquals(50, vm.directory.directoryState.value.results!!.nextOffset)
         }
     }
     @Test fun changingTopicDuringPageLoadCancelsItAndNeverMixesCategories() = runBlocking {
@@ -76,13 +76,13 @@ class DirectoryPagingStateTest {
             }
         }
         withModel(network) { vm ->
-            vm.directoryQuery("ИИ"); vm.directoryProvider(DirectoryProvider.TELEGRAM)
-            withTimeout(5000) { vm.directoryState.first { !it.busy && it.results != null } }
-            vm.loadMoreDirectory(); withTimeout(5000) { started.await() }
-            vm.directoryQuery("technology"); vm.searchDirectory()
-            withTimeout(5000) { canceled.await(); vm.directoryState.first { !it.busy && it.results?.category == "tech" } }
-            assertEquals("tech", vm.directoryState.value.results!!.category)
-            assertFalse(vm.directoryState.value.results!!.items.any { it.title == "Stale AI page" })
+            vm.directory.directoryQuery("ИИ"); vm.directory.directoryProvider(DirectoryProvider.TELEGRAM)
+            withTimeout(5000) { vm.directory.directoryState.first { !it.busy && it.results != null } }
+            vm.directory.loadMoreDirectory(); withTimeout(5000) { started.await() }
+            vm.directory.directoryQuery("technology"); vm.directory.searchDirectory()
+            withTimeout(5000) { canceled.await(); vm.directory.directoryState.first { !it.busy && it.results?.category == "tech" } }
+            assertEquals("tech", vm.directory.directoryState.value.results!!.category)
+            assertFalse(vm.directory.directoryState.value.results!!.items.any { it.title == "Stale AI page" })
             release.complete(Unit)
         }
     }

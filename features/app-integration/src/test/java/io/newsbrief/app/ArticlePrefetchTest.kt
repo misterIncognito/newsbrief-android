@@ -51,7 +51,7 @@ class ArticlePrefetchTest {
             val reader = ArticleReader(store, download = { _, _, _, _ -> network++
                 """{"title":"Story","text":"Downloaded full article", "imageUrl":"https://cdn.example/cover.png"}""".toByteArray()
             })
-            val repo = NewsRepository(db, collector, store, articleReader = reader, onFeedUpdated = { scheduled++ })
+            val repo = TestNewsRepository(db, collector, store, articleReader = reader, onFeedUpdated = { scheduled++ })
             assertEquals(1, repo.refresh().added)
             assertEquals(1, scheduled)
             assertEquals(0, network)
@@ -77,7 +77,7 @@ class ArticlePrefetchTest {
             db.articleDao().insertAll(listOf(post))
             val store = settings()
             val reader = ArticleReader(store, download = { _, _, _, _ -> """{"title":"Story","text":"Short extraction"}""".toByteArray() })
-            val repo = NewsRepository(db, emptyCollector, store, articleReader = reader)
+            val repo = TestNewsRepository(db, emptyCollector, store, articleReader = reader)
             ArticlePrefetcher(repo, store, Images()).prefetch()
             val saved = repo.lookup(post.link)!!
             assertEquals(post.content, saved.content)
@@ -101,7 +101,7 @@ class ArticlePrefetchTest {
                 assertEquals(url, target); assertEquals("fetch", type); proxies++
                 """{"title":"Publisher","text":"Full publisher article"}""".toByteArray()
             }, download = { _, _, _, _ -> error("Direct request forbidden") })
-            val repo = NewsRepository(db, emptyCollector, store, articleReader = reader)
+            val repo = TestNewsRepository(db, emptyCollector, store, articleReader = reader)
             assertEquals(1, ArticlePrefetcher(repo, store, Images()).prefetch().articles)
             assertEquals(post.content, repo.lookup(post.link)!!.content)
             val linked = repo.lookup(url)!!
@@ -125,7 +125,7 @@ class ArticlePrefetchTest {
             val reader = ArticleReader(store, proxyDownload = { _, _, _, _ -> error("Worker failure") }, download = { url, _, _, _ ->
                 assertEquals(normal.link, url); direct++; """{"title":"Story","text":"Full normal article"}""".toByteArray()
             })
-            val repo = NewsRepository(db, emptyCollector, store, articleReader = reader)
+            val repo = TestNewsRepository(db, emptyCollector, store, articleReader = reader)
             val result = ArticlePrefetcher(repo, store, Images()).prefetch()
             assertEquals(1, result.articles); assertEquals(1, result.failures); assertEquals(1, direct)
             assertEquals("Saved post", repo.lookup(post.link)!!.content)
@@ -142,7 +142,7 @@ class ArticlePrefetchTest {
             db.articleDao().insertAll(listOf(saved, post))
             val store = settings()
             val reader = ArticleReader(store, proxyDownload = { _, _, _, _ -> error("Must not fetch") }, download = { _, _, _, _ -> error("Must not fetch") })
-            val repo = NewsRepository(db, emptyCollector, store, articleReader = reader)
+            val repo = TestNewsRepository(db, emptyCollector, store, articleReader = reader)
             assertEquals(0, ArticlePrefetcher(repo, store, Images()).prefetch().articles)
             assertEquals(saved.content, repo.lookup(saved.link)!!.content)
             assertTrue(repo.lookup(saved.link)!!.proxyRequired)
@@ -158,7 +158,7 @@ class ArticlePrefetchTest {
             val reader = ArticleReader(store, download = { url, _, _, _ -> calls += url
                 """{"title":"Story","text":"Full text"}""".toByteArray()
             })
-            val repo = NewsRepository(db, emptyCollector, store, articleReader = reader)
+            val repo = TestNewsRepository(db, emptyCollector, store, articleReader = reader)
             val prefetch = ArticlePrefetcher(repo, store, Images())
             assertEquals(2, prefetch.prefetch(2).articles)
             assertEquals(2, prefetch.prefetch(2).articles)
@@ -180,7 +180,7 @@ class ArticlePrefetchTest {
             val reader = ArticleReader(store, download = { url, _, _, _ -> assertEquals(live.link, url)
                 """{"title":"Story","text":"Full live text"}""".toByteArray()
             })
-            val repo = NewsRepository(db, emptyCollector, store, articleReader = reader)
+            val repo = TestNewsRepository(db, emptyCollector, store, articleReader = reader)
             assertEquals(1, ArticlePrefetcher(repo, store, Images()).prefetch().articles)
             assertEquals("", repo.lookup(old.link)!!.content)
             assertEquals("", repo.lookup(hidden.link)!!.content)

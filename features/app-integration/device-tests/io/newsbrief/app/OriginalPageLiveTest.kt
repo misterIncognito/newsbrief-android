@@ -30,11 +30,11 @@ class OriginalPageLiveTest {
     @Test fun warsawOriginalArticleRendersInsideNewsBrief() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("verifyOriginalPage") == "true")
         val app = compose.activity.application as NewsBriefApp
-        val post = runBlocking { app.repository.lookup("https://t.me/thewwarsaw/21641") }
+        val post = runBlocking { app.runtime.store.articleDao().findByLink("https://t.me/thewwarsaw/21641") }
         assumeTrue("The existing Warsaw post must be available", post != null)
         val link = ArticleLinks.fullArticle(ArticleLinks.decode(post!!.linksJson))!!.url
         val vm = ViewModelProvider(compose.activity)[NewsViewModel::class.java]
-        compose.runOnUiThread { vm.openBrowser(link, forceProxy = true) }
+        compose.runOnUiThread { vm.host.controller(io.newsbrief.app.ui.BrowserUi::class.java).openBrowser(link, forceProxy = true) }
         compose.onNodeWithText("Оригинальная страница").performClick()
         compose.waitUntil(60_000) {
             var ready = false

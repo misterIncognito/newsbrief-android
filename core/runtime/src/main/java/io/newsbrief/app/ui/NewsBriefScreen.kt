@@ -18,20 +18,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     val pages = vm.features.filter { it.title.isNotEmpty() }.sortedBy { it.order }
     val settingsFeatures = vm.features.filter { it.hasSettings }
     var selected by rememberSaveable { mutableStateOf(pages.firstOrNull()?.id ?: if (settingsFeatures.isNotEmpty()) "settings" else "home") }
-    val source by vm.readerSource.collectAsStateWithLifecycle()
-    val browser by vm.browserUrl.collectAsStateWithLifecycle()
-    val forceProxy by vm.browserForceProxy.collectAsStateWithLifecycle()
-    val worker by vm.workerUrl.collectAsStateWithLifecycle()
-    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
+    val overlays by vm.overlays.collectAsStateWithLifecycle()
+    val overlay = overlays.lastOrNull()
     val message by vm.message.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val screens = rememberSaveableStateHolder()
     LaunchedEffect(message) {
         message?.let { vm.clearMessage(); snackbar.showSnackbar(it) }
     }
-    BackHandler(source != null || browser != null) {
-        if (browser != null) vm.closeBrowser() else if (source != null) vm.closeReader()
-    }
+    BackHandler(overlay != null) { overlay?.onBack?.invoke() }
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }, topBar = {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
@@ -39,14 +34,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
                 Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
                 if (pages.size == 1 && settingsFeatures.isEmpty()) Text(pages.single().title, style = MaterialTheme.typography.labelMedium)
             }
-            when {
-                browser != null -> TextButton(onClick = vm::closeBrowser) { Text("← К статье") }
-                source != null -> TextButton(onClick = vm::closeReader) { Text("← Назад") }
-                selected == "feed" -> TextButton(onClick = { vm.refresh() }, enabled = !refreshing) { Text(if (refreshing) "Загрузка…" else "Обновить") }
-            }
+            if (overlay != null) TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
+            else pages.firstOrNull { it.id == selected }?.Toolbar(vm.host)
         }
     }, bottomBar = {
-        if (source == null && browser == null && (pages.size > 1 || settingsFeatures.isNotEmpty())) NavigationBar {
+        if (overlay == null && (pages.size > 1 || settingsFeatures.isNotEmpty())) NavigationBar {
             pages.forEach { page -> NavigationBarItem(selected == page.id, { selected = page.id },
                 icon = { Text(if (page.id == "feed") "≡" else "+") }, label = { Text(page.title) }) }
             if (settingsFeatures.isNotEmpty()) NavigationBarItem(selected == "settings", { selected = "settings" }, icon = { Text("⚙") }, label = { Text("Настройки") })
@@ -54,16 +46,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                browser != null && vm.bindings.browser != null -> vm.bindings.browser?.invoke(browser!!, worker, forceProxy)
-                source != null && vm.presentation != null -> vm.presentation.Reader(vm)
-                source != null -> Unit
+                overlay != null -> overlay.content()
                 selected == "settings" -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    settingsFeatures.forEach { it.Settings(vm) }
+                    settingsFeatures.forEach { it.Settings(vm.host) }
                 }
                 else -> screens.SaveableStateProvider(selected) {
                     val page = pages.firstOrNull { it.id == selected }
-                    if (page != null) page.Screen(vm) else Text("Новости в одном месте", Modifier.padding(18.dp))
+                    if (page != null) page.Screen(vm.host) else Text("Новости в одном месте", Modifier.padding(18.dp))
                 }
             }
         }

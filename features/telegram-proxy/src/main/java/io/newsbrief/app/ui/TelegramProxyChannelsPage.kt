@@ -33,7 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.data.SourceKind
 
 
-@Composable fun TelegramProxyChannelsPage(vm: SourcesUi) {
+@Composable fun TelegramProxyChannelsPage(vm: TelegramProxyUi) {
     val state by vm.proxyChannels.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.openProxyChannels() }
     if (state.open) ProxyChannelsDialog(vm, state)
@@ -43,7 +43,7 @@ import io.newsbrief.app.data.SourceKind
     }
 }
 @Composable
-private fun ProxyChannelsDialog(vm: SourcesUi, state: ProxyChannelsState) {
+private fun ProxyChannelsDialog(vm: TelegramProxyUi, state: ProxyChannelsState) {
     var search by rememberSaveable { mutableStateOf("") }
     val sources by vm.sources.collectAsStateWithLifecycle()
     AlertDialog(onDismissRequest = { vm.closeProxyChannels() }, title = { Text("Каналы Telegram-прокси") },

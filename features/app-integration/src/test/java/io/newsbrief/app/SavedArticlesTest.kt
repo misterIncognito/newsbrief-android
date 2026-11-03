@@ -20,7 +20,7 @@ class SavedArticlesTest {
     private val emptyCollector = object : NewsCollector {
         override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
     }
-    private fun repository(db: NewsDatabase) = NewsRepository(db, emptyCollector, SettingsStore(app))
+    private fun repository(db: NewsDatabase) = TestNewsRepository(db, emptyCollector, SettingsStore(app))
     private fun article(sourceId: Long = 0, link: String = "https://meduza.io/news/story") = ArticleEntity(
         sourceId = sourceId, sourceName = "Publisher", title = "Saved story", excerpt = "Preview", content = "Full offline text",
         readerLoaded = true, author = "Reporter", imageUrl = "https://cdn.example/photo.jpg",

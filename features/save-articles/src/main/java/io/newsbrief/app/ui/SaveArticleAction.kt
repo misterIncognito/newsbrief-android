@@ -15,7 +15,8 @@ import androidx.compose.ui.unit.dp
 import io.newsbrief.app.data.ArticleEntity
 
 class SaveArticleAction : ArticleAction {
-    @Composable override fun Content(article: ArticleEntity, vm: ReaderUi) {
+    @Composable override fun Content(article: ArticleEntity, host: io.newsbrief.app.runtime.FeatureHost) {
+        val vm = host.controller(SavedUi::class.java)
         val saved by vm.savedUrls.collectAsStateWithLifecycle()
         SaveArticleButton(article.link in saved) { vm.toggleSaved(article) }
     }
@@ -23,7 +24,7 @@ class SaveArticleAction : ArticleAction {
 @Composable internal fun SaveArticleButton(saved: Boolean, onSave: () -> Unit) {
     TextButton(onClick = onSave) { Text(if (saved) "✓ Сохранено" else "Сохранить") }
 }
-@Composable fun SavedFeedControls(vm: FeedUi) {
+@Composable fun SavedFeedControls(vm: SavedUi) {
     val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(!savedOnly, { vm.showSaved(false) }, label = { Text("Все новости") })

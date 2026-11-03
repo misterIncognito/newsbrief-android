@@ -29,7 +29,7 @@ class ReaderLinksStorageTest {
                 content = "Saved full body", readerLoaded = true, link = "https://t.me/devby/16806", publishedAt = 123)
             db.articleDao().insertAll(listOf(post))
             val links = ArticleLinks.encode(listOf(ArticleLink("Подробнее", "https://devby.io/news/story")))
-            val repo = NewsRepository(db, object : NewsCollector {
+            val repo = TestNewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity) = listOf(post.copy(content = "Preview", linksJson = links))
             }, settings)
             assertEquals(0, repo.refresh().added)

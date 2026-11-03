@@ -58,7 +58,7 @@ class DirectoryServiceLiveTest {
             val source = PublicDirectoryNetwork().search(DirectoryProvider.RSS, "technology").items.first {
                 it.address.contains("theguardian.com/technology/rss")
             }
-            val repo = NewsRepository(db, WebCollectors(), SettingsStore(app))
+            val repo = TestNewsRepository(db, WebCollectors(), SettingsStore(app))
             assertTrue(repo.addDiscoveredSource(source))
             val saved = db.sourceDao().enabled().single()
             assertTrue(FeedCategory.TECH in FeedFilters.categories(saved))

@@ -26,7 +26,7 @@ class FilteredFeedStorageTest {
             val saved = ArticleEntity(sourceId = tech, sourceName = "The Verge", title = "Older tech",
                 excerpt = "", content = "Offline text", link = "https://www.theverge.com/older", publishedAt = 1)
             db.articleDao().insertAll(articles + saved)
-            val repo = NewsRepository(db, object : io.newsbrief.app.network.NewsCollector {
+            val repo = TestNewsRepository(db, object : io.newsbrief.app.network.NewsCollector {
                 override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
             }, SettingsStore(app))
             assertEquals(250, repo.observeFeed(null).first().size)

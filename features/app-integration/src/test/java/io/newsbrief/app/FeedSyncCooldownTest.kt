@@ -27,10 +27,10 @@ class FeedSyncCooldownTest {
             val collector = object : NewsCollector {
                 override suspend fun collect(source: SourceEntity): List<ArticleEntity> { calls++; error("Offline") }
             }
-            val first = NewsRepository(db, collector, settings(), clock = { now }, onFeedUpdated = { scheduled++ })
+            val first = TestNewsRepository(db, collector, settings(), clock = { now }, onFeedUpdated = { scheduled++ })
             assertEquals(1, first.refresh().errors.size)
             now += 179_999
-            val recreated = NewsRepository(db, collector, settings(), clock = { now }, onFeedUpdated = { scheduled++ })
+            val recreated = TestNewsRepository(db, collector, settings(), clock = { now }, onFeedUpdated = { scheduled++ })
             val skipped = recreated.refresh()
             assertTrue(skipped.skipped); assertEquals(1L, skipped.retryAfterMillis)
             assertEquals(1, calls); assertEquals(1, scheduled)
@@ -48,7 +48,7 @@ class FeedSyncCooldownTest {
             db.sourceDao().insert(SourceEntity(name = "First", kind = SourceKind.RSS, address = "https://first.example/rss"))
             val started = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
             var calls = 0
-            val repo = NewsRepository(db, object : NewsCollector {
+            val repo = TestNewsRepository(db, object : NewsCollector {
                 override suspend fun collect(source: SourceEntity): List<ArticleEntity> {
                     calls++; if (calls == 1) { started.complete(Unit); release.await() }; return emptyList()
                 }

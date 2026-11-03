@@ -11,6 +11,7 @@ class TelegramProxyFeature : AppFeature {
     override val title = "Telegram-прокси"
     override val order = 25
     override fun configure(bindings: FeatureBindings) {
+        bindings.controller(TelegramProxyUi::class.java, ::TelegramProxyViewModel)
         bindings.sourcePlugins += { settings -> TelegramProxySourcePlugin(TelegramProxyClient {
             TelegramProxyConfig(settings.telegramProxyUrl(), settings.telegramProxyKey())
         }) }
@@ -18,6 +19,6 @@ class TelegramProxyFeature : AppFeature {
             TelegramProxyConfig(settings.telegramProxyUrl(), settings.telegramProxyKey())
         }) }
     }
-    @Composable override fun Screen(vm: AppUi) { TelegramProxyChannelsPage(vm) }
-    @Composable override fun Settings(vm: AppUi) { TelegramSettingsSection(vm) }
+    @Composable override fun Screen(host: FeatureHost) { TelegramProxyChannelsPage(host.controller(TelegramProxyUi::class.java)) }
+    @Composable override fun Settings(host: FeatureHost) { TelegramSettingsSection(host.controller(TelegramProxyUi::class.java)) }
 }
