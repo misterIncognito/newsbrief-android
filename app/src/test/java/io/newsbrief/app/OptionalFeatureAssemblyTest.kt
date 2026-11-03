@@ -45,6 +45,7 @@ class OptionalFeatureAssemblyTest {
         try {
             compose.setContent { MaterialTheme { NewsBriefScreen(shell) } }
             compose.onNodeWithContentDescription("Настройки").performClick()
+            compose.onNodeWithTag("article-count").assertDoesNotExist()
             compose.onNodeWithText("Источники").performClick()
             if ("source-discovery" in selected) {
                 compose.onNodeWithText("Из каталога").performClick()
@@ -84,6 +85,9 @@ class OptionalFeatureAssemblyTest {
                 waitFor { runBlocking { store.articleDao().findByLink(article.link)?.readAt == null } }
             }
             val menuBounds = compose.onNodeWithTag("open-feed").fetchSemanticsNode().boundsInRoot
+            val count = compose.onNodeWithTag("article-count").assertIsDisplayed()
+            assertEquals(menuBounds.center.y, count.fetchSemanticsNode().boundsInRoot.center.y, 1f)
+            compose.onNodeWithContentDescription("Публикаций: 1").assertExists()
             if ("save-articles" in selected) compose.onNodeWithTag("open-saved").assertIsDisplayed()
             else compose.onNodeWithTag("open-saved").assertDoesNotExist()
             if ("feed-filters" in selected && "read-status" in selected) {

@@ -84,7 +84,12 @@ import io.newsbrief.app.runtime.FeaturePageNavigation
                     }, modifier = Modifier.testTag("open-settings")) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nb_text_005))
                     }
-                    if (selected == "feed") vm.features.sortedBy { it.order }.forEach { it.Toolbar(vm.host, navigation) }
+                    if (selected == "feed") {
+                        vm.features.sortedBy { it.order }.forEach { it.Toolbar(vm.host, navigation) }
+                        Box(Modifier.weight(1f).padding(end = 8.dp), contentAlignment = Alignment.CenterEnd) {
+                            feed?.HeaderSummary(vm.host)
+                        }
+                    }
                 }
             }
         }
