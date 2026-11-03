@@ -17,16 +17,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.newsbrief.app.network.ArticleLinks
 import io.newsbrief.app.network.BrowserRouting
-import io.newsbrief.app.network.HttpRequests
 import io.newsbrief.app.network.NewsRouting
 import java.io.ByteArrayInputStream
 import java.net.URI
 
 @Composable
 internal fun EmbeddedBrowserPage(url: String, worker: String, forceProxy: Boolean = false,
-    download: (String, BrowserRouting.Route, String) -> io.newsbrief.app.network.DownloadedResource = { target, route, proxy ->
-        HttpRequests.downloadResource(target, route.type, proxy, 5_000_000, route.forceProxy)
-    }) {
+    download: (String, BrowserRouting.Route, String) -> io.newsbrief.app.network.DownloadedResource) {
     var originalMode by remember(url) { mutableStateOf(false) }
     var startUrl by remember(url) { mutableStateOf(url) }
     key(startUrl, originalMode) {
