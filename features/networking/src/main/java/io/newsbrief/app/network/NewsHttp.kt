@@ -15,6 +15,13 @@ object NewsHttp : HttpTransport {
         .connectTimeout(15, TimeUnit.SECONDS).readTimeout(25, TimeUnit.SECONDS)
         .callTimeout(35, TimeUnit.SECONDS).build()
 
+    /** Keep routing attached to the same composition as this transport. */
+    fun routed(router: () -> PageRouter): HttpTransport = object : HttpTransport {
+        override fun resource(request: PageRequest, configuration: String, maxBytes: Int): DownloadedResource =
+            downloadResource(request.resource, request.type, configuration, maxBytes, request.proxyRequired,
+                router = router(), preferProxy = request.preferProxy)
+    }
+
     fun download(resource: String, type: String, worker: String, maxBytes: Int,
                  forceProxy: Boolean = false, transport: OkHttpClient = client, router: PageRouter? = null, preferProxy: Boolean = false): ByteArray =
         downloadResource(resource, type, worker, maxBytes, forceProxy, transport, router, preferProxy).bytes

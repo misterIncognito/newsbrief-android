@@ -5,8 +5,25 @@ import okhttp3.*
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Test
+import io.newsbrief.app.features.NetworkingFeature
+import io.newsbrief.app.runtime.FeatureBindings
 
 class NewsHttpDirectTest {
+    @Test fun configuredTransportUsesRouterFromItsOwnComposition() {
+        val bindings = FeatureBindings.create(listOf(NetworkingFeature()))
+        var routed = false
+        bindings.pageRouter = { object : PageRouter {
+            override fun route(request: PageRequest, configuration: String): String {
+                routed = true
+                throw IllegalStateException("router reached")
+            }
+        } }
+        val error = assertThrows(IllegalStateException::class.java) {
+            bindings.http!!.resource(PageRequest("https://example.org/feed", "fetch", false), "", 100)
+        }
+        assertEquals("router reached", error.message)
+        assertTrue(routed)
+    }
     @Test fun preferredProxyRedirectNeverBecomesADirectImageRequest() {
         var calls = 0
         val proxy = object : PageRouter {
