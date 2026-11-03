@@ -3,6 +3,7 @@ package io.newsbrief.app
 import io.newsbrief.app.data.SourceEntity
 import io.newsbrief.app.data.SourceKind
 import io.newsbrief.app.network.WebCollectors
+import io.newsbrief.app.network.ArticleLinks
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -39,6 +40,55 @@ class TelegramParsingTest {
         assertTrue(item.content.startsWith("Начало.\n\n"))
         assertEquals("https://cdn.example/photo.jpg", item.imageUrl)
         assertEquals("https://t.me/bbcrussian/123", item.link)
+    }
+
+    @Test fun extractsLinksFromAttachedPreviewWithoutCollectingTelegramNavigation() {
+        val source = SourceEntity(1, "News", "https://t.me/s/channel", SourceKind.TELEGRAM)
+        val html = """<div class="tgme_widget_message" data-post="channel/42">
+            <div class="tgme_widget_message_text">A post with a media card</div>
+            <a class="tgme_widget_message_link_preview" href="https://publisher.example/story">
+              <div class="link_preview_site_name">Publisher</div>
+              <i class="link_preview_image" style="background-image:url('https://cdn.example/card.jpg')"></i>
+              <div class="link_preview_title">Read the full story</div>
+            </a>
+            <a class="tgme_widget_message_date" href="https://t.me/channel/42">date</a>
+            <time datetime="2026-10-08T12:00:00Z"></time>
+        </div>"""
+        val post = parser.parse(html, source).single()
+        val links = ArticleLinks.decode(post.linksJson)
+        assertEquals(listOf("https://publisher.example/story"), links.map { it.url })
+        assertEquals("Read the full story", links.single().label)
+        assertEquals("https://cdn.example/card.jpg", post.imageUrl)
+        assertEquals("A post with a media card", post.content)
+    }
+
+    @Test fun deduplicatesPreviewLinksAndRejectsUnsafeTargets() {
+        val source = SourceEntity(1, "News", "https://t.me/s/channel", SourceKind.TELEGRAM)
+        val html = """<div class="tgme_widget_message" data-post="channel/43">
+            <div class="tgme_widget_message_text">Read <a href="https://publisher.example/story">here</a></div>
+            <a class="tgme_widget_message_link_preview" href="https://publisher.example/story">duplicate</a>
+            <a class="tgme_widget_message_link_preview" href="javascript:alert(1)">unsafe</a>
+        </div>"""
+        val links = ArticleLinks.decode(parser.parse(html, source).single().linksJson)
+        assertEquals(1, links.size)
+        assertEquals("here", links.single().label)
+    }
+
+    @Test fun bbcPostKeepsBothInlineArticleAndAttachedPreview() {
+        val source = SourceEntity(1, "BBC", "https://t.me/s/bbcrussian", SourceKind.TELEGRAM)
+        val html = """<div class="tgme_widget_message" data-post="bbcrussian/101052">
+            <div class="media_supported_cont"><div class="tgme_widget_message_text">
+              BBC report with an <a href="https://www.bbc.com/russian/articles/cxly47zyn1p8o">inline link</a>.
+            </div></div>
+            <a class="tgme_widget_message_link_preview" href="https://bbc.com/russian/articles/cxly47zyn1p8o">
+              <i class="link_preview_image" style="background-image:url('https://cdn.example/bbc-preview.jpg')"></i>
+              <div class="link_preview_title">BBC article preview</div>
+            </a>
+        </div>"""
+        val post = parser.parse(html, source).single()
+        assertEquals("https://t.me/bbcrussian/101052", post.link)
+        assertEquals("https://cdn.example/bbc-preview.jpg", post.imageUrl)
+        assertEquals(listOf("inline link", "BBC article preview"), ArticleLinks.decode(post.linksJson).map { it.label })
     }
 
 }

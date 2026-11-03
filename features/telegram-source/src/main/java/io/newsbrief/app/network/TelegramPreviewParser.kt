@@ -24,11 +24,24 @@ class TelegramPreviewParser {
             val postId = message.attr("data-post")
             if (!postId.matches(Regex("[A-Za-z0-9_]+/[0-9]+"))) return@mapNotNull null
             val textElement = wrapper.selectFirst(".tgme_widget_message_text")
-            val links = textElement?.let { ArticleLinks.extract(it) }.orEmpty()
+            // Link cards live outside the message text, so text anchors alone miss them.
+            val textLinks = textElement?.let { ArticleLinks.extract(it) }.orEmpty()
+            val previewLinks = wrapper.select("a.tgme_widget_message_link_preview[href]").mapNotNull { preview ->
+                val url = preview.absUrl("href")
+                if (!ArticleLinks.valid(url)) return@mapNotNull null
+                val label = preview.selectFirst(".link_preview_title")?.text()?.trim()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: preview.selectFirst(".link_preview_site_name")?.text()?.trim()?.takeIf { it.isNotBlank() }
+                    ?: java.net.URI(url).host
+                ArticleLink(label, url)
+            }
+            val links = (textLinks + previewLinks).distinctBy { it.url }.take(50)
             val content = textElement?.let { FeedMarkup.htmlText(it) }.orEmpty()
             if (content.isBlank()) return@mapNotNull null
             val published = wrapper.selectFirst("time[datetime]")?.attr("datetime").orEmpty()
-            val images = wrapper.select(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb")
+            val images = wrapper.select(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_thumb, " +
+                ".tgme_widget_message_link_preview .link_preview_image, " +
+                ".tgme_widget_message_link_preview .link_preview_right_image")
                 .mapNotNull { photo ->
                     Regex("url\\(['\"]?(https://[^'\")]+)").find(photo.attr("style"))?.groupValues?.get(1)
                 }.distinct()
