@@ -18,11 +18,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,19 +40,49 @@ import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.data.FeedCategory
 
 @Composable
-fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, controls: @Composable () -> Unit = {}, emptyMessage: String? = null, articleContent: @Composable (ArticleEntity) -> Unit) {
+fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, controls: @Composable () -> Unit = {}, emptyMessage: String? = null, onVisible: (suspend (List<Long>) -> Unit)? = null, onVisibilityChanged: ((List<Long>) -> Unit)? = null, articleContent: @Composable (ArticleEntity) -> Unit) {
     val articles by vm.feedArticles.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
     val filtered by vm.filtered.collectAsStateWithLifecycle()
+    val activeScroll = if (savedOnly) savedScroll else feedScroll
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val focused = LocalWindowInfo.current.isWindowFocused
+    val visibleCallback by rememberUpdatedState(onVisible)
+    val visibilityChanged by rememberUpdatedState(onVisibilityChanged)
+    LaunchedEffect(activeScroll, lifecycle, onVisible != null, focused) {
+        if (onVisible == null || !focused) return@LaunchedEffect
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            var handled = emptySet<Long>()
+            snapshotFlow {
+                val layout = activeScroll.layoutInfo
+                val visible = layout.visibleItemsInfo.filter { item ->
+                    item.offset < layout.viewportEndOffset && item.offset + item.size > layout.viewportStartOffset
+                }.mapNotNull { it.key as? Long }.toSet()
+                val eligible = layout.visibleItemsInfo.filter { item ->
+                    isVisibleEnough(item.offset, item.size, layout.viewportStartOffset, layout.viewportEndOffset)
+                }.mapNotNull { it.key as? Long }.toSet()
+                visible to eligible
+            }.collectLatest { (visible, eligible) ->
+                visibilityChanged?.invoke(visible.toList())
+                handled = handled.intersect(visible)
+                val pending = eligible - handled
+                if (pending.isNotEmpty()) {
+                    delay(1_000)
+                    visibleCallback?.invoke(pending.toList())
+                    handled = handled + pending
+                }
+            }
+        }
+    }
     Column(Modifier.fillMaxSize()) {
         controls()
         Text(stringResource(R.string.nb_count_articles, articles.size), modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FeedRefreshContainer(isRefreshing = refreshing, onRefresh = { vm.refresh() },
             modifier = Modifier.weight(1f).fillMaxWidth()) {
-            LazyColumn(Modifier.fillMaxSize().testTag("news-feed"), state = if (savedOnly) savedScroll else feedScroll,
+            LazyColumn(Modifier.fillMaxSize().testTag("news-feed"), state = activeScroll,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (articles.isEmpty()) item {
@@ -56,4 +95,11 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
             }
         }
     }
+}
+
+/** Count at least half of the item, or half of the viewport for an oversized item. */
+internal fun isVisibleEnough(offset: Int, size: Int, viewportStart: Int, viewportEnd: Int): Boolean {
+    val viewport = viewportEnd - viewportStart
+    val visible = (minOf(offset + size, viewportEnd) - maxOf(offset, viewportStart)).coerceAtLeast(0)
+    return viewport > 0 && size > 0 && visible * 2 >= minOf(size, viewport)
 }

@@ -37,6 +37,14 @@ See [BRANCHES.md](BRANCHES.md) for the module map, interfaces and progressive me
 preserved under `archive/pre-gradle-modules/`; `main`, `release` and `v0.4.12` are unchanged.
 The following section describes the historical deployed complete versions.
 
+## Read status and source catch-up
+
+The optional `read-status` feature marks an item read after it is at least half visible for one second while the app is in the foreground. Oversized posts use half of the viewport instead. Use the read-status action to mark an item unread again, or **Unread only** to filter the feed. A newly read item remains visible until it leaves the screen so the filter does not consume the rest of the feed automatically. Read state is stored on the device and is separate from downloading and saving an article.
+
+Each supported source keeps its own successful-fetch checkpoint. Public Telegram pages are paged backwards to that checkpoint; the optional Telegram proxy uses the service's `nextCursor` pagination; RSS/Atom follows explicit same-origin HTTPS `rel="next"` links. Fetched posts and checkpoint updates are committed together. A failed request does not advance a checkpoint, and overlapping refreshes cannot move it backwards. Upgrades initialize checkpoints from stored posts where possible; a newly added source starts with its current available page.
+
+A source cannot recover posts that its provider has already removed or never exposes. If the old checkpoint cannot be reached, or the 100-page safety limit is reached, available posts are kept, the checkpoint is not advanced, and the source is marked with a history-gap warning. Some RSS feeds provide no next page, and the Telegram proxy requires a compatible paginated service deployment. The app cannot guarantee recovery of history unavailable from the provider.
+
 ## Deployed 0.4.12 history
 
 Локальный агрегатор новостей с ИИ-сводкой на Kotlin + Jetpack Compose, **без backend-сервера**.

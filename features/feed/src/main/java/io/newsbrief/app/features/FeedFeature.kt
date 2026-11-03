@@ -22,8 +22,11 @@ class FeedFeature : AppFeature {
     @Composable override fun Screen(host: FeatureHost) {
         val vm = host.controller(FeedUi::class.java)
         val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
+        val readStatus = host.optional(ReadStatusUi::class.java)
         FeedAutoRefresh(true) { vm.feedBecameVisible() }
-        FeedPage(vm, rememberLazyListState(), rememberLazyListState(), controls = { host.bindings.feedControls.forEach { it(host) } }, emptyMessage = if (savedOnly) host.bindings.feedEmptyMessage(host) else null) { article ->
+        FeedPage(vm, rememberLazyListState(), rememberLazyListState(), controls = { host.bindings.feedControls.forEach { it(host) } }, emptyMessage = if (savedOnly) host.bindings.feedEmptyMessage(host) else null,
+            onVisible = readStatus?.let { status -> { ids -> status.markVisible(ids) } },
+            onVisibilityChanged = readStatus?.let { status -> { ids -> status.retainVisible(ids) } }) { article ->
             val presentation = host.bindings.presentation
             if (presentation != null) presentation.Card(article, host) else BasicNewsCard(article, host)
         }

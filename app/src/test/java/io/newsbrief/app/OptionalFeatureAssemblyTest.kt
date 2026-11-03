@@ -29,7 +29,7 @@ class OptionalFeatureAssemblyTest {
     @Test fun onlySelectedFeaturesRegisterTheirOwnControllers() {
         val bindings = FeatureBindings.create(InstalledFeatures.create())
         val owners = mapOf("feed" to FeedUi::class.java, "feed-filters" to FeedFilterUi::class.java,
-            "save-articles" to SavedUi::class.java, "ai" to AiUi::class.java,
+            "save-articles" to SavedUi::class.java, "read-status" to ReadStatusUi::class.java, "ai" to AiUi::class.java,
             "source-management" to SourcesUi::class.java, "source-discovery" to DirectoryUi::class.java,
             "telegram-proxy" to TelegramProxyUi::class.java, "news-proxy" to WorkerSettingsUi::class.java,
             "native-reader" to ReaderUi::class.java, "embedded-browser" to BrowserUi::class.java)

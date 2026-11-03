@@ -1,0 +1,5 @@
+<resources>
+    <string name="read_mark_read">Mark read</string>
+    <string name="read_mark_unread">Mark unread</string>
+    <string name="read_unread_only">Unread only</string>
+</resources>

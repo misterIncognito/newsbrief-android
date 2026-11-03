@@ -15,21 +15,28 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
     private val bindings = host.bindings
     private fun report(message: String) = host.report(message)
     override val sources = services.store.sourceDao().observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val readStatus = host.optional(ReadStatusUi::class.java)
+    private val unreadOnly = readStatus?.unreadOnly ?: flowOf(false)
+    private val pinnedReadIds = readStatus?.visibleReadIds ?: flowOf(emptySet())
     private val query = host.optional(FeedFilterUi::class.java)?.selection ?: flowOf(FeedSelection())
     override val savedOnly = (host.optional(SavedUi::class.java)?.savedOnly ?: flowOf(false))
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
-    override val filtered = query.map { it.category != FeedCategory.ALL || it.keys.isNotEmpty() }
+    override val filtered = combine(query, unreadOnly) { selection, unread ->
+        unread || selection.category != FeedCategory.ALL || selection.keys.isNotEmpty()
+    }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     @OptIn(ExperimentalCoroutinesApi::class)
-    override val feedArticles = combine(sources, query, savedOnly) { sources, query, saved ->
+    override val feedArticles = combine(sources, query, savedOnly, unreadOnly, pinnedReadIds) { sources, query, saved, unread, pinned ->
         val ids = if (query.category == FeedCategory.ALL && query.keys.isEmpty()) null else
             bindings.filterOptions(sources, query.category).filter { query.keys.isEmpty() || it.key in query.keys }
                 .flatMap { it.ids }.distinct().sorted()
-        saved to ids
-    }.distinctUntilChanged().flatMapLatest { (saved, ids) ->
+        FeedRequest(saved, ids, unread, pinned)
+    }.distinctUntilChanged().flatMapLatest { (saved, ids, unread, pinned) ->
         if (saved) services.store.articleDao().observeSaved()
+        else if (unread) services.store.articleDao().observeUnreadFiltered(ids.orEmpty(), ids != null, pinned.toList())
         else services.store.articleDao().observeFiltered(ids.orEmpty(), ids != null)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private data class FeedRequest(val saved: Boolean, val ids: List<Long>?, val unread: Boolean, val pinned: Set<Long>)
     private val _refreshing = MutableStateFlow(false)
     override val refreshing = _refreshing.asStateFlow()
     private var refreshRequested = false
