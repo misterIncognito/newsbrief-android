@@ -14,7 +14,7 @@ class DirectoryViewModel(private val host: FeatureHost) : ViewModel(), Directory
     private fun report(message: String) = host.report(message)
     override val sourcePlugins = services.sources.available
     override val sources = services.store.sourceDao().observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-    private val _directoryState = MutableStateFlow(DirectoryState(provider = DirectoryProvider.CURATED, query = ""))
+    private val _directoryState = MutableStateFlow(DirectoryState())
     override val directoryState = _directoryState.asStateFlow()
     private var directoryJob: Job? = null
     private var directoryGeneration = 0

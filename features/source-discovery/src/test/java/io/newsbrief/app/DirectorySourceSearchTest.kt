@@ -28,7 +28,7 @@ class DirectorySourceSearchTest {
         var added: DirectorySource? = null
         val bindings = FeatureBindings.create(emptyList())
         bindings.directory = { _, _ -> { provider, query, _ ->
-            require(provider == DirectoryProvider.CURATED)
+            require(provider == DirectoryProvider.RSS)
             DirectoryResults(SourceCatalog.search(query).map { DirectorySource(it.name, it.address, it.kind, it.category) })
         } }
         bindings.sourceActions = { object : SourceActions {
@@ -43,14 +43,15 @@ class DirectorySourceSearchTest {
         val host = FeatureHost(ApplicationProvider.getApplicationContext<Application>(), services, navigator) { }
         try {
             val vm = DirectoryViewModel(host)
-            assertEquals(DirectoryProvider.CURATED, vm.directoryState.value.provider)
-            assertEquals("", vm.directoryState.value.query)
+            assertEquals(DirectoryProvider.RSS, vm.directoryState.value.provider)
+            assertEquals("technology", vm.directoryState.value.query)
             vm.searchDirectory()
             dispatcher.scheduler.runCurrent()
             val defaults = vm.directoryState.value.results!!.items
             assertTrue(defaults.any { it.title == "The Verge" })
             assertTrue(defaults.none { it.title == "Зеркало" })
             vm.directoryQuery("politics")
+            vm.searchDirectory()
             dispatcher.scheduler.runCurrent()
             val politicalSource = vm.directoryState.value.results!!.items.single { it.title == "Зеркало" }
             vm.addDirectorySource(politicalSource)
