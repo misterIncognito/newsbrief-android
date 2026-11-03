@@ -75,6 +75,19 @@ class OptionalFeatureAssemblyTest {
             compose.setContent { MaterialTheme { NewsBriefScreen(shell) } }
             waitFor { shell.host.controller(FeedUi::class.java).feedArticles.value.size == 1 }
             compose.onNodeWithText("Independent feature story").assertExists()
+            val menuBounds = compose.onNodeWithContentDescription("Меню").fetchSemanticsNode().boundsInRoot
+            if ("feed-filters" in selected && "read-status" in selected) {
+                val filterBounds = compose.onNodeWithTag("open-source-filter").fetchSemanticsNode().boundsInRoot
+                val unread = compose.onNodeWithTag("unread-filter")
+                val unreadBounds = unread.fetchSemanticsNode().boundsInRoot
+                assertTrue(menuBounds.left < filterBounds.left && filterBounds.left < unreadBounds.left)
+                assertEquals(menuBounds.center.y, filterBounds.center.y, 1f)
+                assertEquals(menuBounds.center.y, unreadBounds.center.y, 1f)
+                unread.assertIsOff().performClick().assertIsOn()
+                unread.performClick().assertIsOff()
+            } else if ("read-status" !in selected) {
+                compose.onNodeWithTag("unread-filter").assertDoesNotExist()
+            }
             if ("save-articles" in selected) {
                 compose.onNodeWithText("Сохранить").performScrollTo().performClick()
                 waitFor { article.link in shell.host.controller(SavedUi::class.java).savedUrls.value }
