@@ -11,6 +11,7 @@ import io.newsbrief.app.ui.FeedFilterUi
 import io.newsbrief.app.ui.FeedSelection
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,6 +48,7 @@ class FeedFilterPanelTest {
         compose.onNodeWithTag("source-filter-panel").assertDoesNotExist()
         compose.onNodeWithTag("open-source-filter").performClick()
         compose.onNodeWithTag("source-filter-panel").assertIsDisplayed()
+        assertTrue(compose.onNodeWithTag("source-filter-panel").fetchSemanticsNode().boundsInRoot.left > 0f)
         compose.onNodeWithText("The Verge").performClick()
         compose.onNodeWithText("Зеркало").performClick()
         compose.runOnIdle { assertEquals(setOf("verge", "zerkalo"), vm.feedSources.value) }

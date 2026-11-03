@@ -47,7 +47,7 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.32f)).clickable { open = false },
             contentAlignment = Alignment.CenterEnd) {
             Surface(
-                modifier = Modifier.fillMaxHeight().fillMaxWidth(0.88f).widthIn(max = 360.dp)
+                modifier = Modifier.fillMaxHeight().widthIn(max = 360.dp).fillMaxWidth(0.88f)
                     .testTag("source-filter-panel")
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
                 shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp), tonalElevation = 6.dp
