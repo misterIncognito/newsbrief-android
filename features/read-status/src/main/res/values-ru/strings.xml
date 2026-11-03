@@ -1,0 +1,5 @@
+<resources>
+    <string name="read_mark_read">Отметить прочитанным</string>
+    <string name="read_mark_unread">Отметить непрочитанным</string>
+    <string name="read_unread_only">Только непрочитанные</string>
+</resources>

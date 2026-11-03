@@ -192,4 +192,5 @@
     <string name="nb_err_no_sources">Источники пока не подключены</string>
     <string name="nb_reader_load_failed">Не удалось загрузить полную статью: %1$s</string>
     <string name="nb_err_feed_unavailable">Обновление недоступно: загрузчик ленты не подключён.</string>
+    <string name="nb_source_history_gap">Некоторые старые публикации из этого источника не удалось восстановить.</string>
 </resources>

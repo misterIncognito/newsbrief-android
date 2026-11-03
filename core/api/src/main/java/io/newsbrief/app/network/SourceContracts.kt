@@ -16,6 +16,7 @@ interface NewsSourcePlugin {
     val info: SourcePluginInfo
     fun canonicalAddress(input: String): String
     suspend fun collect(source: SourceEntity): List<ArticleEntity>
+    suspend fun collectSince(source: SourceEntity): SourceBatch = SourceBatch(collect(source))
     suspend fun discover(): List<SourceEntity> = emptyList()
     fun merge(existing: ArticleEntity, incoming: ArticleEntity): ArticleEntity = existing
 }

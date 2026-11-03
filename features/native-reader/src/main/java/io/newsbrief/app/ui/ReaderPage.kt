@@ -2,6 +2,12 @@ package io.newsbrief.app.ui
 
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
 import io.newsbrief.app.util.failureMessage
 import io.newsbrief.modules.core.api.R
 
@@ -36,6 +42,16 @@ fun ReaderPage(vm: ReaderUi, host: io.newsbrief.app.runtime.FeatureHost) {
     val busy by vm.readerBusy.collectAsStateWithLifecycle()
     val worker by vm.workerUrl.collectAsStateWithLifecycle()
     val item = source ?: return
+    val readStatus = host.optional(ReadStatusUi::class.java)
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val focused = LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(item.id, readStatus, lifecycle, focused) {
+        if (item.id == 0L || readStatus == null || !focused) return@LaunchedEffect
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            delay(1_000)
+            readStatus.markVisible(listOf(item.id))
+        }
+    }
     val links = reader?.links ?: ArticleLinks.decode(item.linksJson)
     val primary = ArticleLinks.fullArticle(links)
     Column(Modifier.fillMaxSize().verticalScroll(remember(item.link) { androidx.compose.foundation.ScrollState(0) }).padding(18.dp),

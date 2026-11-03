@@ -48,6 +48,9 @@ class MemoryNewsStore : NewsStore {
         override suspend fun setEnabled(id: Long, enabled: Boolean) = access {
             state.value = state.value.copy(sources = state.value.sources.map { if (it.id == id) it.copy(enabled = enabled) else it })
         }
+        override suspend fun updateFetchProgress(id: Long, cursor: String?, expected: String, historyGap: Boolean) = access {
+            state.value = state.value.copy(sources = state.value.sources.map { if (it.id == id && it.fetchCursor == expected) it.copy(fetchCursor = cursor ?: it.fetchCursor, historyGap = historyGap) else it })
+        }
         override suspend fun delete(id: Long) = access { state.value = state.value.copy(sources = state.value.sources.filterNot { it.id == id }) }
     }
     private suspend fun update(url: String, change: (ArticleEntity) -> ArticleEntity) = access {
@@ -58,6 +61,14 @@ class MemoryNewsStore : NewsStore {
         override fun observeRecent(from: Long) = state.map { it.visible(from).take(250) }
         override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean) = state.map {
             it.visible().filter { a -> !filtered || a.sourceId in sourceIds }.take(250)
+        }
+        override fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long>) = state.map {
+            it.visible().filter { a -> (a.readAt == null || a.id in includeIds) && (!filtered || a.sourceId in sourceIds) }.take(250)
+        }
+        override suspend fun markVisibleRead(ids: List<Long>, readAt: Long) = access {
+            state.value = state.value.copy(articles = state.value.articles.map {
+                if (it.id in ids && it.readAt == null) it.copy(readAt = readAt) else it
+            })
         }
         override suspend fun recent(from: Long, limit: Int) = access { state.value.visible(from).take(limit) }
         override suspend fun insertAll(items: List<ArticleEntity>) = access {
@@ -70,8 +81,10 @@ class MemoryNewsStore : NewsStore {
             }
         }
         override suspend fun updateArticle(article: ArticleEntity) = update(article.link) { article }
+        override fun observeByLink(url: String) = state.map { it.articles.find { article -> article.link == url } }
         override suspend fun findByLink(url: String) = access { state.value.articles.find { it.link == url } }
         override suspend fun fillSourcePlugin(url: String, pluginId: String) = update(url) { if (it.sourcePluginId.isEmpty()) it.copy(sourcePluginId = pluginId) else it }
+        override suspend fun setReadAt(url: String, readAt: Long?) = update(url) { it.copy(readAt = readAt) }
         override suspend fun requireProxy(url: String) = update(url) { it.copy(proxyRequired = true) }
         override suspend fun updateReader(url: String, title: String, content: String, imageUrl: String, publishedAt: Long,
             author: String, imagesJson: String, linksJson: String) = update(url) {

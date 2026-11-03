@@ -18,6 +18,14 @@ interface FeedFilterUi {
     fun clearFeedFilter()
 }
 data class FeedSelection(val category: FeedCategory = FeedCategory.ALL, val keys: Set<String> = emptySet())
+interface ReadStatusUi {
+    val unreadOnly: StateFlow<Boolean>
+    val visibleReadIds: StateFlow<Set<Long>>
+    fun setUnreadOnly(value: Boolean)
+    fun toggleRead(article: ArticleEntity): Job
+    fun retainVisible(ids: List<Long>)
+    suspend fun markVisible(ids: List<Long>)
+}
 interface SavedUi {
     val savedUrls: StateFlow<List<String>>
     val savedOnly: StateFlow<Boolean>

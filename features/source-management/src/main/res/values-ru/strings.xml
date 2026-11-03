@@ -1,3 +1,4 @@
 <resources>
     <string name="nb_feature_source_management">Источники</string>
+    <string name="source_history_gap">Некоторые старые публикации могут быть недоступны. Потяните вниз, чтобы повторить.</string>
 </resources>

@@ -6,5 +6,6 @@ import io.newsbrief.app.data.*
 class WebCollectors(override val plugins: SourcePluginRegistry) : NewsCollector, SourceRegistryOwner {
     override fun supports(source: SourceEntity) = plugins.supports(source)
     override suspend fun collect(source: SourceEntity) = plugins.collect(source)
+    override suspend fun collectSince(source: SourceEntity) = plugins.collectSince(source)
     override fun merge(existing: ArticleEntity, incoming: ArticleEntity) = plugins.merge(existing, incoming)
 }

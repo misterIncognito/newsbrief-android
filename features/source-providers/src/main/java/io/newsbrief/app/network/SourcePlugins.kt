@@ -19,4 +19,8 @@ class SourcePluginRegistry(plugins: List<NewsSourcePlugin>) : SourceRegistry {
     override suspend fun collect(source: SourceEntity): List<ArticleEntity> = withContext(Dispatchers.IO) {
         plugin(source.kind).collect(source).map { it.copy(sourcePluginId = source.kind) }
     }
+    override suspend fun collectSince(source: SourceEntity): SourceBatch = withContext(Dispatchers.IO) {
+        val batch = plugin(source.kind).collectSince(source)
+        batch.copy(articles = batch.articles.map { it.copy(sourcePluginId = source.kind) })
+    }
 }
