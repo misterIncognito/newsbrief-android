@@ -66,8 +66,11 @@ class OptionalFeatureAssemblyTest {
             }
             if ("share-articles" in selected) compose.onNodeWithText("Поделиться").assertExists()
             else compose.onNodeWithText("Поделиться").assertDoesNotExist()
-            if ("feed-filters" in selected) compose.onNodeWithText("Все источники").assertExists()
-            else compose.onNodeWithText("Все источники").assertDoesNotExist()
+            if ("feed-filters" in selected) {
+                compose.onNodeWithTag("open-source-filter").performClick()
+                compose.onNodeWithTag("source-filter-panel").assertExists()
+                compose.onNodeWithText("Готово").performClick()
+            } else compose.onNodeWithTag("open-source-filter").assertDoesNotExist()
             if ("native-reader" !in selected && "embedded-browser" !in selected) {
                 compose.onNodeWithText("Independent feature story").performScrollTo().performClick()
                 val intent = org.robolectric.Shadows.shadowOf(app).nextStartedActivity
