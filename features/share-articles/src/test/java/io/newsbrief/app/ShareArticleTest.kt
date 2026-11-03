@@ -31,7 +31,11 @@ class ShareArticleTest {
         assertEquals(article.title, intent.getStringExtra(Intent.EXTRA_TITLE))
         assertEquals("${article.title}\n${article.link}", intent.getStringExtra(Intent.EXTRA_TEXT))
         val post = article.copy(link = "https://t.me/channel/123")
-        assertTrue(articleShareIntent(post).getStringExtra(Intent.EXTRA_TEXT)!!.endsWith(post.link))
+        val telegramIntent = articleShareIntent(post)
+        assertEquals(post.link, telegramIntent.getStringExtra(Intent.EXTRA_TEXT))
+        assertNull(telegramIntent.getStringExtra(Intent.EXTRA_TITLE))
+        val proxyPost = post.copy(sourcePluginId = "TELEGRAM_PROXY", link = "https://proxy.example/posts/10:123")
+        assertEquals(proxyPost.link, articleShareIntent(proxyPost).getStringExtra(Intent.EXTRA_TEXT))
     }
     @Test fun shareButtonOpensSystemChooser() {
         compose.setContent { MaterialTheme { ShareArticleButton(article) } }
