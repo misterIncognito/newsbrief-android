@@ -6,7 +6,7 @@ import io.newsbrief.app.network.*
 
 interface FeatureRuntimeOwner { val runtime: FeatureRuntime }
 
-class FeatureRuntime(private val context: Context, val features: List<AppFeature> = InstalledFeatures.create(), collector: NewsCollector? = null) {
+class FeatureRuntime(private val context: Context, val features: List<AppFeature>, collector: NewsCollector? = null) {
     val bindings = FeatureBindings.create(features)
     private val persistent = bindings.persistentStorage?.invoke(context)
     val store: NewsStore = persistent?.first ?: MemoryNewsStore()
