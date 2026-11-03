@@ -42,6 +42,7 @@ class FeedRuntimeTest {
         }
         val filter = object : ViewModel(), FeedFilterUi {
             override val feedCategory = MutableStateFlow(FeedCategory.ALL)
+            override val availableCategories = MutableStateFlow(listOf(FeedCategory.ALL))
             override val feedSources = MutableStateFlow<Set<String>>(emptySet())
             override val feedOptions = MutableStateFlow<List<FeedSourceOption>>(emptyList())
             override val selection = MutableStateFlow(FeedSelection())
