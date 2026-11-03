@@ -122,17 +122,25 @@ class NewsFeedActionsTest {
                 MaterialTheme { NewsBriefScreen(vm) }
             } }
             compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
+            compose.onNodeWithText("Каталог").assertDoesNotExist()
+            compose.onNodeWithText("Telegram-прокси").assertDoesNotExist()
+            compose.onNodeWithText("Настройки").performClick()
+            compose.onNodeWithText("Каталог").assertExists()
             compose.onNodeWithText("Источники").performClick()
             compose.onNodeWithText("Своя ссылка").performClick()
             vm.sourcesUi.sourcePlugins.forEach { compose.onNode(hasText(it.title) and hasClickAction()).assertExists() }
             compose.onNodeWithText("Telegram через прокси").performClick()
             compose.onNodeWithText("@канал, ссылка t.me или ID канала").assertExists()
             compose.onNodeWithText("Отмена").performClick()
+            compose.onNodeWithText("Настройки").performClick()
             compose.onNodeWithText("Telegram-прокси").performClick()
+            compose.onNodeWithText("HTTPS URL Telegram-прокси").performScrollTo().assertExists()
+            compose.onNodeWithText("Ключ доступа Telegram-прокси").performScrollTo().assertExists()
+            compose.onNodeWithText("Открыть: Telegram-прокси").performScrollTo().performClick()
             waitFor { vm.telegram.proxyChannels.value.error != null }
             compose.onNodeWithText("Настрой HTTPS-адрес и ключ Telegram-прокси", substring = true).assertExists()
             compose.onNodeWithText("Закрыть").performClick()
-            compose.onNodeWithText("Настройки").performClick()
+            compose.onNodeWithText("← Назад").performClick()
             compose.onNodeWithText("HTTPS URL Telegram-прокси").performScrollTo().assertExists()
             compose.onNodeWithText("Ключ доступа Telegram-прокси").performScrollTo().assertExists()
         } finally { model?.closeFeatures(); db.close(); Dispatchers.resetMain() }
