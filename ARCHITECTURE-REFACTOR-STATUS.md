@@ -19,5 +19,4 @@ failure. Later stages have not yet been checked. The new RSS and Telegram inject
 passed separately. The updated feed integration build and unit tests passed. The synchronization-only assembly and its proxy-resolution test passed. The remaining integrations have not been revalidated after these changes.
 
 The combined assembly of all isolated feature modules passed unit tests and debug build
-after removing implicit network, proxy, source and article lookup helpers. The individual
-feature-selection matrix is running; FeatureBindings has not yet been removed.
+after removing implicit network, proxy, source and article lookup helpers. All 19 minimal feature selections also passed app and selected-module unit tests and debug builds. The detailed record is on `verify/article-composition` at `validation/architecture/feature-matrix.md`. FeatureBindings has not yet been removed.
