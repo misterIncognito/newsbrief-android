@@ -20,6 +20,9 @@ interface AppFeature {
     @Composable fun Screen(host: FeatureHost, navigation: FeaturePageNavigation) { Screen(host) }
     @Composable fun Settings(host: FeatureHost) {}
     @Composable fun Toolbar(host: FeatureHost) {}
+    @Composable fun Toolbar(host: FeatureHost, navigation: FeaturePageNavigation) { Toolbar(host) }
+    @Composable fun MenuItems(host: FeatureHost, openFeed: () -> Unit, closeMenu: () -> Unit) {}
+    fun onFeedSelected(host: FeatureHost) {}
 }
 /** Scoped page navigation supplied by the shell; a feature remains usable without another feature. */
 interface FeaturePageNavigation {
