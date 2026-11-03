@@ -31,6 +31,7 @@ class SelectedRuntimeStartupTest {
             override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
         }
         val runtime = FeatureRuntime(app, features, collector)
+        runtime.start()
         val shell = NewsViewModel(app, runtime.services, features)
         try {
             assertEquals(features.map { it.id }, runtime.features.map { it.id })
