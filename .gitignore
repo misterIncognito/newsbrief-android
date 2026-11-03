@@ -24,3 +24,8 @@ local.properties
 .kotlin/
 captures/
 .externalNativeBuild/
+
+# Generated validation output; keep verification scripts and notes.
+validation/**/*.txt
+validation/**/*.json
+validation/**/*.xml
