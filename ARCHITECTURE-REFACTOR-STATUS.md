@@ -17,3 +17,7 @@ The progressive integration run passed through 10 features. Stage 11 was interru
 because concurrent Gradle runs caused extreme host memory pressure; it was not a test
 failure. Later stages have not yet been checked. The new RSS and Telegram injection tests
 passed separately. The updated feed integration build and unit tests passed. The synchronization-only assembly and its proxy-resolution test passed. The remaining integrations have not been revalidated after these changes.
+
+The combined assembly of all isolated feature modules passed unit tests and debug build
+after removing implicit network, proxy, source and article lookup helpers. The individual
+feature-selection matrix is running; FeatureBindings has not yet been removed.
