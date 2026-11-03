@@ -14,13 +14,13 @@ import io.newsbrief.app.data.ArticleEntity
 import io.newsbrief.app.network.ArticleLinks
 
 /** Minimal feed; richer presentation and article actions are optional contributions. */
-@Composable fun BasicNewsCard(article: ArticleEntity, vm: AppUi) {
-    Card(Modifier.fillMaxWidth().clickable { vm.openArticle(article) }) {
+@Composable fun BasicNewsCard(article: ArticleEntity, host: io.newsbrief.app.runtime.FeatureHost) {
+    Card(Modifier.fillMaxWidth().clickable { host.openArticle(article) }) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(article.sourceName + " · " + formatDate(article.publishedAt), style = MaterialTheme.typography.labelSmall)
             Text(article.title, style = MaterialTheme.typography.titleMedium)
             Text(article.excerpt, maxLines = 4)
-            ArticleActionRow(article, vm)
+            ArticleActionRow(article, host)
         }
     }
 }

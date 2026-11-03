@@ -31,12 +31,9 @@ import io.newsbrief.app.data.FeedCategory
 fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, controls: @Composable () -> Unit = {}, emptyMessage: String? = null, articleContent: @Composable (ArticleEntity) -> Unit) {
     val articles by vm.feedArticles.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
-    val category by vm.feedCategory.collectAsStateWithLifecycle()
-    val selectedSources by vm.feedSources.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
-    val options by vm.feedOptions.collectAsStateWithLifecycle()
-    val filtered = category != FeedCategory.ALL || selectedSources.isNotEmpty()
+    val filtered by vm.filtered.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize()) {
         controls()
         Text("Публикаций: ${articles.size}", modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
