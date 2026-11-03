@@ -8,6 +8,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BrowserRoutingTest {
+    private val router = PageProxyRegistry(listOf(CloudflarePageProxy()))
     @Test fun browserTransportPreservesMimeEncodingAndRoutesRedirects() {
         val requests = mutableListOf<String>()
         val transport = OkHttpClient.Builder().addInterceptor { chain ->
@@ -18,7 +19,7 @@ class BrowserRoutingTest {
                     else code(200)
                 }.body("<p>Story</p>".toResponseBody("text/html; charset=utf-8".toMediaType())).build()
         }.build()
-        val result = NewsHttp.downloadResource("https://example.org/redirect", "fetch", NewsRouting.DEFAULT_WORKER, 1000, transport = transport)
+        val result = NewsHttp.downloadResource("https://example.org/redirect", "fetch", NewsRouting.DEFAULT_WORKER, 1000, transport = transport, router = router)
         assertEquals("text/html", result.mimeType)
         assertEquals("UTF-8", result.encoding)
         assertEquals("https://news.zerkalo.io/story", result.finalUrl)
@@ -33,7 +34,7 @@ class BrowserRoutingTest {
         }.build()
         val url = "https://cdn.example/style.css"
         val route = BrowserRouting.route(url, false, "https://zerkalo-6oct.site/news/story")
-        assertTrue(runCatching { NewsHttp.downloadResource(url, route.type, NewsRouting.DEFAULT_WORKER, 1000, route.forceProxy, transport) }.isFailure)
+        assertTrue(runCatching { NewsHttp.downloadResource(url, route.type, NewsRouting.DEFAULT_WORKER, 1000, route.forceProxy, transport, router) }.isFailure)
         assertEquals(1, requests.size)
         assertTrue(requests.single().startsWith(NewsRouting.DEFAULT_WORKER + "/fetch?"))
     }
