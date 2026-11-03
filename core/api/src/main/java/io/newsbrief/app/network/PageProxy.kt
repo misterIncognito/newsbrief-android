@@ -1,7 +1,5 @@
 package io.newsbrief.app.network
 
-import io.newsbrief.app.runtime.FeatureBindings
-
 /** Provider-neutral request. Policy remains required across redirects and extraction. */
 data class PageRequest(val resource: String, val type: String, val proxyRequired: Boolean, val preferProxy: Boolean = false) {
     val requiresProxy get() = proxyRequired || NewsRouting.requiresProxy(resource)
@@ -21,12 +19,5 @@ object DirectPageRouter : PageRouter {
         require(request.type in setOf("fetch", "article", "image")) { "Unsupported endpoint" }
         check(!request.requiresProxy) { "Required page proxy plugin is unavailable" }
         return request.resource
-    }
-}
-object PageRouting {
-    fun route(resource: String, type: String, configuration: String, forceProxy: Boolean = false, preferProxy: Boolean = false): String {
-        val bindings = FeatureBindings.create()
-        return bindings.pageRouter(bindings.pageProxyPlugins).route(
-            PageRequest(resource, type, forceProxy || NewsRouting.requiresProxy(resource), preferProxy), configuration)
     }
 }
