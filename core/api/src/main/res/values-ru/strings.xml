@@ -124,7 +124,7 @@
     <string name="nb_preview_title">Бета-версия</string>
     <string name="nb_preview_message">Это бета-версия приложения. Она может содержать ошибки и работать непредсказуемо.</string>
     <string name="nb_browser_reload">Перезагрузить</string>
-    <string name="nb_browser_loader">Через загрузчик</string>
+    <string name="nb_browser_loader">Загрузчик NewsBrief</string>
     <string name="nb_browser_original">Оригинал</string>
     <string name="nb_err_telegram_https">Нужна HTTPS-ссылка на канал</string>
     <string name="nb_err_telegram_public">Поддерживаются только публичные Telegram-каналы t.me</string>

@@ -124,7 +124,7 @@
     <string name="nb_preview_title">Beta version</string>
     <string name="nb_preview_message">This is a beta version and may contain issues or behave unexpectedly.</string>
     <string name="nb_browser_reload">Reload</string>
-    <string name="nb_browser_loader">Via loader</string>
+    <string name="nb_browser_loader">NewsBrief loader</string>
     <string name="nb_browser_original">Original</string>
     <string name="nb_err_telegram_https">A channel requires an HTTPS link</string>
     <string name="nb_err_telegram_public">Only public t.me Telegram channels are supported</string>

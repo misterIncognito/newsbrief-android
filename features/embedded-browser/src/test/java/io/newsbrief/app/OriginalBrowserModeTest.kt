@@ -45,7 +45,7 @@ class OriginalBrowserModeTest {
         compose.setContent { MaterialTheme { EmbeddedBrowserPage(url, NewsRouting.DEFAULT_WORKER, forceProxy = true,
             download = { target, route, _ -> routes += route; DownloadedResource("<p>Page</p>".toByteArray(), "text/html", "UTF-8", target) }) } }
         compose.runOnIdle { assertFalse(browser()!!.settings.javaScriptEnabled) }
-        compose.onNodeWithText("Через загрузчик").assertIsSelected()
+        compose.onNodeWithText("Загрузчик NewsBrief").assertIsSelected()
         compose.onNodeWithText("Оригинал").assertIsNotSelected()
         compose.onNodeWithText("Оригинал").performClick()
         compose.onNodeWithText("Оригинал").assertIsSelected()
