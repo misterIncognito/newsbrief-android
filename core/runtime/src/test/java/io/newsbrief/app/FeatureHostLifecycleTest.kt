@@ -48,7 +48,9 @@ class FeatureHostLifecycleTest {
         val shell = NewsViewModel(ApplicationProvider.getApplicationContext(), services, emptyList())
         assertTrue(shell.host.bindings.controllers.isEmpty())
         assertNull(services.articles); assertNull(services.sourceActions); assertNull(services.directory)
-        assertEquals(0, services.refresh().added)
+        val result = services.refresh()
+        assertEquals(0, result.added)
+        assertTrue(result.errors.isNotEmpty())
         assertEquals(0, store.sourceDao().count())
         assertTrue(shell.overlays.value.isEmpty()); shell.closeFeatures()
     }

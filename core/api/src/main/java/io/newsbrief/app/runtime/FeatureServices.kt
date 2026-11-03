@@ -20,7 +20,9 @@ class FeatureServices(val store: NewsStore, val settings: AppSettings,
     val articles = bindings.articleStore?.invoke(this)
     val sourceActions = bindings.sourceActions?.invoke(this)
     val directory = bindings.directory?.invoke(store, directoryNetwork)
-    private val loader = bindings.feedLoader?.invoke(this) ?: FeedLoader { RefreshResult(0, 0, emptyList()) }
+    private val loader = bindings.feedLoader?.invoke(this) ?: FeedLoader {
+        RefreshResult(0, 0, listOf("Обновление недоступно: загрузчик ленты не подключён."))
+    }
     private val refresh = bindings.refresh?.invoke(store, this.collector, settings, clock, loader) ?: loader::refresh
     suspend fun refresh(): RefreshResult { bindings.seed(store, settings); return refresh.invoke() }
 }
