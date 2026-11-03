@@ -41,8 +41,7 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
         }
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Технологии" to "technology", "ИИ" to "artificial intelligence", "Код" to "programming",
-                "Новости" to "news", "Бизнес" to "business").forEach { (label, query) ->
+            listOf("Технологии" to "technology", "ИИ" to "artificial intelligence", "Код" to "programming").forEach { (label, query) ->
                 TextButton(onClick = { vm.directoryQuery(query); vm.searchDirectory() }) { Text(label) }
             }
         }

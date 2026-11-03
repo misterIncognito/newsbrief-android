@@ -89,9 +89,33 @@ object SourceCatalog {
 
     fun search(query: String): List<SourcePreset> {
         val needle = query.trim().lowercase(java.util.Locale.ROOT)
-        return presets.filter { needle.isEmpty() ||
-            "${it.name} ${it.category} ${it.address}".lowercase(java.util.Locale.ROOT).contains(needle) }
+        val techQuery = needle.isEmpty() || needle in setOf("tech", "technology", "technologies", "технологии")
+        val politicalQuery = needle.startsWith("politic") || needle.startsWith("полит")
+        val aiQuery = needle in setOf("ai", "ии", "artificial intelligence", "искусственный интеллект")
+        val programmingQuery = needle in setOf("programming", "coding", "программирование", "код")
+        return presets.filter { source ->
+            val text = "${source.name} ${source.category} ${source.address}".lowercase(java.util.Locale.ROOT)
+            when {
+                techQuery -> source.category.contains("технолог", ignoreCase = true) ||
+                    source.category.split('·').any { it.trim().equals("IT", ignoreCase = true) }
+                politicalQuery -> source.address in politicalSources || text.contains(needle)
+                aiQuery -> text.contains("искусственный интеллект") || text.contains("artificial intelligence")
+                programmingQuery -> source.address.startsWith("https://habr.com/") || source.address == "https://t.me/s/devby"
+                else -> text.contains(needle)
+            }
+        }
     }
+
+    // General-news publishers included for political searches, not in the default tech list.
+    private val politicalSources = setOf(
+        "https://feeds.bbci.co.uk/russian/rss.xml", "https://news.zerkalo.io/rss/all.rss",
+        "https://meduza.io/rss/all", "https://rss.dw.com/rdf/rss-ru-all",
+        "https://www.polsatnews.pl/rss/polska.xml", "https://t.me/s/bbcrussian",
+        "https://t.me/s/zerkalo_io", "https://t.me/s/dwglavnoe", "https://t.me/s/meduzalive",
+        "https://t.me/s/nashaniva", "https://t.me/s/belsat",
+        "https://www.polsatnews.pl/rss/wszystkie.xml", "https://feeds.bbci.co.uk/news/world/rss.xml",
+        "https://www.theguardian.com/world/rss", "https://www.aljazeera.com/xml/rss/all.xml"
+    )
 
     private val legacyDefaults = setOf(
         "https://feeds.bbci.co.uk/russian/rss.xml",

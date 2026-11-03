@@ -8,6 +8,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SourceCatalogTest {
+    @Test fun curatedDirectoryDefaultsToTechAndPoliticalSearchRemainsAvailable() = kotlinx.coroutines.runBlocking {
+        val directory = io.newsbrief.app.network.PublicDirectoryNetwork()
+        val defaults = directory.search(io.newsbrief.app.network.DirectoryProvider.CURATED, "")
+        assertTrue(defaults.items.any { it.title == "The Verge" && io.newsbrief.app.data.FeedCategory.TECH in it.categories })
+        assertTrue(defaults.items.none { it.title == "Зеркало" })
+        val politics = directory.search(io.newsbrief.app.network.DirectoryProvider.CURATED, "politics")
+        assertTrue(politics.items.any { it.title == "Зеркало" })
+    }
     @Test fun entriesHaveUniqueAndValidUrls() {
         val entries = SourceCatalog.presets
         assertEquals(entries.size, entries.map { it.address }.distinct().size)
@@ -53,7 +61,16 @@ class SourceCatalogTest {
     @Test fun catalogSearchFindsMissingSourcesIgnoringCaseAndWhitespace() {
         assertEquals("The Verge", SourceCatalog.search("  VERGE ").single().name)
         assertEquals(2, SourceCatalog.search("Business Insider").size)
-        assertEquals(SourceCatalog.presets.size, SourceCatalog.search("").size)
+        val defaults = SourceCatalog.search("")
+        assertTrue(defaults.any { it.name == "The Verge" })
+        assertTrue(defaults.any { it.name.contains("dev.by") })
+        assertTrue(defaults.none { it.name == "BBC Русская служба" || it.name == "Зеркало" })
+        assertEquals(defaults, SourceCatalog.search("technology"))
+        assertTrue(SourceCatalog.search("artificial intelligence").any { it.name.contains("интеллект") })
+        assertTrue(SourceCatalog.search("programming").any { it.name.contains("dev.by") })
+        assertTrue(SourceCatalog.search("politics").any { it.name == "BBC Русская служба" })
+        assertTrue(SourceCatalog.search("политика").any { it.name == "Зеркало" })
+        assertTrue(SourceCatalog.search("bbc").any { it.name == "BBC Русская служба" })
         assertTrue(SourceCatalog.search("no such publisher").isEmpty())
     }
 }

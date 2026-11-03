@@ -32,7 +32,8 @@ class PublicDirectoryNetwork : DirectoryNetwork {
                     .put("query", query.removePrefix("@")).put("type", "channel").put("limit", 25)))
             }
             DirectoryProvider.CURATED -> DirectoryResults(SourceCatalog.search(query).map {
-                DirectorySource(it.name, it.address, it.kind, it.category)
+                DirectorySource(it.name, it.address, it.kind, it.category,
+                    categories = DirectoryParser.categories(listOf(it.name, it.category)))
             })
         }
     }

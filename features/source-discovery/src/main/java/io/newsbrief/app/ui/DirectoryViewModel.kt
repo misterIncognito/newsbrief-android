@@ -14,7 +14,7 @@ class DirectoryViewModel(private val host: FeatureHost) : ViewModel(), Directory
     private fun report(message: String) = host.report(message)
     override val sourcePlugins = services.sources.available
     override val sources = services.store.sourceDao().observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-    private val _directoryState = MutableStateFlow(DirectoryState())
+    private val _directoryState = MutableStateFlow(DirectoryState(provider = DirectoryProvider.CURATED, query = ""))
     override val directoryState = _directoryState.asStateFlow()
     private var directoryJob: Job? = null
     private var directoryGeneration = 0
@@ -29,7 +29,9 @@ class DirectoryViewModel(private val host: FeatureHost) : ViewModel(), Directory
         if (_directoryState.value.provider == io.newsbrief.app.network.DirectoryProvider.CURATED) searchDirectory()
     }
     override fun directoryProvider(provider: io.newsbrief.app.network.DirectoryProvider) {
-        _directoryState.value = _directoryState.value.copy(provider = provider, results = null, error = null)
+        val current = _directoryState.value
+        val query = if (provider != DirectoryProvider.CURATED && current.query.isBlank()) "technology" else current.query
+        _directoryState.value = current.copy(provider = provider, query = query, results = null, error = null)
         searchDirectory()
     }
     override fun searchDirectory() {
