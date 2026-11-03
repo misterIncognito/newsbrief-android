@@ -138,7 +138,7 @@ class NewsFeedActionsTest {
         } finally { model?.closeFeatures(); db.close(); Dispatchers.resetMain() }
     }
 
-    @Test fun multipleSourceChipsCombineFeedAndBrowserActionStaysAboveArticle() {
+    @Test fun multipleSourceSelectionsCombineFeedAndBrowserActionStaysAboveArticle() {
         val dispatcher = UnconfinedTestDispatcher(); Dispatchers.setMain(dispatcher)
         fun waitFor(condition: () -> Boolean) { compose.waitUntil(5000) {
             dispatcher.scheduler.runCurrent(); compose.waitForIdle(); condition()
@@ -166,15 +166,17 @@ class NewsFeedActionsTest {
             compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
             compose.onNodeWithText("Лента").performClick()
             waitFor { vm.feed.feedArticles.value.size == 3 }
+            compose.onNodeWithTag("open-source-filter").performClick()
             compose.onNodeWithText("Alpha").performScrollTo().performClick()
             waitFor { vm.feed.feedArticles.value.size == 1 }
             compose.onNodeWithText("Beta").performScrollTo().performClick()
             waitFor { vm.feed.feedArticles.value.size == 2 }
-            compose.onNodeWithText("Alpha").assertIsSelected(); compose.onNodeWithText("Beta").assertIsSelected()
+            compose.onNodeWithText("Alpha").assertIsOn(); compose.onNodeWithText("Beta").assertIsOn()
             compose.onNodeWithText("Alpha").performScrollTo().performClick()
             waitFor { vm.feed.feedArticles.value.singleOrNull()?.sourceName == "Beta" }
-            compose.onNodeWithText("Все источники").performScrollTo().performClick()
+            compose.onNodeWithText("Сбросить").performClick()
             waitFor { vm.feed.feedArticles.value.size == 3 }
+            compose.onNodeWithText("Готово").performClick()
             compose.onNodeWithText("Story Alpha").performClick()
             waitFor { vm.readerUi.reader.value != null }
             val browser = compose.onNodeWithText("Открыть во встроенном браузере")
