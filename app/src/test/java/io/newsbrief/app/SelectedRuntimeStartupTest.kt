@@ -23,12 +23,13 @@ class SelectedRuntimeStartupTest {
     @Test fun selectedRuntimeAndEveryRegisteredControllerStartWithoutOtherFeatures() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val app = ApplicationProvider.getApplicationContext<Application>()
-        if (runCatching { WorkManager.getInstance(app) }.isFailure)
+        val features = InstalledFeatures.create()
+        val background = features.any { it.id == "synchronization" }
+        if (background && runCatching { WorkManager.getInstance(app) }.isFailure)
             WorkManager.initialize(app, Configuration.Builder().build())
         val collector = object : NewsCollector {
             override suspend fun collect(source: SourceEntity) = emptyList<ArticleEntity>()
         }
-        val features = InstalledFeatures.create()
         val runtime = FeatureRuntime(app, features, collector)
         val shell = NewsViewModel(app, runtime.services, features)
         try {
@@ -40,7 +41,7 @@ class SelectedRuntimeStartupTest {
             assertTrue(shell.overlays.value.isEmpty())
         } finally {
             shell.closeFeatures()
-            WorkManager.getInstance(app).cancelAllWork()
+            if (background) WorkManager.getInstance(app).cancelAllWork()
             Dispatchers.resetMain()
         }
     }
