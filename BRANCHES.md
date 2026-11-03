@@ -109,7 +109,8 @@ git switch -c my-app dev
 git merge feature/feed
 git merge feature/rss-source
 git merge feature/storage
-./gradlew verifyModuleInterfaces :app:testDebugUnitTest :app:assembleDebug
+./gradlew verifyModuleInterfaces :app:testDebugUnitTest :app:assembleDebug \
+  -PnewsbriefFeatures=feed,networking,source-providers,rss-source,storage
 ```
 
 Build/run after every merge. Feed alone starts empty unless data is provided. RSS brings
@@ -145,16 +146,19 @@ From a complete checkout, select a smaller composition:
 
 ```sh
 ./gradlew verifyModuleInterfaces :app:testDebugUnitTest :app:assembleDebug \
-  -PnewsbriefFeatures=feed,rss-source,storage
+  -PnewsbriefFeatures=feed,networking,source-providers,rss-source,storage
 ```
 
-An empty `-PnewsbriefFeatures=` selects only the shell/core. Settings includes only selected
-feature projects and their default prerequisites; there is no copying or filtering Kotlin
+The `assembly.features` file declares the default assembly, one feature per line. The dev
+shell selects none. The `newsbriefFeatures` property overrides that list, including with an
+empty value. Merging a feature does not add it to an assembly. Every runtime prerequisite
+must be selected explicitly; missing modules or prerequisites fail configuration. Settings
+includes only selected feature projects; there is no copying or filtering Kotlin
 sources. Each module compiles its own standard `src/main` and `src/test` trees.
 `:app:testDebugUnitTest` runs the included libraries' tests as well as application tests.
 Individual suites can be run with, for example, `:features:save-articles:testDebugUnitTest`.
-Full device tests remain owned under `features/app-integration/device-tests` and are compiled
-into `:app`'s Android-test APK only for the complete assembly.
+Full device tests remain owned under `features/app-integration/device-tests`; enable them
+explicitly using `-PnewsbriefIntegrationTests=true` with all test prerequisites selected.
 
 ## Develop a plugin
 
