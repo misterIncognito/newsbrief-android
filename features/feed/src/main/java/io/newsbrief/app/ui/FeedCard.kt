@@ -15,7 +15,9 @@ import io.newsbrief.app.network.ArticleLinks
 
 /** Minimal feed; richer presentation and article actions are optional contributions. */
 @Composable fun BasicNewsCard(article: ArticleEntity, host: io.newsbrief.app.runtime.FeatureHost) {
-    Card(Modifier.fillMaxWidth().clickable { host.openArticle(article) }) {
+    val color = LocalArticleCardColor.current
+    Card(Modifier.fillMaxWidth().clickable { host.openArticle(article) },
+        colors = if (color != null) CardDefaults.cardColors(containerColor = color, contentColor = androidx.compose.ui.graphics.Color(0xFF191919)) else CardDefaults.cardColors()) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(article.sourceName + " · " + formatDate(article.publishedAt), style = MaterialTheme.typography.labelSmall)
             Text(article.title, style = MaterialTheme.typography.titleMedium)

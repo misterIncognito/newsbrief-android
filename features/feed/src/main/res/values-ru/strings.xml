@@ -1,3 +1,7 @@
 <resources>
+    <string name="read_status_read">Прочитано</string>
+    <string name="read_status_unread">Не прочитано</string>
+    <string name="read_status_mark_read">Отметить прочитанным</string>
+    <string name="read_status_mark_unread">Отметить непрочитанным</string>
     <string name="nb_feature_feed">Лента</string>
 </resources>

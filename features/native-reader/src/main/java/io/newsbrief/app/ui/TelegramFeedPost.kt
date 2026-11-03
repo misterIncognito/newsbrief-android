@@ -58,7 +58,9 @@ internal fun TelegramFeedPost(article: ArticleEntity, workerUrl: String,
         DateTimeFormatter.ofPattern("dd.MM HH:mm").withZone(ZoneId.systemDefault())
             .format(Instant.ofEpochMilli(article.publishedAt))
     }
-    Card(Modifier.fillMaxWidth().testTag("telegram-post")) {
+    val color = LocalArticleCardColor.current
+    Card(Modifier.fillMaxWidth().testTag("telegram-post"),
+        colors = if (color != null) CardDefaults.cardColors(containerColor = color, contentColor = Color(0xFF191919)) else CardDefaults.cardColors()) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("${article.sourceName} · $date", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary)

@@ -28,7 +28,10 @@ class FeedFeature : AppFeature {
             onVisible = readStatus?.let { status -> { ids -> status.markVisible(ids) } },
             onVisibilityChanged = readStatus?.let { status -> { ids -> status.retainVisible(ids) } }) { article ->
             val presentation = host.bindings.presentation
-            if (presentation != null) presentation.Card(article, host) else BasicNewsCard(article, host)
+            val card: @Composable () -> Unit = {
+                if (presentation != null) presentation.Card(article, host) else BasicNewsCard(article, host)
+            }
+            if (readStatus != null) ReadStatusFrame(article, { readStatus.toggleRead(it) }, card) else card()
         }
     }
 }

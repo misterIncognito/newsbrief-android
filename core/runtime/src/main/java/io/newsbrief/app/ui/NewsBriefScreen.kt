@@ -10,14 +10,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.runtime.FeaturePageNavigation
 
@@ -28,7 +31,6 @@ import io.newsbrief.app.runtime.FeaturePageNavigation
     val sections = vm.features.filter { it.id != "feed" && (it.title.isNotEmpty() || it.hasSettings) }.sortedBy { it.order }
     var selected by rememberSaveable { mutableStateOf(if (feed != null) "feed" else if (sections.isNotEmpty()) "settings" else "home") }
     var returnPage by rememberSaveable { mutableStateOf("") }
-    var menuOpen by rememberSaveable { mutableStateOf(false) }
     val section = sections.firstOrNull { selected == "section:${it.id}" || selected == "page:${it.id}" }
     val inPage = selected.startsWith("page:")
     val overlays by vm.overlays.collectAsStateWithLifecycle()
@@ -55,40 +57,44 @@ import io.newsbrief.app.runtime.FeaturePageNavigation
         if (overlay != null) overlay.onBack() else back()
     }
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }, topBar = {
-        Row(Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween,
+        BoxWithConstraints(Modifier.fillMaxWidth().statusBarsPadding()) {
+        val showAppTitle = maxWidth >= 420.dp || (feed == null && sections.isEmpty())
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("NewsBrief", style = MaterialTheme.typography.headlineMedium)
-                    MvpNotice()
-                }
-                if (feed != null && sections.isEmpty()) Text(feed.localizedTitle(context), style = MaterialTheme.typography.labelMedium)
-            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (overlay != null) TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
                 else {
                     if (section != null) IconButton(onClick = back) {
                         Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.nb_text_002))
                     }
-                    if (selected == "feed") vm.features.sortedBy { it.order }.forEach { it.Toolbar(vm.host, navigation) }
-                    if (feed != null || sections.isNotEmpty()) Box {
-                        IconButton(onClick = { menuOpen = true }) { Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.nb_text_003)) }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.nb_text_004)) }, onClick = {
-                                vm.features.forEach { it.onFeedSelected(vm.host) }
-                                returnPage = ""; selected = "feed"; menuOpen = false
-                            })
-                            vm.features.sortedBy { it.order }.forEach { feature ->
-                                feature.MenuItems(vm.host, openFeed = { returnPage = ""; selected = "feed" },
-                                    closeMenu = { menuOpen = false })
-                            }
-                            if (sections.isNotEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.nb_text_005)) }, onClick = {
-                                returnPage = ""; selected = "settings"; menuOpen = false
-                            })
-                        }
+                    if (feed != null) IconButton(onClick = {
+                        vm.features.forEach { it.onFeedSelected(vm.host) }
+                        returnPage = ""; selected = "feed"
+                    }, modifier = Modifier.testTag("open-feed")) {
+                        Icon(Icons.Default.Home, contentDescription = stringResource(R.string.nb_text_004))
                     }
+                    if (feed != null) vm.features.sortedBy { it.order }.forEach { feature ->
+                        feature.HeaderActions(vm.host, openFeed = { returnPage = ""; selected = "feed" })
+                    }
+                    if (sections.isNotEmpty()) IconButton(onClick = {
+                        returnPage = ""; selected = "settings"
+                    }, modifier = Modifier.testTag("open-settings")) {
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nb_text_005))
+                        }
+                    if (selected == "feed") vm.features.sortedBy { it.order }.forEach { it.Toolbar(vm.host, navigation) }
                 }
             }
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    if (showAppTitle) {
+                        Text("NewsBrief", modifier = Modifier.weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.titleLarge)
+                    }
+                    MvpNotice()
+                }
+                if (feed != null && sections.isEmpty()) Text(feed.localizedTitle(context), style = MaterialTheme.typography.labelMedium)
+            }
+        }
         }
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
