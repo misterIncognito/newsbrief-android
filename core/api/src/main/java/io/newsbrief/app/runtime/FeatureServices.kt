@@ -12,7 +12,7 @@ class FeatureServices(val store: NewsStore, val settings: AppSettings,
     collector: NewsCollector? = null, registry: SourceRegistry? = null,
     val directoryNetwork: DirectoryNetwork? = null, reader: ArticleLoader? = null,
     val clock: () -> Long = System::currentTimeMillis, val onFeedUpdated: () -> Unit = {},
-    val bindings: FeatureBindings = FeatureBindings.create()) {
+    val bindings: FeatureBindings) {
     val sources = registry ?: (collector as? SourceRegistryOwner)?.plugins ?: (collector as? SourceRegistry)
         ?: bindings.sources?.invoke(settings) ?: EmptySourceRegistry()
     val collector = collector ?: sources
