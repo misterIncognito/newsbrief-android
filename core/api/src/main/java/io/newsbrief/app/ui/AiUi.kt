@@ -7,6 +7,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 
 interface AiUi {
+    val config: StateFlow<io.newsbrief.app.data.AiConfig>
+    fun setProvider(value: String)
+    fun setModel(value: String)
+    fun saveKey(value: String)
     val articles: StateFlow<List<ArticleEntity>>
     val sources: StateFlow<List<SourceEntity>>
     val hasKey: StateFlow<Boolean>
