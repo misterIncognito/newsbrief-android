@@ -19,18 +19,7 @@ data class DirectoryState(
 interface SourcesUi {
     val sourcePlugins: List<SourcePluginInfo>
     val sources: StateFlow<List<SourceEntity>>
-    val proxyChannels: StateFlow<ProxyChannelsState>
-    val directoryState: StateFlow<DirectoryState>
-    fun openCatalog()
-    fun closeProxyChannels()
-    fun openProxyChannels()
     fun addSource(name: String, kind: String, address: String): Job
     fun toggleSource(id: Long, value: Boolean): Job
     fun deleteSource(id: Long): Job
-    fun directoryProvider(provider: DirectoryProvider)
-    fun directoryQuery(query: String)
-    fun searchDirectory()
-    fun hideDirectoryPromotions(value: Boolean)
-    fun loadMoreDirectory()
-    fun addDirectorySource(source: DirectorySource)
 }

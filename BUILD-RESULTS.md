@@ -1,5 +1,9 @@
 # NewsBrief Gradle module verification
 
+**10 October 2026 toolchain update:** `integration/feed` now uses AGP 9.4.1 and Gradle 9.6.0.
+33 feed tests and 180 full-assembly tests passed; both debug APKs built.
+See [upgrade results](docs/agp-9.4.1-upgrade.md). The branch matrix below records the earlier AGP 8.13.2 module refactor.
+
 The full module assembly passes **180 tests**; the minimal persistent feed passes **33**.
 All **22 actual branch checkouts**, **4 real incremental merge stages**, and **3 full-tree
 composition checks** pass their unit tests, module-graph assertions and debug APK builds.
