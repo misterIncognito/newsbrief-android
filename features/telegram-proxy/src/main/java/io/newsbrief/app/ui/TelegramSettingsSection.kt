@@ -5,7 +5,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-@Composable fun TelegramSettingsSection(vm: AppUi) {
+@Composable fun TelegramSettingsSection(vm: TelegramProxyUi) {
     val proxy by vm.telegramProxyUrl.collectAsStateWithLifecycle()
     val saved by vm.hasTelegramProxyKey.collectAsStateWithLifecycle()
     var url by remember(proxy) { mutableStateOf(proxy) }
