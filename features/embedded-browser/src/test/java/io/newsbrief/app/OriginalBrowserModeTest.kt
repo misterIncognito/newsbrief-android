@@ -45,7 +45,10 @@ class OriginalBrowserModeTest {
         compose.setContent { MaterialTheme { EmbeddedBrowserPage(url, NewsRouting.DEFAULT_WORKER, forceProxy = true,
             download = { target, route, _ -> routes += route; DownloadedResource("<p>Page</p>".toByteArray(), "text/html", "UTF-8", target) }) } }
         compose.runOnIdle { assertFalse(browser()!!.settings.javaScriptEnabled) }
-        compose.onNodeWithText("Оригинальная страница").performClick()
+        compose.onNodeWithText("Через загрузчик").assertIsSelected()
+        compose.onNodeWithText("Оригинал").assertIsNotSelected()
+        compose.onNodeWithText("Оригинал").performClick()
+        compose.onNodeWithText("Оригинал").assertIsSelected()
         compose.runOnIdle {
             val view = browser()!!
             assertTrue(view.settings.javaScriptEnabled); assertTrue(view.settings.domStorageEnabled)
@@ -66,7 +69,7 @@ class OriginalBrowserModeTest {
         var calls = 0
         compose.setContent { MaterialTheme { EmbeddedBrowserPage("https://zerkalo-6oct.site/news/story", NewsRouting.DEFAULT_WORKER,
             download = { _, route, _ -> calls++; assertTrue(route.forceProxy); error("Worker unavailable") }) } }
-        compose.onNodeWithText("Оригинальная страница").performClick()
+        compose.onNodeWithText("Оригинал").performClick()
         compose.runOnIdle {
             val view = browser()!!
             assertFalse(view.settings.javaScriptEnabled)

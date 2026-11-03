@@ -121,11 +121,11 @@
     <string name="nb_feed_error">Ошибка обновления: %1$s</string>
     <string name="nb_share">Поделиться</string>
     <string name="nb_share_unavailable">Нет доступного приложения для отправки</string>
-    <string name="nb_preview_title">Ранняя версия</string>
-    <string name="nb_preview_message">Это ранняя версия приложения. Она может содержать ошибки и работать непредсказуемо.</string>
+    <string name="nb_preview_title">Бета-версия</string>
+    <string name="nb_preview_message">Это бета-версия приложения. Она может содержать ошибки и работать непредсказуемо.</string>
     <string name="nb_browser_reload">Перезагрузить</string>
     <string name="nb_browser_loader">Через загрузчик</string>
-    <string name="nb_browser_original">Оригинальная страница</string>
+    <string name="nb_browser_original">Оригинал</string>
     <string name="nb_err_telegram_https">Нужна HTTPS-ссылка на канал</string>
     <string name="nb_err_telegram_public">Поддерживаются только публичные Telegram-каналы t.me</string>
     <string name="nb_err_telegram_handle">Неверное имя Telegram-канала</string>
@@ -156,7 +156,7 @@
     <string name="nb_directory_short_query">Введи хотя бы 2 символа</string>
     <string name="nb_browser_http_error">Сайт ответил HTTP %1$d. Можно переключить режим страницы или повторить загрузку.</string>
     <string name="nb_browser_open_error">Не удалось открыть страницу. Повтори загрузку или переключи режим.</string>
-    <string name="nb_browser_load_error">Не удалось загрузить страницу. Попробуй режим «Оригинальная страница».</string>
+    <string name="nb_browser_load_error">Не удалось загрузить страницу. Попробуй режим «Оригинал».</string>
     <string name="nb_browser_https_only">Поддерживаются только HTTPS-страницы</string>
     <string name="nb_browser_public_only">Поддерживается чтение публичных страниц</string>
     <string name="nb_browser_error_title">Не удалось загрузить страницу</string>

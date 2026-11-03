@@ -19,7 +19,6 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.runtime.FeaturePageNavigation
@@ -57,11 +56,15 @@ import io.newsbrief.app.runtime.FeaturePageNavigation
         if (overlay != null) overlay.onBack() else back()
     }
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }, topBar = {
-        BoxWithConstraints(Modifier.fillMaxWidth().statusBarsPadding()) {
-        val showAppTitle = maxWidth >= 420.dp || (feed == null && sections.isEmpty())
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.fillMaxWidth().statusBarsPadding()) {
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("NewsBrief", style = MaterialTheme.typography.titleLarge)
+                    if (feed != null && sections.isEmpty()) Text(feed.localizedTitle(context), style = MaterialTheme.typography.labelMedium)
+                }
+                BetaNotice()
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (overlay != null) TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
                 else {
                     if (section != null) IconButton(onClick = back) {
@@ -80,21 +83,10 @@ import io.newsbrief.app.runtime.FeaturePageNavigation
                         returnPage = ""; selected = "settings"
                     }, modifier = Modifier.testTag("open-settings")) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nb_text_005))
-                        }
+                    }
                     if (selected == "feed") vm.features.sortedBy { it.order }.forEach { it.Toolbar(vm.host, navigation) }
                 }
             }
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                    if (showAppTitle) {
-                        Text("NewsBrief", modifier = Modifier.weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.titleLarge)
-                    }
-                    MvpNotice()
-                }
-                if (feed != null && sections.isEmpty()) Text(feed.localizedTitle(context), style = MaterialTheme.typography.labelMedium)
-            }
-        }
         }
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {

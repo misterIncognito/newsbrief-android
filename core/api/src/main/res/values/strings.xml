@@ -121,11 +121,11 @@
     <string name="nb_feed_error">Refresh failed: %1$s</string>
     <string name="nb_share">Share</string>
     <string name="nb_share_unavailable">No app is available to share this article</string>
-    <string name="nb_preview_title">Early preview</string>
-    <string name="nb_preview_message">This is an early preview version and may contain issues or behave unexpectedly.</string>
+    <string name="nb_preview_title">Beta version</string>
+    <string name="nb_preview_message">This is a beta version and may contain issues or behave unexpectedly.</string>
     <string name="nb_browser_reload">Reload</string>
-    <string name="nb_browser_loader">Via article loader</string>
-    <string name="nb_browser_original">Original page</string>
+    <string name="nb_browser_loader">Via loader</string>
+    <string name="nb_browser_original">Original</string>
     <string name="nb_err_telegram_https">A channel requires an HTTPS link</string>
     <string name="nb_err_telegram_public">Only public t.me Telegram channels are supported</string>
     <string name="nb_err_telegram_handle">Invalid Telegram channel name</string>
@@ -156,7 +156,7 @@
     <string name="nb_directory_short_query">Enter at least 2 characters</string>
     <string name="nb_browser_http_error">The site returned HTTP %1$d. Switch page mode or retry.</string>
     <string name="nb_browser_open_error">Could not open the page. Retry or switch mode.</string>
-    <string name="nb_browser_load_error">Could not load the page. Try the original page mode.</string>
+    <string name="nb_browser_load_error">Could not load the page. Try original mode.</string>
     <string name="nb_browser_https_only">Only HTTPS pages are supported</string>
     <string name="nb_browser_public_only">Only public pages can be read</string>
     <string name="nb_browser_error_title">Could not load the page</string>

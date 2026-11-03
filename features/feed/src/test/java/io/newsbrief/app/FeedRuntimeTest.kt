@@ -106,10 +106,10 @@ class FeedRuntimeTest {
             waitFor { vm.host.controller(FeedUi::class.java).feedArticles.value.size == 1 }
             assertTrue(calls > 0)
             compose.onNodeWithText("Лента").assertExists()
-            compose.onNodeWithText("MVP").performClick()
-            compose.onNodeWithText("Это ранняя версия приложения. Она может содержать ошибки и работать непредсказуемо.").assertExists()
+            compose.onNodeWithText("Beta").performClick()
+            compose.onNodeWithText("Это бета-версия приложения. Она может содержать ошибки и работать непредсказуемо.").assertExists()
             compose.onNodeWithText("OK").performClick()
-            compose.onNodeWithText("Ранняя версия").assertDoesNotExist()
+            compose.onNodeWithText("Бета-версия").assertDoesNotExist()
             compose.onNodeWithText("Главное").assertDoesNotExist()
             compose.onNodeWithText("Источники").assertDoesNotExist()
             compose.onNodeWithText("Каталог").assertDoesNotExist()
