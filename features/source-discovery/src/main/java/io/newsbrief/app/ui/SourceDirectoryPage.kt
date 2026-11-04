@@ -12,6 +12,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import io.newsbrief.modules.features.source_discovery.R as DiscoveryR
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -23,6 +25,8 @@ import io.newsbrief.app.network.*
 fun SourceDirectoryPage(vm: DirectoryUi) {
     val state by vm.directoryState.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
+    var sortSubscribers by rememberSaveable { mutableStateOf(false) }
+    var verifiedOnly by rememberSaveable { mutableStateOf(false) }
     val existing = sources.map { it.address.lowercase(java.util.Locale.ROOT) }.toSet()
     Column(Modifier.fillMaxSize()) {
         Text(stringResource(R.string.nb_text_037), style = MaterialTheme.typography.headlineSmall,
@@ -64,7 +68,20 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
         state.addMessage?.let { Text(it, modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) }
         page?.let {
-            val displayed = if (it.category == "ai") it.items.filter { source -> TelegramTopics.show(source, state.hidePromotions) } else it.items
+            val visible = if (it.category == "ai") it.items.filter { source -> TelegramTopics.show(source, state.hidePromotions) } else it.items
+            val displayed = if (state.provider == DirectoryProvider.TELEGRAM)
+                sortTelegramResults(visible, sortSubscribers, verifiedOnly) else visible
+            if (state.provider == DirectoryProvider.TELEGRAM) {
+                Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = sortSubscribers, onClick = { sortSubscribers = !sortSubscribers },
+                        label = { Text(stringResource(DiscoveryR.string.tg_sort_subscribers)) })
+                    FilterChip(selected = verifiedOnly, onClick = { verifiedOnly = !verifiedOnly },
+                        label = { Text(stringResource(DiscoveryR.string.tg_verified_only)) })
+                }
+                if (sortSubscribers || verifiedOnly) Text(stringResource(DiscoveryR.string.tg_loaded_only),
+                    style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 18.dp))
+            }
             if (it.category == "ai") Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 16.dp)) {
                 Checkbox(checked = state.hidePromotions, onCheckedChange = vm::hideDirectoryPromotions)
@@ -94,10 +111,13 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
                                     Text(if (added) stringResource(R.string.nb_added) else if (state.addingAddress == source.address) stringResource(R.string.nb_checking) else stringResource(R.string.nb_add))
                                 }
                             }
+                            if (state.provider == DirectoryProvider.TELEGRAM && source.verified == true)
+                                Text(stringResource(DiscoveryR.string.tg_verified_catalog), color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelMedium)
                             if (source.description.isNotBlank()) Text(source.description, maxLines = 3,
                                 overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
                             Text(listOfNotNull(source.kind, source.language.takeIf { it.isNotBlank() },
-                                source.audience?.let { count -> stringResource(R.string.nb_audience, count) }).joinToString(" · "),
+                                source.audience?.let { count -> if (state.provider == DirectoryProvider.TELEGRAM) stringResource(DiscoveryR.string.tg_subscriber_count, count) else stringResource(R.string.nb_audience, count) }).joinToString(" · "),
                                 style = MaterialTheme.typography.labelSmall)
                             Text(source.address, maxLines = 2, overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -112,4 +132,11 @@ fun SourceDirectoryPage(vm: DirectoryUi) {
             }
         }
     }
+}
+
+/** Sort only the loaded results; unknown counts and verification stay distinct from zero/false. */
+internal fun sortTelegramResults(items: List<DirectorySource>, bySubscribers: Boolean, verifiedOnly: Boolean): List<DirectorySource> {
+    val filtered = if (verifiedOnly) items.filter { it.verified == true } else items
+    return if (bySubscribers) filtered.sortedWith(compareByDescending<DirectorySource> { it.audience != null }
+        .thenByDescending { it.audience ?: 0L }) else filtered
 }

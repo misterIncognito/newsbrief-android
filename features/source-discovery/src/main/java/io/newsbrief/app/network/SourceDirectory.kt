@@ -166,7 +166,8 @@ object DirectoryParser {
             DirectorySource(text(item.optString("title").ifBlank { handle }, 240), address, SourceKind.TELEGRAM,
                 if (item.isNull("description_ai_summary")) "" else text(item.optString("description_ai_summary"), 500),
                 languages, item.optLong("subscribers_count", -1).takeIf { it >= 0 }, categories(tags),
-                tags.map { it.lowercase(java.util.Locale.ROOT) }.toSet())
+                tags.map { it.lowercase(java.util.Locale.ROOT) }.toSet(),
+                item.opt("verified") as? Boolean)
         }.distinctBy { it.address.lowercase(java.util.Locale.ROOT) }
         val total = root.optInt("total", -1).takeIf { it >= 0 }
         // Advance by raw records, including private/unusable entries; never repeat page 1.
@@ -180,7 +181,8 @@ object DirectoryParser {
         .put("items", JSONArray(result.items.map { item -> JSONObject()
             .put("title", item.title).put("address", item.address).put("kind", item.kind)
             .put("description", item.description).put("language", item.language).put("audience", item.audience)
-            .put("categories", JSONArray(item.categories.map { it.name })).put("topics", JSONArray(item.topics.toList())) })).toString()
+            .put("categories", JSONArray(item.categories.map { it.name })).put("topics", JSONArray(item.topics.toList()))
+            .put("verified", item.verified ?: JSONObject.NULL) })).toString()
     fun decode(raw: String): DirectoryResults {
         val root = JSONObject(raw)
         val array = root.getJSONArray("items")
@@ -191,7 +193,8 @@ object DirectoryParser {
                 item.optString("description"), item.optString("language"),
                 if (item.isNull("audience")) null else item.getLong("audience"),
                 (0 until tags.length()).mapNotNull { runCatching { FeedCategory.valueOf(tags.getString(it)) }.getOrNull() }.toSet(),
-                item.optJSONArray("topics")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() }.orEmpty())
+                item.optJSONArray("topics")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() }.orEmpty(),
+                item.opt("verified") as? Boolean)
         }, if (root.isNull("total")) null else root.getInt("total"),
             if (root.isNull("directorySize")) null else root.getInt("directorySize"),
             category = if (root.isNull("category")) null else root.getString("category"),

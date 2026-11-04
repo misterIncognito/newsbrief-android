@@ -1,3 +1,8 @@
 <resources>
     <string name="nb_feature_source_discovery">Catalog</string>
+    <string name="tg_sort_subscribers">Sort by subscribers</string>
+    <string name="tg_verified_only">Verified only</string>
+    <string name="tg_loaded_only">Applies to loaded results. Verification is reported by the catalog.</string>
+    <string name="tg_verified_catalog">✓ Verified by catalog</string>
+    <string name="tg_subscriber_count">Subscribers: %1$d</string>
 </resources>
