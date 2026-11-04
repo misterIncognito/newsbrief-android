@@ -78,7 +78,9 @@ jobs:
           cp apk/app-debug.apk newsbrief-alfa.apk
           branch="${GITHUB_REF_NAME//\//-}"
           tag="v0.0.${GITHUB_RUN_NUMBER}-${branch}-alfa"
-          if [[ "$GITHUB_RUN_ATTEMPT" != 1 ]]; then tag="${tag}.${GITHUB_RUN_ATTEMPT}"; fi
+          if [[ "$GITHUB_RUN_ATTEMPT" != 1 ]] && gh release view "$tag" >/dev/null 2>&1; then
+            tag="${tag}.${GITHUB_RUN_ATTEMPT}"
+          fi
           gh release create "$tag" newsbrief-alfa.apk \
             --target "$GITHUB_SHA" \
             --title "$tag" \
