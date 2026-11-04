@@ -26,6 +26,11 @@ Feature ViewModels and state live in their implementing modules; the combined `A
 and production `NewsRepository` have been removed. `dev` contains no optional
 feature implementation.
 
+New installations start without subscribed sources. The optional `source-setup`
+feature welcomes the user, offers the catalog and custom-source form when those
+modules are installed, and refreshes the feed after setup. Existing installations
+keep their sources and skip the wizard; interrupted setup can be resumed.
+
 `integration/feed` assembles only Feed, RSS Source, Source Providers, Networking and Storage.
 Article taps open the external browser. Catalog, management, filters, Save/Share, readers,
 workers, AI and proxies are separate additions. `feature/app-integration` is the optional
