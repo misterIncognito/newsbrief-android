@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.runtime.FeaturePageNavigation
+import io.newsbrief.app.runtime.SetupWizard
 
 /** Features contribute their own pages and settings; the shell only arranges navigation. */
 @Composable fun NewsBriefScreen(vm: NewsViewModel) {
@@ -52,6 +53,10 @@ import io.newsbrief.app.runtime.FeaturePageNavigation
             }
         }
     }
+    val setup = vm.features.filterIsInstance<SetupWizard>().firstOrNull()
+    if (setup != null && setup.ShowSetup(vm.host, { id -> vm.features.any { it.id == id } }, { id ->
+            vm.features.firstOrNull { it.id == id }?.SetupScreen(vm.host, navigation)
+        }, { vm.host.command("refresh") })) return
     BackHandler(overlay != null || section != null) {
         if (overlay != null) overlay.onBack() else back()
     }

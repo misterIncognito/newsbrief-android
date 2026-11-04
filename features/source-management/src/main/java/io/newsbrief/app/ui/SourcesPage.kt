@@ -31,7 +31,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -39,10 +41,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.app.data.SourceKind
 
 @Composable
-fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null) {
+fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null, initiallyAdding: Boolean = false) {
     val context = LocalContext.current
     val sources by vm.sources.collectAsStateWithLifecycle()
-    var dialogVisible by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var dialogVisible by rememberSaveable { mutableStateOf(initiallyAdding && vm.sourcePlugins.isNotEmpty()) }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.nb_text_026), style = MaterialTheme.typography.headlineSmall)
@@ -79,8 +82,8 @@ fun SourcesPage(vm: SourcesUi, openCatalog: (() -> Unit)? = null) {
         }
     }
     if (dialogVisible) AddSourceDialog(vm.sourcePlugins, onClose = { dialogVisible = false }) { name, kind, url ->
-        vm.addSource(name, kind, url)
-        dialogVisible = false
+        if (initiallyAdding) scope.launch { vm.addSource(name, kind, url).join(); dialogVisible = false }
+        else { vm.addSource(name, kind, url); dialogVisible = false }
     }
 }
 

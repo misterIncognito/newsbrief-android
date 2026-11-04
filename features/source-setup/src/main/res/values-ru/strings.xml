@@ -1,0 +1,10 @@
+<resources>
+    <string name="setup_welcome">Добро пожаловать в NewsBrief</string>
+    <string name="setup_intro">Выберите источники, которые хотите читать. Изначально лента пуста.</string>
+    <string name="setup_catalog">Выберите источники из каталога</string>
+    <string name="setup_custom">Добавьте свой источник</string>
+    <string name="setup_next">Далее</string>
+    <string name="setup_back">Назад</string>
+    <string name="setup_finish">Завершить и обновить ленту</string>
+    <string name="setup_skip">Пропустить настройку</string>
+</resources>
