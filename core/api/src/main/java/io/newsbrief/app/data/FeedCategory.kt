@@ -6,5 +6,5 @@ enum class FeedCategory(val label: String) {
     POLAND("Польша"), WORLD("Мир"), GENERAL("Общие новости"), OTHER("Другие")
 }
 
-data class FeedSourceOption(val key: String, val label: String, val ids: List<Long>)
+data class FeedSourceOption(val key: String, val label: String, val ids: List<Long>, val articleCount: Int = 0)
 

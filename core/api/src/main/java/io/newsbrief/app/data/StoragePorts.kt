@@ -31,12 +31,18 @@ interface SourceDao {
     suspend fun updateFetchProgress(id: Long, cursor: String?, expected: String, historyGap: Boolean) { throw UnsupportedOperationException("Source cursors unavailable") }
 }
 
+data class SourceArticleCount(val sourceId: Long, val articleCount: Int)
+
 interface ArticleDao {
     fun observeSaved(): Flow<List<ArticleEntity>>
 
     fun observeRecent(from: Long): Flow<List<ArticleEntity>>
 
     fun observeFiltered(sourceIds: List<Long>, filtered: Boolean): Flow<List<ArticleEntity>>
+    fun observeSourceArticleCounts(): Flow<List<SourceArticleCount>> =
+        observeFiltered(emptyList(), false).map { articles ->
+            articles.groupingBy { it.sourceId }.eachCount().map { (id, count) -> SourceArticleCount(id, count) }
+        }
     fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long> = emptyList()): Flow<List<ArticleEntity>> =
         observeFiltered(sourceIds, filtered).map { articles -> articles.filter { it.readAt == null || it.id in includeIds } }
 

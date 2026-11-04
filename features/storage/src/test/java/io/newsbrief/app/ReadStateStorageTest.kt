@@ -40,4 +40,19 @@ class ReadStateStorageTest {
             assertFalse(storedSource.historyGap)
         } finally { reopened.close(); context.deleteDatabase(name) }
     }
+    @Test fun sourceCountsIncludeAllCachedArticlesAndExcludeDisabledSources() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, NewsDatabase::class.java).build()
+        try {
+            val enabled = db.sourceDao().insert(SourceEntity(name = "Enabled", address = "https://enabled.example/feed", kind = SourceKind.RSS))
+            val disabled = db.sourceDao().insert(SourceEntity(name = "Disabled", address = "https://disabled.example/feed", kind = SourceKind.RSS, enabled = false))
+            val rows = (1..260).map { n -> ArticleEntity(sourceId = enabled, sourceName = "Enabled", title = "Post $n", excerpt = "", link = "https://enabled.example/$n", publishedAt = n.toLong()) } +
+                ArticleEntity(sourceId = disabled, sourceName = "Disabled", title = "Hidden", excerpt = "", link = "https://disabled.example/1", publishedAt = 1)
+            db.articleDao().insertAll(rows)
+            assertEquals(listOf(SourceArticleCount(enabled, 260)), db.articleDao().observeSourceArticleCounts().first())
+            db.sourceDao().setEnabled(disabled, true)
+            assertEquals(mapOf(enabled to 260, disabled to 1), db.articleDao().observeSourceArticleCounts().first().associate { it.sourceId to it.articleCount })
+        } finally { db.close() }
+    }
+
 }

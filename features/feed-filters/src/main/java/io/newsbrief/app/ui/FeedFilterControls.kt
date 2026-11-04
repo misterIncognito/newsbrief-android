@@ -118,6 +118,8 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null, openSources: ((
                                 verticalAlignment = Alignment.CenterVertically) {
                                 Text(option.label, modifier = Modifier.weight(1f),
                                     color = if (checked) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
+                                Text(option.articleCount.toString(), style = MaterialTheme.typography.labelLarge,
+                                    color = if (checked) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

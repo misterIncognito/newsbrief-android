@@ -41,6 +41,9 @@ interface RoomArticleDao : ArticleDao {
         "ORDER BY a.publishedAt DESC LIMIT 250")
     override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean): Flow<List<ArticleEntity>>
 
+    @Query("SELECT a.sourceId AS sourceId, COUNT(*) AS articleCount FROM articles a INNER JOIN sources s ON s.id = a.sourceId WHERE s.enabled = 1 GROUP BY a.sourceId")
+    override fun observeSourceArticleCounts(): Flow<List<SourceArticleCount>>
+
     @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
         "WHERE s.enabled = 1 AND (a.readAt IS NULL OR a.id IN (:includeIds)) AND (:filtered = 0 OR a.sourceId IN (:sourceIds)) " +
         "ORDER BY a.publishedAt DESC LIMIT 250")
