@@ -20,7 +20,8 @@ class SourceSetupFeature : SetupWizard {
     override val id = "source-setup"
 
     @Composable override fun ShowSetup(host: FeatureHost, hasPage: (String) -> Boolean,
-        showPage: @Composable (String) -> Unit, finish: () -> Unit): Boolean {
+        showPage: @Composable (String) -> Unit, finish: () -> Unit,
+        header: @Composable () -> Unit): Boolean {
         val prefs = remember(host) { host.context.getSharedPreferences("newsbrief_source_setup", Context.MODE_PRIVATE) }
         var active by remember(host) { mutableStateOf<Boolean?>(null) }
         var step by rememberSaveable { mutableIntStateOf(0) }
@@ -49,6 +50,7 @@ class SourceSetupFeature : SetupWizard {
         }
         Surface(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+                header()
                 Text(stringResource(when (current) {
                     "source-discovery" -> R.string.setup_catalog
                     "source-management" -> R.string.setup_custom

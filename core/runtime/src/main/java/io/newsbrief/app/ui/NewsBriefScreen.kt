@@ -56,7 +56,12 @@ import io.newsbrief.app.runtime.SetupWizard
     val setup = vm.features.filterIsInstance<SetupWizard>().firstOrNull()
     if (setup != null && setup.ShowSetup(vm.host, { id -> vm.features.any { it.id == id } }, { id ->
             vm.features.firstOrNull { it.id == id }?.SetupScreen(vm.host, navigation)
-        }, { vm.host.command("refresh") })) return
+        }, { vm.host.command("refresh") }, {
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("NewsBrief", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                AlfaNotice()
+            }
+        })) return
     BackHandler(overlay != null || section != null) {
         if (overlay != null) overlay.onBack() else back()
     }

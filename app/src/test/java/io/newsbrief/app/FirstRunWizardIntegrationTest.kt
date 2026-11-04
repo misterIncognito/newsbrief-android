@@ -48,6 +48,7 @@ class FirstRunWizardIntegrationTest {
         try {
             compose.setContent { MaterialTheme { NewsBriefScreen(shell) } }
             waitFor { compose.onAllNodesWithText("Welcome to NewsBrief").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Alfa").assertIsDisplayed()
             assertEquals(0, runBlocking { store.sourceDao().count() })
             compose.onNodeWithText("Next").performClick()
             compose.onNodeWithText("Choose sources from the catalog").assertExists()

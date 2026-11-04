@@ -30,7 +30,8 @@ interface AppFeature {
 }
 interface SetupWizard : AppFeature {
     @Composable fun ShowSetup(host: FeatureHost, hasPage: (String) -> Boolean,
-        showPage: @Composable (String) -> Unit, finish: () -> Unit): Boolean
+        showPage: @Composable (String) -> Unit, finish: () -> Unit,
+        header: @Composable () -> Unit = {}): Boolean
 }
 /** Scoped page navigation supplied by the shell; a feature remains usable without another feature. */
 interface FeaturePageNavigation {
