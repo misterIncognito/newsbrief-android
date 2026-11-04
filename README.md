@@ -1,27 +1,55 @@
-# NewsBrief Android
+# NewsBrief — an AI-assisted Android project
 
-NewsBrief brings the news I read into one place: Russian-language posts from Telegram channels and English- and Polish-language articles from RSS and Atom feeds. The aim is to make it easier to follow these sources without switching apps, read article content in a cleaner view with page advertising and other distractions removed where extraction is possible, and get an AI summary of the day’s news.
+**Type:** Personal Android application<br>
+**Status:** Alpha, under active development<br>
+**Repository:** [github.com/misterIncognito/newsbrief-android](https://github.com/misterIncognito/newsbrief-android)
 
-## How it works
+## The idea
 
-- **Sources and feed:** Choose sources from the catalog or add an RSS/Atom feed or public Telegram channel. NewsBrief combines their posts into one feed with source filters, read status, saved articles and sharing. New installations start with no subscriptions.
-- **Reading:** Telegram posts appear in the feed; linked articles and feed entries can open in the native reader. The app extracts article text and images for a simpler reading view and can open the original page in its built-in browser. Extraction depends on the source and may not remove every advertisement or recover every article.
-- **Daily summaries:** The optional AI feature sends selected news to a configured Qwen or OpenAI provider to generate a summary. The provider and API key are configured by the user.
-- **Offline and synchronization:** Room/SQLite stores articles, sources, metadata, read state and summaries on the device. WorkManager schedules background synchronization, and per-source checkpoints help the app catch up when a provider supports paging.
-- **Networking and modules:** The Android app uses Kotlin, Jetpack Compose and OkHttp. Source types, article fetching, storage, synchronization, the reader and AI are separate feature modules connected through interfaces. A Cloudflare Worker proxies requests for sources that require it; other sources can be requested directly. There is no traditional application backend.
+I follow news in several languages and use different channels to do it: mostly Telegram for Russian-language news, and RSS feeds for English- and Polish-language sources. Switching between apps and websites makes it harder to track what I have already read and get an overview of the day.
+
+I wanted one place to follow my chosen sources, read articles in a cleaner format with fewer advertisements and distractions, and eventually generate an AI summary of the day’s news.
+
+## What the application does
+
+- Combines public Telegram channels and RSS/Atom feeds in one news feed.
+- Lets users choose sources from a catalog or add their own. New installations start without preset subscriptions.
+- Shows Telegram posts in the feed and opens linked articles in a readable view designed to reduce advertisements and distractions.
+- Offers an embedded browser for opening the original page.
+- Provides familiar reader features: read and unread tracking, source filters, saved articles, and sharing.
+- Keeps downloaded articles and related information on the device for offline access.
+- Uses a Cloudflare Worker to extract article content and access sources that require a proxy.
+- Supports English and Russian interface localization.
 
 ## Screenshots
 
-These captures show the `integration/isolated-feed` build running on an Android emulator.
-News content and available sources change over time.
-
-The English-localized feed on a Pixel 4 emulator:
-
-<img src="docs/screenshots/feed-en-pixel4.png" alt="English NewsBrief feed on a Pixel 4 emulator" width="220">
+These emulator captures show an earlier version of the interface; the current alpha may look different. News content changes over time.
 
 | News feed | Source filter | Native reader |
 | --- | --- | --- |
-| <img src="docs/screenshots/feed.png" alt="News feed with article cards and save and share actions" width="220"> | <img src="docs/screenshots/source-filter.png" alt="Source filter with a selected technology source" width="220"> | <img src="docs/screenshots/reader.png" alt="Native article reader with browser, save and share actions" width="220"> |
+| <img src="docs/screenshots/feed-en-pixel4.png" alt="News feed with articles and save and share actions" width="220"> | <img src="docs/screenshots/source-filter.png" alt="Source filter with a selected technology source" width="220"> | <img src="docs/screenshots/reader.png" alt="Native article reader with an embedded browser action" width="220"> |
+
+## Implementation
+
+- **Android:** Kotlin and Jetpack Compose.
+- **Local storage:** Room and SQLite.
+- **Background synchronization:** WorkManager, with per-source checkpoints where supported.
+- **Networking:** OkHttp and a Cloudflare Worker; no traditional application backend.
+- **Architecture:** Feature modules connected through interfaces, including source providers, article loading, the reader, and synchronization.
+- **Testing and delivery:** Automated tests and GitHub Actions builds, with alpha APKs published through GitHub Releases.
+
+## Plans
+
+- **AI summaries:** Generate a summary of the day’s news. This is not implemented yet.
+- **News badge:** Show a count of new articles on the app icon.
+- **Notifications:** Notify users about new content.
+- **iPhone support:** Adapt NewsBrief for iOS.
+- **Facebook groups:** Add groups as a news source, reflecting their importance as a news and community information channel in Poland.
+- **Telegram account integration:** Move beyond parsing public Telegram pages to a server-side Telegram account engine that reads streams with each user’s permissions. The integration has been implemented but is disabled until it has been fully tested.
+
+The project is still in alpha. Article extraction and Telegram availability depend on the source, so a clean reading view or complete history cannot be guaranteed for every publication.
+
+## Technical notes and development history
 
 `integration/feed` uses AGP 9.4.1 and Gradle 9.6.0, upgraded with Android Studio’s
 AGP Upgrade Assistant. See [upgrade validation](docs/agp-9.4.1-upgrade.md).
