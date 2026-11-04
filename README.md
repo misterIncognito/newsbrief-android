@@ -32,6 +32,8 @@ The readable view depends on the publisher’s page and may not recover every ar
 
 NewsBrief is built in Kotlin with Jetpack Compose. It stores articles, sources, read state, and related metadata locally with Room/SQLite. WorkManager schedules background updates, and OkHttp handles network requests.
 
+The optional Telegram proxy integration is included in the release assembly. In **Settings → Telegram proxy**, enter the HTTPS address and access key for a compatible deployed service; then open its channels page to add channels the service is collecting. Public Telegram previews continue to work without this configuration. The service is a separate project and must be deployed and configured independently. Its current collector uses one shared Telegram account, and the Android client uses the service-wide channel and post endpoints: any access key with read permission can access all channels collected by that service. Per-user stream isolation is not implemented in the Android client. Proxy media metadata does not currently include downloadable image URLs.
+
 The app uses feature modules with shared interfaces in `core/api` and runtime infrastructure in `core/runtime`. The assembly in `assembly.features` explicitly selects capabilities, including source discovery, RSS and Telegram providers, feed filters, storage, synchronization, the native reader, browser, and proxy support. Feature descriptors declare prerequisites; optional modules can be selected through the `newsbriefFeatures` Gradle property. See [BRANCHES.md](BRANCHES.md) for the module map.
 
 Article loading supports feed content and extraction from publisher pages, including AMP when available. A Cloudflare Worker provides fetching, extraction, and image proxy endpoints. Sources that require proxying are routed through it; other sources may be requested directly. The Android application does not require a traditional application backend.
@@ -54,7 +56,7 @@ The debug APK is written to `app/build/outputs/apk/debug/`. GitHub Actions runs 
 - Add an app icon badge for new articles and a notification system.
 - Adapt the app for iPhone.
 - Explore Facebook groups as a news source, subject to available access and permissions.
-- Complete testing of the disabled server-side Telegram account integration, intended to read streams using each user’s permissions.
+- Complete end-to-end testing of the server-side Telegram account integration and support per-user streams.
 
 ## Limitations
 
