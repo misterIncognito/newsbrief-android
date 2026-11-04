@@ -29,7 +29,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Configure integration APK signing
-        if: github.ref == 'refs/heads/integration/isolated-feed' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: (github.ref == 'refs/heads/integration/isolated-feed' || github.ref == 'refs/heads/release') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
           CI_KEYSTORE: ${{ secrets.NEWSBRIEF_CI_KEYSTORE }}
           CI_PASSWORD: ${{ secrets.NEWSBRIEF_CI_PASSWORD }}
@@ -44,7 +44,7 @@ jobs:
 
       - name: Run tests and build
         env:
-          NEWSBRIEF_SIGNING_PASSWORD: ${{ github.ref == 'refs/heads/integration/isolated-feed' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && secrets.NEWSBRIEF_CI_PASSWORD || '' }}
+          NEWSBRIEF_SIGNING_PASSWORD: ${{ (github.ref == 'refs/heads/integration/isolated-feed' || github.ref == 'refs/heads/release') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && secrets.NEWSBRIEF_CI_PASSWORD || '' }}
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug verifyModuleInterfaces --no-daemon --max-workers=2
 
       - name: Upload debug APK
@@ -56,8 +56,8 @@ jobs:
           retention-days: 30
 
   publish:
-    name: Publish integration prerelease
-    if: github.ref == 'refs/heads/integration/isolated-feed' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    name: Publish branch prerelease
+    if: (github.ref == 'refs/heads/integration/isolated-feed' || github.ref == 'refs/heads/release') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -76,9 +76,13 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           cp apk/app-debug.apk newsbrief-alfa.apk
-          tag="v0.0.${GITHUB_RUN_NUMBER}-alfa.${GITHUB_RUN_ATTEMPT}"
+          branch="${GITHUB_REF_NAME//\//-}"
+          tag="v0.0.${GITHUB_RUN_NUMBER}-${branch}-alfa"
+          if [[ "$GITHUB_RUN_ATTEMPT" != 1 ]] && gh release view "$tag" >/dev/null 2>&1; then
+            tag="${tag}.${GITHUB_RUN_ATTEMPT}"
+          fi
           gh release create "$tag" newsbrief-alfa.apk \
             --target "$GITHUB_SHA" \
-            --title "Alfa 0.0.${GITHUB_RUN_NUMBER}" \
-            --notes "Automated integration build for commit ${GITHUB_SHA}. This is a debug-signed Alfa build." \
+            --title "$tag" \
+            --notes "Automated ${branch} build for commit ${GITHUB_SHA}. This is a debug-signed Alfa build." \
             --prerelease --latest=false
