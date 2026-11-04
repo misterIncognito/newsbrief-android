@@ -60,8 +60,8 @@ class SourceDirectoryTest {
         assertEquals(listOf("https://valid.example/rss"), DirectoryParser.feedly(JSONObject().put("results", entries).toString()).items.map { it.address })
     }
     @Test fun rssRequiresAResultsArrayAndRejectsServiceErrors() {
-        assertThrows(IllegalStateException::class.java) { DirectoryParser.feedly("{\"success\":false}") }
-        assertThrows(IllegalStateException::class.java) { DirectoryParser.feedly("{}") }
+        assertThrows(io.newsbrief.app.util.LocalizedFailure::class.java) { DirectoryParser.feedly("{\"success\":false}") }
+        assertThrows(io.newsbrief.app.util.LocalizedFailure::class.java) { DirectoryParser.feedly("{}") }
     }
     @Test fun queryEncodingPreservesPlusAmpersandAndUnicode() {
         val query = "C++ & ИИ / programming"
@@ -85,9 +85,9 @@ class SourceDirectoryTest {
         assertEquals(1, DirectoryParser.telegram(rpc(JSONObject().put("results", entries))).items.size)
     }
     @Test fun telegramRejectsRpcToolErrorsAndMissingResults() {
-        assertThrows(IllegalStateException::class.java) { DirectoryParser.telegram("{\"error\":{\"code\":-1}}") }
-        assertThrows(IllegalStateException::class.java) { DirectoryParser.telegram("{\"result\":{\"isError\":true}}") }
-        assertThrows(IllegalStateException::class.java) { DirectoryParser.telegram(rpc(JSONObject())) }
+        assertThrows(io.newsbrief.app.util.LocalizedFailure::class.java) { DirectoryParser.telegram("{\"error\":{\"code\":-1}}") }
+        assertThrows(io.newsbrief.app.util.LocalizedFailure::class.java) { DirectoryParser.telegram("{\"result\":{\"isError\":true}}") }
+        assertThrows(io.newsbrief.app.util.LocalizedFailure::class.java) { DirectoryParser.telegram(rpc(JSONObject())) }
     }
     @Test fun directoryStatsAndStructuredPayloadAreSupported() {
         assertEquals(17343, DirectoryParser.rpcPayload(rpc(JSONObject().put("publicChannels", 17343))).getInt("publicChannels"))

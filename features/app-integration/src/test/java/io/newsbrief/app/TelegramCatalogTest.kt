@@ -53,7 +53,7 @@ class TelegramCatalogTest {
         assertNull(DirectoryParser.tgden("{\"items\":[],\"total\":9377}", "ai", 25).nextOffset)
     }
     @Test fun demoResultsAreRejectedAndNullDescriptionsDoNotBecomeLiteralNull() {
-        assertThrows(IllegalStateException::class.java) { DirectoryParser.tgden("{\"isDemo\":true,\"items\":[]}") }
+        assertThrows(io.newsbrief.app.util.LocalizedFailure::class.java) { DirectoryParser.tgden("{\"isDemo\":true,\"items\":[]}") }
         val raw = JSONObject().put("items", JSONArray().put(channel("technews").put("description_ai_summary", JSONObject.NULL))).toString()
         assertEquals("", DirectoryParser.tgden(raw).items.single().description)
     }

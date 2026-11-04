@@ -127,7 +127,7 @@ class NewsFeedActionsTest {
             compose.onNodeWithText("Telegram-прокси").assertDoesNotExist()
             compose.onNodeWithContentDescription("Настройки").performClick()
             compose.onNodeWithText("Каталог").assertExists()
-            compose.onNodeWithText("AI summary").assertExists()
+            compose.onNodeWithText("ИИ-сводка").assertExists()
             compose.onNodeWithText("Источники").performClick()
             compose.onNodeWithText("Из каталога").performClick()
             compose.onNodeWithText("Найти новые источники").assertExists()
@@ -135,7 +135,7 @@ class NewsFeedActionsTest {
             compose.onNodeWithText("Мои источники").assertExists()
             compose.onNodeWithText("Своя ссылка").performClick()
             compose.onNodeWithText("RSS / Atom ▾").performClick()
-            vm.sourcesUi.sourcePlugins.forEach { compose.onNode(hasText(it.title) and hasClickAction()).assertExists() }
+            vm.sourcesUi.sourcePlugins.forEach { compose.onNode(hasText(it.title(app)) and hasClickAction()).assertExists() }
             compose.onNodeWithText("Telegram").performClick()
             compose.onNodeWithText("@канал или https://t.me/канал").assertExists()
             compose.onNodeWithText("Telegram ▾").performClick()
@@ -184,17 +184,17 @@ class NewsFeedActionsTest {
             compose.runOnIdle { owner.registry.currentState = Lifecycle.State.RESUMED }
             waitFor { vm.feed.feedArticles.value.size == 3 }
             compose.onNodeWithTag("open-source-filter").performClick()
-            compose.onNodeWithText("Alpha").performScrollTo().performClick()
+            compose.onNode(hasText("Alpha") and hasAnyAncestor(hasTestTag("source-filter-panel"))).performScrollTo().performClick()
             waitFor { vm.feed.feedArticles.value.size == 1 }
             compose.onNodeWithText("Beta").performScrollTo().performClick()
             waitFor { vm.feed.feedArticles.value.size == 2 }
-            compose.onNodeWithText("Alpha").assertIsOn(); compose.onNodeWithText("Beta").assertIsOn()
-            compose.onNodeWithText("Alpha").performScrollTo().performClick()
+            compose.onNode(hasText("Alpha") and hasAnyAncestor(hasTestTag("source-filter-panel"))).assertIsOn(); compose.onNodeWithText("Beta").assertIsOn()
+            compose.onNode(hasText("Alpha") and hasAnyAncestor(hasTestTag("source-filter-panel"))).performScrollTo().performClick()
             waitFor { vm.feed.feedArticles.value.singleOrNull()?.sourceName == "Beta" }
             compose.onNodeWithText("Сбросить").performClick()
             waitFor { vm.feed.feedArticles.value.size == 3 }
             compose.onNodeWithText("Готово").performClick()
-            compose.onNodeWithText("Story Alpha").performClick()
+            compose.runOnIdle { vm.readerUi.openReader(vm.feed.feedArticles.value.single { it.title == "Story Alpha" }) }
             waitFor { vm.readerUi.reader.value != null }
             val browser = compose.onNodeWithText("Открыть во встроенном браузере")
             browser.assertIsDisplayed()
