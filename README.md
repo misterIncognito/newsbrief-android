@@ -14,9 +14,9 @@ Captured from release `v0.0.56-release-alfa` on an Android 10 emulator. News con
 | --- | --- | --- |
 | <img src="docs/screenshots/current-feed.png" alt="Technology news feed" width="220"> | <img src="docs/screenshots/current-filter.png" alt="Filter showing RSS and Telegram sources" width="220"> | <img src="docs/screenshots/current-catalog.png" alt="Searchable technology source catalog" width="220"> |
 
-| Native reader | Module settings |
-| --- | --- |
-| <img src="docs/screenshots/current-reader.png" alt="Native reader with an embedded browser action" width="220"> | <img src="docs/screenshots/current-settings.png" alt="Settings sections for app modules" width="220"> |
+| Telegram post | Native reader | Module settings |
+| --- | --- | --- |
+| <img src="docs/screenshots/current-telegram.png" alt="The Warsaw Telegram post displayed in the feed" width="220"> | <img src="docs/screenshots/current-reader.png" alt="Native reader with an embedded browser action" width="220"> | <img src="docs/screenshots/current-settings.png" alt="Settings sections for app modules" width="220"> |
 
 ## Using the app
 
