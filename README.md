@@ -1,4 +1,4 @@
-# NewsBrief — an AI-assisted Android project
+# NewsBrief — an AI-assisted News reader
 
 **Type:** Personal Android application<br>
 **Status:** Alpha, under active development<br>
