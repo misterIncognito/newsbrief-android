@@ -9,16 +9,10 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SourceProviderRegistryTest {
-    @Test fun defaultsWaitForProvidersAndDeletedSourcesDoNotReturn() = runBlocking {
+    @Test fun defaultsAreNotAutomaticallySubscribed() = runBlocking {
         val settings = MemorySettings(); val store = MemoryNewsStore()
         val bindings = FeatureBindings.create(listOf(SourceProvidersFeature()))
-        bindings.seed(store, settings)
-        assertFalse(settings.isSourcesCatalogV5Seeded())
         bindings.sourceDefaults += SourceEntity(name = "RSS", address = "https://example.org/rss", kind = SourceKind.RSS)
-        bindings.seed(store, settings)
-        assertEquals(1, store.sourceDao().count())
-        assertTrue(settings.isSourcesCatalogV5Seeded())
-        store.sourceDao().delete(store.sourceDao().enabled().single().id)
         bindings.seed(store, settings)
         assertEquals(0, store.sourceDao().count())
     }

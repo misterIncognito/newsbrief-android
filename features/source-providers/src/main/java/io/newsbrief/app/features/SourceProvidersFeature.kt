@@ -11,12 +11,6 @@ class SourceProvidersFeature : AppFeature {
         bindings.feedLoader = { ManualFeedLoader(it.store, it.collector, it.onFeedUpdated) }
         bindings.sourceActions = { SourceActionsService(it) }
         bindings.sources = { settings -> SourcePluginRegistry(bindings.sourcePlugins.map { it(settings) }) }
-        bindings.seed = { db, settings ->
-            if (bindings.sourceDefaults.isNotEmpty() && db.sourceDao().count() == 0 && !settings.isSourcesCatalogV5Seeded()) {
-                bindings.sourceDefaults.forEach { db.sourceDao().insert(it) }
-                settings.markSourcesCatalogV2Seeded(); settings.markSourcesCatalogV3Seeded()
-                settings.markSourcesCatalogV4Seeded(); settings.markSourcesCatalogV5Seeded()
-            }
-        }
+
     }
 }
