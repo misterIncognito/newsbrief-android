@@ -1,5 +1,15 @@
 # NewsBrief Android
 
+NewsBrief brings the news I read into one place: Russian-language posts from Telegram channels and English- and Polish-language articles from RSS and Atom feeds. The aim is to make it easier to follow these sources without switching apps, read article content in a cleaner view with page advertising and other distractions removed where extraction is possible, and get an AI summary of the day’s news.
+
+## How it works
+
+- **Sources and feed:** Choose sources from the catalog or add an RSS/Atom feed or public Telegram channel. NewsBrief combines their posts into one feed with source filters, read status, saved articles and sharing. New installations start with no subscriptions.
+- **Reading:** Telegram posts appear in the feed; linked articles and feed entries can open in the native reader. The app extracts article text and images for a simpler reading view and can open the original page in its built-in browser. Extraction depends on the source and may not remove every advertisement or recover every article.
+- **Daily summaries:** The optional AI feature sends selected news to a configured Qwen or OpenAI provider to generate a summary. The provider and API key are configured by the user.
+- **Offline and synchronization:** Room/SQLite stores articles, sources, metadata, read state and summaries on the device. WorkManager schedules background synchronization, and per-source checkpoints help the app catch up when a provider supports paging.
+- **Networking and modules:** The Android app uses Kotlin, Jetpack Compose and OkHttp. Source types, article fetching, storage, synchronization, the reader and AI are separate feature modules connected through interfaces. A Cloudflare Worker proxies requests for sources that require it; other sources can be requested directly. There is no traditional application backend.
+
 ## Screenshots
 
 These captures show the `integration/isolated-feed` build running on an Android emulator.
