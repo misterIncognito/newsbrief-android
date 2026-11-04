@@ -15,20 +15,26 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.newsbrief.modules.features.read_status.R
 
-private val UnreadPostsIcon = ImageVector.Builder(name = "Unread posts", defaultWidth = 24.dp, defaultHeight = 24.dp,
+private val UnreadPostsIcon = ImageVector.Builder(name = "Unread", defaultWidth = 24.dp, defaultHeight = 24.dp,
     viewportWidth = 24f, viewportHeight = 24f).apply {
     path(fill = SolidColor(Color.Black)) {
-        moveTo(3f, 6f); horizontalLineTo(14f); verticalLineTo(8f); horizontalLineTo(3f); close()
-        moveTo(3f, 11f); horizontalLineTo(21f); verticalLineTo(13f); horizontalLineTo(3f); close()
-        moveTo(3f, 16f); horizontalLineTo(21f); verticalLineTo(18f); horizontalLineTo(3f); close()
-        moveTo(19f, 3f); curveTo(20.66f, 3f, 22f, 4.34f, 22f, 6f); curveTo(22f, 7.66f, 20.66f, 9f, 19f, 9f)
-        curveTo(17.34f, 9f, 16f, 7.66f, 16f, 6f); curveTo(16f, 4.34f, 17.34f, 3f, 19f, 3f); close()
+        moveTo(20f, 4f); horizontalLineTo(4f); curveTo(2.9f, 4f, 2f, 4.9f, 2f, 6f)
+        verticalLineTo(18f); curveTo(2f, 19.1f, 2.9f, 20f, 4f, 20f)
+        horizontalLineTo(20f); curveTo(21.1f, 20f, 22f, 19.1f, 22f, 18f)
+        verticalLineTo(6f); curveTo(22f, 4.9f, 21.1f, 4f, 20f, 4f); close()
+        moveTo(20f, 8f); lineTo(12f, 13f); lineTo(4f, 8f); verticalLineTo(6f)
+        lineTo(12f, 11f); lineTo(20f, 6f); close()
     }
 }.build()
 
 @Composable fun UnreadFilter(status: ReadStatusUi) {
     val unread by status.unreadOnly.collectAsStateWithLifecycle()
-    IconToggleButton(checked = unread, onCheckedChange = status::setUnreadOnly,
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val message = stringResource(if (unread) R.string.read_show_all else R.string.read_show_unread)
+    IconToggleButton(checked = unread, onCheckedChange = { selected ->
+        status.setUnreadOnly(selected)
+        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+    },
         modifier = Modifier.testTag("unread-filter")) {
         Icon(UnreadPostsIcon, contentDescription = stringResource(R.string.read_unread_only))
     }

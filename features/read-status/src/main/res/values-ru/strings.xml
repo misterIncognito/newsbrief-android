@@ -2,4 +2,6 @@
     <string name="read_mark_read">Отметить прочитанным</string>
     <string name="read_mark_unread">Отметить непрочитанным</string>
     <string name="read_unread_only">Только непрочитанные</string>
+    <string name="read_show_unread">Показаны только непрочитанные статьи</string>
+    <string name="read_show_all">Показаны все статьи</string>
 </resources>

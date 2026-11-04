@@ -2,4 +2,6 @@
     <string name="read_mark_read">Mark read</string>
     <string name="read_mark_unread">Mark unread</string>
     <string name="read_unread_only">Unread only</string>
+    <string name="read_show_unread">Showing unread articles only</string>
+    <string name="read_show_all">Showing all articles</string>
 </resources>
