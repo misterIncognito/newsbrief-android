@@ -63,4 +63,18 @@ class ReadStateStorageTest {
         } finally { db.close() }
     }
 
+    @Test fun allStoredArticlesIncludesOldAndDisabledSourcesWithoutFeedLimit() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), NewsDatabase::class.java).build()
+        try {
+            val active = db.sourceDao().insert(SourceEntity(name = "Active", address = "https://active.example", kind = SourceKind.RSS))
+            val disabled = db.sourceDao().insert(SourceEntity(name = "Disabled", address = "https://disabled.example", kind = SourceKind.RSS, enabled = false))
+            db.articleDao().insertAll((1..251).map { n -> ArticleEntity(sourceId = active, sourceName = "Active", title = "Post $n", excerpt = "", link = "https://active.example/$n", publishedAt = n.toLong()) } +
+                ArticleEntity(sourceId = disabled, sourceName = "Disabled", title = "Disabled article", excerpt = "", link = "https://disabled.example/1", publishedAt = 0))
+            assertEquals(250, db.articleDao().observeFiltered(emptyList(), false).first().size)
+            assertEquals(252, db.articleDao().observeAll().first().size)
+            db.sourceDao().delete(disabled)
+            assertEquals(252, db.articleDao().observeAll().first().size)
+        } finally { db.close() }
+    }
+
 }

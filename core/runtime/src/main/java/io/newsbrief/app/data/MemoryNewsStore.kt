@@ -57,6 +57,7 @@ class MemoryNewsStore : NewsStore {
         state.value = state.value.copy(articles = state.value.articles.map { if (it.link == url) change(it) else it })
     }
     private val articles = object : ArticleDao {
+        override fun observeAll() = state.map { it.articles.sortedWith(compareByDescending<ArticleEntity> { a -> a.publishedAt }.thenByDescending { a -> a.id }) }
         override fun observeSaved() = state.map { s -> s.saved.sortedByDescending { it.savedAt }.mapNotNull { saved -> s.articles.find { it.link == saved.link } } }
         override fun observeRecent(from: Long) = state.map { it.visible(from).take(250) }
         override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean) = state.map {

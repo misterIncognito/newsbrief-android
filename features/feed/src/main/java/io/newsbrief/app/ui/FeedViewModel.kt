@@ -15,6 +15,9 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
     private val bindings = host.bindings
     private fun report(message: String) = host.report(message)
     override val sources = services.store.sourceDao().observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val _searchQuery = MutableStateFlow("")
+    override val searchQuery = _searchQuery.asStateFlow()
+    override fun searchNews(query: String) { _searchQuery.value = query }
     private val readStatus = host.optional(ReadStatusUi::class.java)
     private val unreadOnly = readStatus?.unreadOnly ?: flowOf(false)
     private val pinnedReadIds = readStatus?.visibleReadIds ?: flowOf(emptySet())
@@ -26,7 +29,7 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
     }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     @OptIn(ExperimentalCoroutinesApi::class)
-    override val feedArticles = combine(sources, query, savedOnly, unreadOnly, pinnedReadIds) { sources, query, saved, unread, pinned ->
+    private val normalArticles = combine(sources, query, savedOnly, unreadOnly, pinnedReadIds) { sources, query, saved, unread, pinned ->
         val ids = if (query.category == FeedCategory.ALL && query.keys.isEmpty()) null else
             bindings.filterOptions(sources, query.category).filter { query.keys.isEmpty() || it.key in query.keys }
                 .flatMap { it.ids }.distinct().sorted()
@@ -35,6 +38,12 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
         if (saved) services.store.articleDao().observeSaved()
         else if (unread) services.store.articleDao().observeUnreadFiltered(ids.orEmpty(), ids != null, pinned.toList())
         else services.store.articleDao().observeFiltered(ids.orEmpty(), ids != null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override val feedArticles = searchQuery.map { it.trim() }.distinctUntilChanged().flatMapLatest { text ->
+        if (text.isEmpty()) normalArticles else services.store.articleDao().observeAll().map { articles ->
+            articles.filter { article -> matchesNewsSearch(article, text) }
+        }.flowOn(Dispatchers.Default)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     @OptIn(ExperimentalCoroutinesApi::class)
     override val unreadCount = combine(sources, query, savedOnly) { sources, selection, saved ->
@@ -79,3 +88,8 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
 
 
 }
+
+/** Search locally stored text without depending on the selected feed filters or 250-item display cap. */
+internal fun matchesNewsSearch(article: ArticleEntity, query: String): Boolean =
+    listOf(article.title, article.excerpt, article.content, article.sourceName, article.author)
+        .any { it.contains(query.trim(), ignoreCase = true) }

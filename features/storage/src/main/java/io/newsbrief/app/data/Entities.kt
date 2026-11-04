@@ -29,6 +29,9 @@ interface RoomSourceDao : SourceDao {
 
 @Dao
 interface RoomArticleDao : ArticleDao {
+    @Query("SELECT * FROM articles ORDER BY publishedAt DESC, id DESC")
+    override fun observeAll(): Flow<List<ArticleEntity>>
+
     @Query("SELECT a.* FROM articles a INNER JOIN saved_articles b ON b.link = a.link ORDER BY b.savedAt DESC, a.id DESC")
     override fun observeSaved(): Flow<List<ArticleEntity>>
 
