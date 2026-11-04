@@ -6,6 +6,9 @@ import io.newsbrief.modules.core.api.R
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,9 +48,18 @@ fun NewsImage(imageUrl: String, articleUrl: String, workerBase: String, height: 
             }.getOrNull()
         }
     }
-    bitmap?.let {
-        Image(it.asImageBitmap(), contentDescription = stringResource(R.string.nb_text_020),
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().height(height.dp).clip(RoundedCornerShape(12.dp)))
+    NewsImageSlot(height) {
+        bitmap?.let {
+            Image(it.asImageBitmap(), contentDescription = stringResource(R.string.nb_text_020),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth().height(height.dp))
+        }
     }
+}
+
+/** Keep the same footprint while the image loads or if it cannot be downloaded. */
+@Composable
+internal fun NewsImageSlot(height: Int, content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxWidth().height(height.dp).clip(RoundedCornerShape(12.dp))
+        .background(MaterialTheme.colorScheme.surfaceVariant)) { content() }
 }
