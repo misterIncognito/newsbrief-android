@@ -1,4 +1,4 @@
-# NewsBrief
+# NewsBrief — an AI-assisted News reader
 
 NewsBrief is an open-source Android news reader that brings RSS/Atom feeds and public Telegram channels into one feed. It is an alpha project: source availability, article extraction, and the interface may change.
 
