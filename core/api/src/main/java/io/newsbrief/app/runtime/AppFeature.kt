@@ -24,6 +24,7 @@ interface AppFeature {
     @Composable fun Toolbar(host: FeatureHost) {}
     @Composable fun Toolbar(host: FeatureHost, navigation: FeaturePageNavigation) { Toolbar(host) }
     @Composable fun HeaderActions(host: FeatureHost, openFeed: () -> Unit) {}
+    @Composable fun HeaderSummary(host: FeatureHost) {}
     fun onFeedSelected(host: FeatureHost) {}
 }
 /** Scoped page navigation supplied by the shell; a feature remains usable without another feature. */

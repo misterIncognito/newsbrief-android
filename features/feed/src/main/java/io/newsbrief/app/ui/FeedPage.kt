@@ -74,8 +74,6 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
     }
     Column(Modifier.fillMaxSize()) {
         controls()
-        Text(stringResource(R.string.nb_count_articles, articles.size), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 2.dp),
-            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FeedRefreshContainer(isRefreshing = refreshing, onRefresh = { vm.refresh() },
             modifier = Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(Modifier.fillMaxSize().testTag("news-feed"), state = activeScroll,
