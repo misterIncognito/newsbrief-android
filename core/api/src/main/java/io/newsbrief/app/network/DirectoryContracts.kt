@@ -7,7 +7,7 @@ enum class DirectoryProvider(val label: String) { RSS("RSS / сайты"), TELEG
 data class DirectorySource(
     val title: String, val address: String, val kind: String, val description: String = "",
     val language: String = "", val audience: Long? = null, val categories: Set<FeedCategory> = emptySet(),
-    val topics: Set<String> = emptySet()
+    val topics: Set<String> = emptySet(), val verified: Boolean? = null
 )
 data class DirectoryResults(
     val items: List<DirectorySource>, val total: Int? = null, val directorySize: Int? = null,

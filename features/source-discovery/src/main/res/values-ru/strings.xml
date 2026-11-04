@@ -1,3 +1,8 @@
 <resources>
     <string name="nb_feature_source_discovery">Каталог</string>
+    <string name="tg_sort_subscribers">По числу подписчиков</string>
+    <string name="tg_verified_only">Только проверенные</string>
+    <string name="tg_loaded_only">Только загруженные результаты. Статус указан каталогом.</string>
+    <string name="tg_verified_catalog">✓ Проверено каталогом</string>
+    <string name="tg_subscriber_count">Подписчиков: %1$d</string>
 </resources>
