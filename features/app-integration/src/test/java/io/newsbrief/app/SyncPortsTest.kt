@@ -24,6 +24,7 @@ class SyncPortsTest {
             override suspend fun delete(id: Long) = error("unused")
         }
         private val articlePort = object : ArticleDao {
+            override fun observeAll(): kotlinx.coroutines.flow.Flow<List<ArticleEntity>> = error("unused")
             override fun observeSaved() = flowOf(emptyList<ArticleEntity>())
             override fun observeRecent(from: Long) = flowOf(articles.values.toList())
             override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean) = observeRecent(0)

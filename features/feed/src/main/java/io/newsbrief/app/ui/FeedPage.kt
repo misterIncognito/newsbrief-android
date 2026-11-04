@@ -19,6 +19,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import io.newsbrief.modules.features.feed.R as FeedR
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,6 +45,8 @@ import io.newsbrief.app.data.FeedCategory
 @Composable
 fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, controls: @Composable () -> Unit = {}, emptyMessage: String? = null, onVisible: (suspend (List<Long>) -> Unit)? = null, onVisibilityChanged: ((List<Long>) -> Unit)? = null, articleContent: @Composable (ArticleEntity) -> Unit) {
     val articles by vm.feedArticles.collectAsStateWithLifecycle()
+    val searchQuery by vm.searchQuery.collectAsStateWithLifecycle()
+    var searchOpen by rememberSaveable { mutableStateOf(false) }
     val sources by vm.sources.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
@@ -74,13 +80,25 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
     }
     Column(Modifier.fillMaxSize()) {
         controls()
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (searchOpen) {
+                OutlinedTextField(value = searchQuery, onValueChange = vm::searchNews, singleLine = true,
+                    label = { Text(stringResource(FeedR.string.search_loaded_news)) },
+                    modifier = Modifier.weight(1f).testTag("news-search"))
+            }
+            TextButton(onClick = { searchOpen = !searchOpen; if (!searchOpen) vm.searchNews("") }) {
+                Text(stringResource(if (searchOpen) FeedR.string.search_close else FeedR.string.search_open))
+            }
+        }
+        if (searchOpen && searchQuery.isNotBlank()) Text(stringResource(FeedR.string.search_all_notice),
+            style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
         FeedRefreshContainer(isRefreshing = refreshing, onRefresh = { vm.refresh() },
             modifier = Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(Modifier.fillMaxSize().testTag("news-feed"), state = activeScroll,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (articles.isEmpty()) item {
-                    Text(emptyMessage ?: if (refreshing) stringResource(R.string.nb_load_news)
+                    Text(if (searchQuery.isNotBlank()) stringResource(FeedR.string.search_no_results) else emptyMessage ?: if (refreshing) stringResource(R.string.nb_load_news)
                         else if (filtered) stringResource(R.string.nb_empty_filter)
                         else stringResource(R.string.nb_pull_to_refresh),
                         modifier = Modifier.fillParentMaxHeight().padding(22.dp))

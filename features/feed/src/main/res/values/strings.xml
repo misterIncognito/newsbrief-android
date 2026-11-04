@@ -5,4 +5,9 @@
     <string name="read_status_unread">Unread</string>
     <string name="read_status_mark_read">Mark read</string>
     <string name="read_status_mark_unread">Mark unread</string>
+    <string name="search_loaded_news">Search downloaded news</string>
+    <string name="search_open">Search news</string>
+    <string name="search_close">Close</string>
+    <string name="search_all_notice">Searching all downloaded news, regardless of feed filters.</string>
+    <string name="search_no_results">No downloaded articles match your search.</string>
 </resources>

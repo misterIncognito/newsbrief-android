@@ -5,4 +5,9 @@
     <string name="read_status_mark_read">Отметить прочитанным</string>
     <string name="read_status_mark_unread">Отметить непрочитанным</string>
     <string name="nb_feature_feed">Лента</string>
+    <string name="search_loaded_news">Поиск загруженных новостей</string>
+    <string name="search_open">Поиск новостей</string>
+    <string name="search_close">Закрыть</string>
+    <string name="search_all_notice">Поиск по всем загруженным новостям без учёта фильтров ленты.</string>
+    <string name="search_no_results">В загруженных новостях ничего не найдено.</string>
 </resources>

@@ -34,6 +34,9 @@ interface SourceDao {
 data class UnreadSourceCount(val sourceId: Long, val unreadCount: Int)
 
 interface ArticleDao {
+    /** All articles retained locally, including articles from disabled or removed sources. */
+    fun observeAll(): Flow<List<ArticleEntity>>
+
     fun observeSaved(): Flow<List<ArticleEntity>>
 
     fun observeRecent(from: Long): Flow<List<ArticleEntity>>

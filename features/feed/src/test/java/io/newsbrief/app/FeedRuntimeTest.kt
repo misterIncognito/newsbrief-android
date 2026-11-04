@@ -126,4 +126,29 @@ class FeedRuntimeTest {
             compose.onNodeWithText("Full content supplied by the feed").assertDoesNotExist()
         } finally { vm.closeFeatures(); Dispatchers.resetMain() }
     }
+    @Test fun searchesAllStoredArticlesAndRestoresFeedWhenClosed() {
+        val dispatcher = UnconfinedTestDispatcher(); Dispatchers.setMain(dispatcher)
+        val store = MemoryNewsStore(); val features = listOf(FeedFeature())
+        val bindings = FeatureBindings.create(features)
+        runBlocking {
+            val active = store.sourceDao().insert(SourceEntity(name = "Active", address = "https://active.example", kind = SourceKind.RSS))
+            val disabled = store.sourceDao().insert(SourceEntity(name = "Archive", address = "https://archive.example", kind = SourceKind.RSS, enabled = false))
+            store.articleDao().insertAll((1..251).map { n -> ArticleEntity(sourceId = active, sourceName = "Active", title = "Post $n", excerpt = "", link = "https://active.example/$n", publishedAt = n.toLong(), content = if (n == 1) "Rare КОСМОС phrase" else "") } +
+                ArticleEntity(sourceId = disabled, sourceName = "Archive", title = "Archived match", excerpt = "космос", link = "https://archive.example/1", publishedAt = 2))
+        }
+        val vm = NewsViewModel(ApplicationProvider.getApplicationContext<Application>(), io.newsbrief.app.runtime.FeatureServices(store, MemorySettings(), bindings = bindings), features)
+        try {
+            compose.setContent { MaterialTheme { NewsBriefScreen(vm) } }
+            val feed = vm.host.controller(FeedUi::class.java)
+            compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); feed.feedArticles.value.size == 250 }
+            compose.onNodeWithText("Поиск новостей").performClick()
+            compose.onNodeWithTag("news-search").performTextInput("космос")
+            compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); feed.feedArticles.value.size == 2 }
+            assertEquals(setOf("Post 1", "Archived match"), feed.feedArticles.value.map { it.title }.toSet())
+            compose.onNodeWithText("Закрыть").performClick()
+            compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); feed.feedArticles.value.size == 250 }
+            assertEquals("", feed.searchQuery.value)
+        } finally { vm.closeFeatures(); Dispatchers.resetMain() }
+    }
+
 }
