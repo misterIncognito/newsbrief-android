@@ -62,6 +62,9 @@ class MemoryNewsStore : NewsStore {
         override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean) = state.map {
             it.visible().filter { a -> !filtered || a.sourceId in sourceIds }.take(250)
         }
+        override fun observeSourceArticleCounts() = state.map { s ->
+            s.visible().groupingBy { it.sourceId }.eachCount().map { (id, count) -> SourceArticleCount(id, count) }
+        }
         override fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long>) = state.map {
             it.visible().filter { a -> (a.readAt == null || a.id in includeIds) && (!filtered || a.sourceId in sourceIds) }.take(250)
         }

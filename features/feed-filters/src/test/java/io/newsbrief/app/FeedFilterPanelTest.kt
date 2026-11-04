@@ -30,7 +30,7 @@ class FeedFilterPanelTest {
         override val availableCategories = MutableStateFlow(listOf(FeedCategory.ALL, FeedCategory.TECH))
         override val feedSources = MutableStateFlow<Set<String>>(emptySet())
         override val feedOptions = MutableStateFlow(listOf(
-            FeedSourceOption("verge", "The Verge", listOf(1)),
+            FeedSourceOption("verge", "The Verge", listOf(1), 42),
             FeedSourceOption("zerkalo", "Зеркало", listOf(2))))
         override val selection = MutableStateFlow(FeedSelection())
         private fun update() { selection.value = FeedSelection(feedCategory.value, feedSources.value) }
@@ -52,6 +52,7 @@ class FeedFilterPanelTest {
         assertTrue(compose.onNodeWithTag("source-filter-panel").fetchSemanticsNode().boundsInRoot.left > 0f)
         compose.onNodeWithText("Беларусь").assertDoesNotExist()
         compose.onNodeWithText("Польша").assertDoesNotExist()
+        compose.onNodeWithText("42").assertIsDisplayed()
         compose.onNodeWithText("The Verge").performClick()
         compose.onNodeWithText("Зеркало").performClick()
         compose.onNodeWithText("The Verge").assertIsOn()

@@ -24,8 +24,8 @@ class FeedFiltersViewModel(private val host: FeatureHost) : ViewModel(), FeedFil
                 _feedSources.value = emptySet()
             }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, listOf(FeedCategory.ALL))
-    override val feedOptions = combine(services.store.sourceDao().observe(), _feedCategory) { sources, category ->
-        bindings.filterOptions(sources, category)
+    override val feedOptions = combine(services.store.sourceDao().observe(), _feedCategory, services.store.articleDao().observeSourceArticleCounts()) { sources, category, counts ->
+        FeedFilters.withArticleCounts(bindings.filterOptions(sources, category), counts)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     override val selection = combine(_feedCategory, _feedSources) { category, keys -> FeedSelection(category, keys) }

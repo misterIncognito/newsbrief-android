@@ -45,6 +45,11 @@ object FeedFilters {
             FeedSourceOption(publisher.first, publisher.second, members.map { it.id }.sorted())
         }.sortedBy { it.label.lowercase(java.util.Locale.ROOT) }
 
+    fun withArticleCounts(options: List<FeedSourceOption>, counts: List<SourceArticleCount>): List<FeedSourceOption> {
+        val bySource = counts.associate { it.sourceId to it.articleCount }
+        return options.map { option -> option.copy(articleCount = option.ids.sumOf { bySource[it] ?: 0 }) }
+    }
+
     /** null means all enabled sources; an empty list intentionally means no matching sources. */
     fun sourceIds(sources: List<SourceEntity>, category: FeedCategory, publisherKey: String?): List<Long>? =
         sourceIds(sources, category, publisherKey?.let { setOf(it) }.orEmpty())

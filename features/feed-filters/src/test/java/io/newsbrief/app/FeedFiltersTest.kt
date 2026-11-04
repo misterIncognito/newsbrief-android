@@ -55,4 +55,11 @@ class FeedFiltersTest {
         assertTrue(FeedFilters.sourceIds(sources, FeedCategory.ALL, setOf("deleted")).orEmpty().isEmpty())
     }
 
+    @Test fun articleCountsAddGroupedSourcesAndDefaultToZero() {
+        val options = listOf(FeedSourceOption("group", "Publisher", listOf(1, 2)), FeedSourceOption("empty", "Empty", listOf(3)))
+        val counted = FeedFilters.withArticleCounts(options, listOf(SourceArticleCount(1, 4), SourceArticleCount(2, 7)))
+        assertEquals(listOf(11, 0), counted.map { it.articleCount })
+        assertEquals(options.map { it.ids }, counted.map { it.ids })
+    }
+
 }
