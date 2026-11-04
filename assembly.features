@@ -8,6 +8,7 @@ native-reader
 networking
 news-proxy
 page-proxy
+privacy
 read-status
 rss-source
 save-articles

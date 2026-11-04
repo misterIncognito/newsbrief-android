@@ -28,6 +28,10 @@ interface AppFeature {
     @Composable fun HeaderSummary(host: FeatureHost) {}
     fun onFeedSelected(host: FeatureHost) {}
 }
+/** Optional app-level gate. Its content must not be composed until access is granted. */
+interface AppGate : AppFeature {
+    @Composable fun Protect(content: @Composable () -> Unit)
+}
 interface SetupWizard : AppFeature {
     @Composable fun ShowSetup(host: FeatureHost, hasPage: (String) -> Boolean,
         showPage: @Composable (String) -> Unit, finish: () -> Unit,
