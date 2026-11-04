@@ -4,11 +4,19 @@ NewsBrief is an open-source Android news reader that brings RSS/Atom feeds and p
 
 ## Screenshots
 
-These emulator captures show an earlier version of the interface. News content and controls may differ in current builds.
+Captured from release `v0.0.56-release-alfa` on an Android 10 emulator. News content changes over time.
 
-| News feed | Source filter | Native reader |
+| Welcome and setup | Choose a Telegram source | Configured sources |
 | --- | --- | --- |
-| <img src="docs/screenshots/feed-en-pixel4.png" alt="News feed with article cards and save and share actions" width="220"> | <img src="docs/screenshots/source-filter.png" alt="Source filter panel with a selected technology source" width="220"> | <img src="docs/screenshots/reader.png" alt="Article reader with an option to open the embedded browser" width="220"> |
+| <img src="docs/screenshots/current-welcome.png" alt="First-run welcome screen" width="220"> | <img src="docs/screenshots/current-setup-source.png" alt="Adding The Warsaw Telegram channel" width="220"> | <img src="docs/screenshots/current-sources.png" alt="Technology RSS feeds and The Warsaw Telegram source" width="220"> |
+
+| News feed | Source filter | Source catalog |
+| --- | --- | --- |
+| <img src="docs/screenshots/current-feed.png" alt="Technology news feed" width="220"> | <img src="docs/screenshots/current-filter.png" alt="Filter showing RSS and Telegram sources" width="220"> | <img src="docs/screenshots/current-catalog.png" alt="Searchable technology source catalog" width="220"> |
+
+| Telegram post | Native reader | Module settings |
+| --- | --- | --- |
+| <img src="docs/screenshots/current-telegram.png" alt="The Warsaw Telegram post displayed in the feed" width="220"> | <img src="docs/screenshots/current-reader.png" alt="Native reader with an embedded browser action" width="220"> | <img src="docs/screenshots/current-settings.png" alt="Settings sections for app modules" width="220"> |
 
 ## Using the app
 
@@ -26,7 +34,7 @@ The catalog can be searched for sources; its initial selection emphasizes techno
 - Open an article in the native reader for extracted text and images, or open its original page in the embedded browser. Save and share actions are available.
 - English and Russian interface translations are included.
 
-The readable view depends on the publisher’s page and may not recover every article or remove every advertisement. Existing screenshots show an older UI and include both interface languages.
+The readable view depends on the publisher’s page and may not recover every article or remove every advertisement.
 
 ## Architecture
 
@@ -37,6 +45,13 @@ The app uses feature modules with shared interfaces in `core/api` and runtime in
 Article loading supports feed content and extraction from publisher pages, including AMP when available. A Cloudflare Worker provides fetching, extraction, and image proxy endpoints. Sources that require proxying are routed through it; other sources may be requested directly. The Android application does not require a traditional application backend.
 
 Synchronization stores per-source checkpoints where the provider supports paging. Stored articles can be read offline, but a source cannot recover posts it no longer exposes. Public Telegram previews and publisher pages can change or limit access. See [SOURCE-DISCOVERY.md](SOURCE-DISCOVERY.md) and [ARTICLE-PREFETCH.md](ARTICLE-PREFETCH.md) for implementation details.
+
+## Related projects
+
+- [NewsBrief Cloudflare article proxy](https://github.com/misterIncognito/newsbrief-proxy): fetches and extracts article content. **Private repository.**
+- [NewsBrief Telegram service](https://github.com/misterIncognito/newsbrief-telegram): experimental account-based collector. **Private repository**; the integration is disabled in the current Android assembly.
+
+Access to these repositories requires the owner's permission.
 
 ## Build and test
 
