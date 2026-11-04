@@ -302,4 +302,13 @@ The **Android build** workflow runs the unit tests, module interface checks, and
 full debug build on pushes and pull requests. It can also be started manually
 from GitHub Actions once the workflow is present on the default branch. After a
 successful run, download **newsbrief-debug-apk** from the run's Artifacts section.
-Artifacts are retained for 30 days. This is a debug build, not a signed release.
+Artifacts are retained for 30 days. These are debug builds, not production-signed releases.
+
+Successful pushes and manual runs on `integration/isolated-feed` also publish an
+Alfa prerelease on GitHub with `newsbrief-alfa.apk`. Each run and retry gets its
+own tag. Those builds use the dedicated NewsBrief CI signing key; pull requests
+and other branches continue to use the runner's debug key. GitHub Actions needs
+the `NEWSBRIEF_CI_KEYSTORE` (base64 PKCS#12 keystore) and `NEWSBRIEF_CI_PASSWORD`
+repository secrets. Keep a secure backup of that keystore and password: losing
+the key prevents future builds from updating apps signed with it. An app signed
+with another key must be replaced before this APK can be installed.
