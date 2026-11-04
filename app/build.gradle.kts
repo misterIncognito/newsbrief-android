@@ -14,6 +14,17 @@ android {
         versionName = "0.4.12"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    val ciKeystore = providers.environmentVariable("NEWSBRIEF_SIGNING_KEYSTORE").orNull?.takeIf { it.isNotBlank() }
+    val ciPassword = providers.environmentVariable("NEWSBRIEF_SIGNING_PASSWORD").orNull?.takeIf { it.isNotBlank() }
+    require((ciKeystore == null) == (ciPassword == null)) { "Both NewsBrief signing settings must be provided" }
+    if (ciKeystore != null && ciPassword != null) {
+        signingConfigs.getByName("debug") {
+            storeFile = file(ciKeystore)
+            storePassword = ciPassword
+            keyAlias = "newsbrief-ci"
+            keyPassword = ciPassword
+        }
+    }
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
