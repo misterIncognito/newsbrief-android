@@ -71,4 +71,11 @@ class TelegramFeedPostTest {
         compose.runOnIdle { assertEquals(previewUrl, opened) }
     }
 
+    @Test fun truncatedTelegramPostRetriesEvenAfterLinksWereRecovered() {
+        val truncated = post.copy(content = "Quoted preview…")
+        org.junit.Assert.assertTrue(io.newsbrief.app.ui.needsTelegramPreviewRefresh(truncated))
+        org.junit.Assert.assertFalse(io.newsbrief.app.ui.needsTelegramPreviewRefresh(post.copy(content = "Full post")))
+        org.junit.Assert.assertTrue(io.newsbrief.app.ui.needsTelegramPreviewRefresh(post.copy(content = "Full post", linksJson = "[]")))
+    }
+
 }

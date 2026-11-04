@@ -50,7 +50,7 @@ class ReaderViewModel(private val host: FeatureHost) : ViewModel(), ReaderUi {
         if (!resolvedPostLinks.add(post.link)) return
         viewModelScope.launch {
             try {
-                if (checkNotNull(services.articles).readArticle(post).notice != null) resolvedPostLinks.remove(post.link)
+                if (checkNotNull(services.articles).readArticle(post, refresh = io.newsbrief.app.network.ArticleLinks.decode(post.linksJson).isNotEmpty()).notice != null) resolvedPostLinks.remove(post.link)
             } catch (e: CancellationException) {
                 resolvedPostLinks.remove(post.link)
                 throw e

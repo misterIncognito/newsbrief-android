@@ -30,7 +30,7 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi, host: io.newsbrief.app.runtim
     val workerUrl by vm.workerUrl.collectAsStateWithLifecycle()
     if (ArticleLinks.isTelegramPost(article)) {
         LaunchedEffect(article.link) {
-            if (ArticleLinks.decode(article.linksJson).isEmpty()) vm.resolvePostLinks(article)
+            if (needsTelegramPreviewRefresh(article)) vm.resolvePostLinks(article)
         }
         TelegramFeedPost(article, workerUrl,
             onLink = { vm.openFeedLink(article, it) },
@@ -53,4 +53,11 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi, host: io.newsbrief.app.runtim
             ArticleActionRow(article, host)
         }
     }
+}
+
+/** Old reply previews may already have acquired links while retaining truncated quoted text. */
+internal fun needsTelegramPreviewRefresh(article: ArticleEntity): Boolean {
+    if (ArticleLinks.telegramPreview(article.link) == null || article.sourcePluginId == io.newsbrief.app.data.SourceKind.TELEGRAM_PROXY) return false
+    val content = article.content.trimEnd()
+    return ArticleLinks.decode(article.linksJson).isEmpty() || content.endsWith("…") || content.endsWith("...")
 }
