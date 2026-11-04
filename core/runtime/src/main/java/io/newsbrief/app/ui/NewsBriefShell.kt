@@ -24,7 +24,7 @@ fun NewsBriefShell() {
         Column(Modifier.safeDrawingPadding().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("NewsBrief", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                BetaNotice()
+                AlfaNotice()
             }
             Text(stringResource(R.string.nb_text_001), style = MaterialTheme.typography.bodyLarge)
         }

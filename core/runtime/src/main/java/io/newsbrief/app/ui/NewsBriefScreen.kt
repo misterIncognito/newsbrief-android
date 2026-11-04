@@ -62,7 +62,7 @@ import io.newsbrief.app.runtime.FeaturePageNavigation
                     Text("NewsBrief", style = MaterialTheme.typography.titleLarge)
                     if (feed != null && sections.isEmpty()) Text(feed.localizedTitle(context), style = MaterialTheme.typography.labelMedium)
                 }
-                BetaNotice()
+                AlfaNotice()
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (overlay != null) TextButton(onClick = overlay.onBack) { Text(overlay.backLabel) }
