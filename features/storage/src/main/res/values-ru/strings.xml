@@ -1,0 +1,19 @@
+<resources>
+    <string name="storage_title">Хранилище</string>
+    <string name="storage_count">Сохранено новостей: %1$d</string>
+    <string name="storage_size">База новостей и изображения: %1$s</string>
+    <string name="storage_include_saved">Также удалить избранные статьи</string>
+    <string name="storage_cleanup">Очистить новости</string>
+    <string name="storage_all">Все новости</string>
+    <string name="storage_day">Оставить за последний день</string>
+    <string name="storage_five">Оставить за последние 5 дней</string>
+    <string name="storage_ten">Оставить за последние 10 дней</string>
+    <string name="storage_confirm_title">Удалить загруженные новости?</string>
+    <string name="storage_confirm">%1$s. %2$s Это действие нельзя отменить.</string>
+    <string name="storage_saved_kept">Избранные статьи останутся.</string>
+    <string name="storage_saved_deleted">Избранные статьи за этот период тоже будут удалены.</string>
+    <string name="storage_note">Новости выбираются по дате публикации. При полной очистке изображения удаляются, если не осталось избранных статей. Размер файла базы может уменьшиться не сразу.</string>
+    <string name="storage_delete">Удалить</string>
+    <string name="storage_cancel">Отмена</string>
+    <string name="storage_error">Ошибка очистки: %1$s</string>
+</resources>

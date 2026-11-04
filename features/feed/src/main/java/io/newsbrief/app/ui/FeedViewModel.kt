@@ -15,6 +15,9 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
     private val bindings = host.bindings
     private fun report(message: String) = host.report(message)
     override val sources = services.store.sourceDao().observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val _feedLimit = MutableStateFlow(250)
+    override val feedLimit = _feedLimit.asStateFlow()
+    override fun loadMoreFeed() { _feedLimit.value = (_feedLimit.value + 250).coerceAtMost(1_000_000) }
     private val _searchQuery = MutableStateFlow("")
     override val searchQuery = _searchQuery.asStateFlow()
     override fun searchNews(query: String) { _searchQuery.value = query }
@@ -34,10 +37,11 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
             bindings.filterOptions(sources, query.category).filter { query.keys.isEmpty() || it.key in query.keys }
                 .flatMap { it.ids }.distinct().sorted()
         FeedRequest(saved, ids, unread, pinned)
-    }.distinctUntilChanged().flatMapLatest { (saved, ids, unread, pinned) ->
+    }.combine(feedLimit) { request, limit -> request to limit }.distinctUntilChanged().flatMapLatest { (request, limit) ->
+        val (saved, ids, unread, pinned) = request
         if (saved) services.store.articleDao().observeSaved()
-        else if (unread) services.store.articleDao().observeUnreadFiltered(ids.orEmpty(), ids != null, pinned.toList())
-        else services.store.articleDao().observeFiltered(ids.orEmpty(), ids != null)
+        else if (unread) services.store.articleDao().observeUnreadFiltered(ids.orEmpty(), ids != null, pinned.toList(), limit)
+        else services.store.articleDao().observeFiltered(ids.orEmpty(), ids != null, limit)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     @OptIn(ExperimentalCoroutinesApi::class)
     override val feedArticles = searchQuery.map { it.trim() }.distinctUntilChanged().flatMapLatest { text ->

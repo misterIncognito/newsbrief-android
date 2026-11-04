@@ -10,4 +10,5 @@
     <string name="search_close">Закрыть</string>
     <string name="search_all_notice">Поиск по всем загруженным новостям без учёта фильтров ленты.</string>
     <string name="search_no_results">В загруженных новостях ничего не найдено.</string>
+    <string name="feed_load_more">Показать более ранние новости</string>
 </resources>

@@ -60,8 +60,8 @@ class MemoryNewsStore : NewsStore {
         override fun observeAll() = state.map { it.articles.sortedWith(compareByDescending<ArticleEntity> { a -> a.publishedAt }.thenByDescending { a -> a.id }) }
         override fun observeSaved() = state.map { s -> s.saved.sortedByDescending { it.savedAt }.mapNotNull { saved -> s.articles.find { it.link == saved.link } } }
         override fun observeRecent(from: Long) = state.map { it.visible(from).take(250) }
-        override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean) = state.map {
-            it.visible().filter { a -> !filtered || a.sourceId in sourceIds }.take(250)
+        override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean, limit: Int) = state.map {
+            it.visible().filter { a -> !filtered || a.sourceId in sourceIds }.take(limit)
         }
         override fun observeUnreadCountsBySource() = state.map { s ->
             s.visible().filter { it.readAt == null }.groupingBy { it.sourceId }.eachCount().map { (id, count) -> UnreadSourceCount(id, count) }
@@ -71,8 +71,8 @@ class MemoryNewsStore : NewsStore {
                 else s.visible().filter { !filtered || it.sourceId in sourceIds }
             available.count { it.readAt == null }
         }
-        override fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long>) = state.map {
-            it.visible().filter { a -> (a.readAt == null || a.id in includeIds) && (!filtered || a.sourceId in sourceIds) }.take(250)
+        override fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long>, limit: Int) = state.map {
+            it.visible().filter { a -> (a.readAt == null || a.id in includeIds) && (!filtered || a.sourceId in sourceIds) }.take(limit)
         }
         override suspend fun markVisibleRead(ids: List<Long>, readAt: Long) = access {
             state.value = state.value.copy(articles = state.value.articles.map {

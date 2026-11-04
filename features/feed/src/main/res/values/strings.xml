@@ -10,4 +10,5 @@
     <string name="search_close">Close</string>
     <string name="search_all_notice">Searching all downloaded news, regardless of feed filters.</string>
     <string name="search_no_results">No downloaded articles match your search.</string>
+    <string name="feed_load_more">Load older news</string>
 </resources>

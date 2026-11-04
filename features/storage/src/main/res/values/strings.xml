@@ -1,0 +1,19 @@
+<resources>
+    <string name="storage_title">Storage</string>
+    <string name="storage_count">Stored articles: %1$d</string>
+    <string name="storage_size">News database and offline images: %1$s</string>
+    <string name="storage_include_saved">Also delete saved articles</string>
+    <string name="storage_cleanup">Clean up news</string>
+    <string name="storage_all">All news</string>
+    <string name="storage_day">Keep the latest day</string>
+    <string name="storage_five">Keep the latest 5 days</string>
+    <string name="storage_ten">Keep the latest 10 days</string>
+    <string name="storage_confirm_title">Delete downloaded news?</string>
+    <string name="storage_confirm">%1$s. %2$s This cannot be undone.</string>
+    <string name="storage_saved_kept">Saved articles will be kept.</string>
+    <string name="storage_saved_deleted">Saved articles in this period will also be deleted.</string>
+    <string name="storage_note">News is selected by publication date. Full cleanup also removes offline images if no saved articles remain. Database file size may not shrink immediately.</string>
+    <string name="storage_delete">Delete</string>
+    <string name="storage_cancel">Cancel</string>
+    <string name="storage_error">Cleanup failed: %1$s</string>
+</resources>

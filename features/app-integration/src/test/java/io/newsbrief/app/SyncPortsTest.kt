@@ -27,7 +27,7 @@ class SyncPortsTest {
             override fun observeAll(): kotlinx.coroutines.flow.Flow<List<ArticleEntity>> = error("unused")
             override fun observeSaved() = flowOf(emptyList<ArticleEntity>())
             override fun observeRecent(from: Long) = flowOf(articles.values.toList())
-            override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean) = observeRecent(0)
+            override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean, limit: Int) = observeRecent(0)
             override suspend fun recent(from: Long, limit: Int) = articles.values.toList()
             override suspend fun insertAll(items: List<ArticleEntity>) = items.map {
                 if (articles.containsKey(it.link)) -1L else { articles[it.link] = it; articles.size.toLong() }

@@ -1,11 +1,17 @@
 package io.newsbrief.app.features
 
 import androidx.room.Room
+import android.content.Context
+import androidx.compose.runtime.Composable
+import io.newsbrief.modules.features.storage.R
 import io.newsbrief.app.data.*
 import io.newsbrief.app.runtime.*
 
 class StorageFeature : AppFeature {
     override val id = "storage"
+    override val hasSettings = true
+    override fun localizedSettingsTitle(context: Context) = context.getString(R.string.storage_title)
+    @Composable override fun Settings(host: FeatureHost) { StorageSettings(host) }
     override fun configure(bindings: FeatureBindings) {
         bindings.persistentStorage = { context ->
             Room.databaseBuilder(context, NewsDatabase::class.java, "newsbrief.sqlite")
