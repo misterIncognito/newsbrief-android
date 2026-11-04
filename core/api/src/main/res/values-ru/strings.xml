@@ -121,8 +121,8 @@
     <string name="nb_feed_error">Ошибка обновления: %1$s</string>
     <string name="nb_share">Поделиться</string>
     <string name="nb_share_unavailable">Нет доступного приложения для отправки</string>
-    <string name="nb_preview_title">Бета-версия</string>
-    <string name="nb_preview_message">Это бета-версия приложения. Она может содержать ошибки и работать непредсказуемо.</string>
+    <string name="nb_preview_title">Альфа-версия</string>
+    <string name="nb_preview_message">Это альфа-версия приложения. Она может содержать ошибки и работать непредсказуемо.</string>
     <string name="nb_browser_reload">Перезагрузить</string>
     <string name="nb_browser_loader">Загрузчик NewsBrief</string>
     <string name="nb_browser_original">Оригинал</string>

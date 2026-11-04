@@ -121,8 +121,8 @@
     <string name="nb_feed_error">Refresh failed: %1$s</string>
     <string name="nb_share">Share</string>
     <string name="nb_share_unavailable">No app is available to share this article</string>
-    <string name="nb_preview_title">Beta version</string>
-    <string name="nb_preview_message">This is a beta version and may contain issues or behave unexpectedly.</string>
+    <string name="nb_preview_title">Alfa version</string>
+    <string name="nb_preview_message">This is an alfa version and may contain issues or behave unexpectedly.</string>
     <string name="nb_browser_reload">Reload</string>
     <string name="nb_browser_loader">NewsBrief loader</string>
     <string name="nb_browser_original">Original</string>
