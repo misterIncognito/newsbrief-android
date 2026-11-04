@@ -76,9 +76,9 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           cp apk/app-debug.apk newsbrief-alfa.apk
-          tag="alfa-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          tag="v0.0.${GITHUB_RUN_NUMBER}-alfa.${GITHUB_RUN_ATTEMPT}"
           gh release create "$tag" newsbrief-alfa.apk \
             --target "$GITHUB_SHA" \
-            --title "Alfa build ${GITHUB_RUN_NUMBER}" \
+            --title "Alfa 0.0.${GITHUB_RUN_NUMBER}" \
             --notes "Automated integration build for commit ${GITHUB_SHA}. This is a debug-signed Alfa build." \
             --prerelease --latest=false
