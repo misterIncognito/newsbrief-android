@@ -6,9 +6,13 @@ NewsBrief is an open-source Android news reader that brings RSS/Atom feeds and p
 
 Captured from release `v0.0.56-release-alfa` on an Android 10 emulator. News content changes over time.
 
+| Welcome and setup | Choose a Telegram source | Configured sources |
+| --- | --- | --- |
+| <img src="docs/screenshots/current-welcome.png" alt="First-run welcome screen" width="220"> | <img src="docs/screenshots/current-setup-source.png" alt="Adding The Warsaw Telegram channel" width="220"> | <img src="docs/screenshots/current-sources.png" alt="Technology RSS feeds and The Warsaw Telegram source" width="220"> |
+
 | News feed | Source filter | Source catalog |
 | --- | --- | --- |
-| <img src="docs/screenshots/current-feed.png" alt="News feed with article cards and save and share actions" width="220"> | <img src="docs/screenshots/current-filter.png" alt="Feed filter with the technology category selected" width="220"> | <img src="docs/screenshots/current-catalog.png" alt="Searchable technology source catalog" width="220"> |
+| <img src="docs/screenshots/current-feed.png" alt="Technology news feed" width="220"> | <img src="docs/screenshots/current-filter.png" alt="Filter showing RSS and Telegram sources" width="220"> | <img src="docs/screenshots/current-catalog.png" alt="Searchable technology source catalog" width="220"> |
 
 | Native reader | Module settings |
 | --- | --- |
