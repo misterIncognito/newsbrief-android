@@ -80,7 +80,7 @@ class OptionalFeatureAssemblyTest {
             compose.setContent { MaterialTheme { NewsBriefScreen(shell) } }
             waitFor { shell.host.controller(FeedUi::class.java).feedArticles.value.size == 1 }
             compose.onNodeWithText("NewsBrief").assertIsDisplayed()
-            compose.onNodeWithText("Alfa").assertIsDisplayed()
+            compose.onNodeWithText("Alpha").assertIsDisplayed()
             compose.onNodeWithText("Independent feature story").assertExists()
             if ("read-status" in selected) {
                 val frame = compose.onNodeWithTag("read-status-frame-$articleId")
