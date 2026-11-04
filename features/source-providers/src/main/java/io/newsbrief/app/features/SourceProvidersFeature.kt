@@ -4,7 +4,7 @@ import io.newsbrief.app.data.*
 import io.newsbrief.app.network.SourcePluginRegistry
 import io.newsbrief.app.runtime.*
 
-/** Registry and minimal defaults only; no management, catalog or provider implementation. */
+/** Source registry and actions; subscriptions are chosen by the user. */
 class SourceProvidersFeature : AppFeature {
     override val id = "source-providers"
     override fun configure(bindings: FeatureBindings) {
