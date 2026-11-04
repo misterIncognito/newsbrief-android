@@ -1,0 +1,10 @@
+<resources>
+    <string name="setup_welcome">Welcome to NewsBrief</string>
+    <string name="setup_intro">Choose the sources you want to follow. Your feed starts empty.</string>
+    <string name="setup_catalog">Choose sources from the catalog</string>
+    <string name="setup_custom">Add a custom source</string>
+    <string name="setup_next">Next</string>
+    <string name="setup_back">Back</string>
+    <string name="setup_finish">Finish and update feed</string>
+    <string name="setup_skip">Skip setup</string>
+</resources>

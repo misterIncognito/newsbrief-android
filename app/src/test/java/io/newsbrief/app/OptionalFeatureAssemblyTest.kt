@@ -25,6 +25,11 @@ import org.robolectric.annotation.GraphicsMode
 @OptIn(ExperimentalCoroutinesApi::class)
 class OptionalFeatureAssemblyTest {
     @get:Rule val compose = createComposeRule()
+    @org.junit.Before fun completeSetupForExistingScreenTests() {
+        ApplicationProvider.getApplicationContext<Application>()
+            .getSharedPreferences("newsbrief_source_setup", android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean("completed", true).commit()
+    }
     private val selected get() = System.getProperty("newsbrief.expectedFeatures", "").split(',').filter { it.isNotEmpty() }.toSet()
     @Test fun onlySelectedFeaturesRegisterTheirOwnControllers() {
         val bindings = FeatureBindings.create(InstalledFeatures.create())

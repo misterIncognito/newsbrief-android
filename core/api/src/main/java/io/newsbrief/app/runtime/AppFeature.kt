@@ -20,12 +20,18 @@ interface AppFeature {
     fun configure(bindings: FeatureBindings) {}
     @Composable fun Screen(host: FeatureHost) {}
     @Composable fun Screen(host: FeatureHost, navigation: FeaturePageNavigation) { Screen(host) }
+    @Composable fun SetupScreen(host: FeatureHost, navigation: FeaturePageNavigation) { Screen(host, navigation) }
     @Composable fun Settings(host: FeatureHost) {}
     @Composable fun Toolbar(host: FeatureHost) {}
     @Composable fun Toolbar(host: FeatureHost, navigation: FeaturePageNavigation) { Toolbar(host) }
     @Composable fun HeaderActions(host: FeatureHost, openFeed: () -> Unit) {}
     @Composable fun HeaderSummary(host: FeatureHost) {}
     fun onFeedSelected(host: FeatureHost) {}
+}
+interface SetupWizard : AppFeature {
+    @Composable fun ShowSetup(host: FeatureHost, hasPage: (String) -> Boolean,
+        showPage: @Composable (String) -> Unit, finish: () -> Unit,
+        header: @Composable () -> Unit = {}): Boolean
 }
 /** Scoped page navigation supplied by the shell; a feature remains usable without another feature. */
 interface FeaturePageNavigation {
