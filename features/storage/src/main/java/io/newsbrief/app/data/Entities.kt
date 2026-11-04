@@ -41,6 +41,12 @@ interface RoomArticleDao : ArticleDao {
         "ORDER BY a.publishedAt DESC LIMIT 250")
     override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean): Flow<List<ArticleEntity>>
 
+    @Query("SELECT COUNT(*) FROM articles a WHERE a.readAt IS NULL AND " +
+        "((:savedOnly = 1 AND EXISTS (SELECT 1 FROM saved_articles b WHERE b.link = a.link)) OR " +
+        "(:savedOnly = 0 AND EXISTS (SELECT 1 FROM sources s WHERE s.id = a.sourceId AND s.enabled = 1) " +
+        "AND (:filtered = 0 OR a.sourceId IN (:sourceIds))))")
+    override fun observeUnreadCount(sourceIds: List<Long>, filtered: Boolean, savedOnly: Boolean): Flow<Int>
+
     @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
         "WHERE s.enabled = 1 AND (a.readAt IS NULL OR a.id IN (:includeIds)) AND (:filtered = 0 OR a.sourceId IN (:sourceIds)) " +
         "ORDER BY a.publishedAt DESC LIMIT 250")

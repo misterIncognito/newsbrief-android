@@ -36,6 +36,15 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
         else if (unread) services.store.articleDao().observeUnreadFiltered(ids.orEmpty(), ids != null, pinned.toList())
         else services.store.articleDao().observeFiltered(ids.orEmpty(), ids != null)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override val unreadCount = combine(sources, query, savedOnly) { sources, selection, saved ->
+        val ids = if (selection.category == FeedCategory.ALL && selection.keys.isEmpty()) null else
+            bindings.filterOptions(sources, selection.category).filter { selection.keys.isEmpty() || it.key in selection.keys }
+                .flatMap { it.ids }.distinct().sorted()
+        Triple(ids.orEmpty(), ids != null, saved)
+    }.distinctUntilChanged().flatMapLatest { (ids, filtered, saved) ->
+        services.store.articleDao().observeUnreadCount(ids, filtered, saved)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
     private data class FeedRequest(val saved: Boolean, val ids: List<Long>?, val unread: Boolean, val pinned: Set<Long>)
     private val _refreshing = MutableStateFlow(false)
     override val refreshing = _refreshing.asStateFlow()

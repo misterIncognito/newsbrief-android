@@ -86,13 +86,15 @@ class OptionalFeatureAssemblyTest {
                 val frame = compose.onNodeWithTag("read-status-frame-$articleId")
                 frame.performTouchInput { swipeLeft() }
                 waitFor { runBlocking { store.articleDao().findByLink(article.link)?.readAt != null } }
+                waitFor { shell.host.controller(FeedUi::class.java).unreadCount.value == 0 }
                 frame.performTouchInput { swipeRight() }
                 waitFor { runBlocking { store.articleDao().findByLink(article.link)?.readAt == null } }
             }
             val menuBounds = compose.onNodeWithTag("open-feed").fetchSemanticsNode().boundsInRoot
             val count = compose.onNodeWithTag("article-count").assertIsDisplayed()
             assertEquals(menuBounds.center.y, count.fetchSemanticsNode().boundsInRoot.center.y, 1f)
-            compose.onNodeWithContentDescription("Публикаций: 1").assertExists()
+            waitFor { shell.host.controller(FeedUi::class.java).unreadCount.value == 1 }
+            compose.onNodeWithContentDescription("Непрочитано: 1").assertExists()
             if ("save-articles" in selected) compose.onNodeWithTag("open-saved").assertIsDisplayed()
             else compose.onNodeWithTag("open-saved").assertDoesNotExist()
             if ("feed-filters" in selected && "read-status" in selected) {

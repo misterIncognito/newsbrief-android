@@ -1,5 +1,5 @@
 <resources>
-    <string name="nb_count_short">Статьи: %1$d</string>
+    <string name="nb_count_short">Непрочитано: %1$d</string>
     <string name="read_status_read">Прочитано</string>
     <string name="read_status_unread">Не прочитано</string>
     <string name="read_status_mark_read">Отметить прочитанным</string>

@@ -33,6 +33,7 @@ class FeedSeenIntegrationTest {
         val articles = (1L..20L).map { id -> ArticleEntity(id = id, sourceId = 1, sourceName = "S", title = "Post $id",
             excerpt = "", link = "https://example.org/$id", publishedAt = id) }
         val fake = object : FeedUi {
+            override val unreadCount = MutableStateFlow(articles.size)
             override val feedArticles = MutableStateFlow(articles)
             override val sources = MutableStateFlow<List<SourceEntity>>(emptyList())
             override val refreshing = MutableStateFlow(false)
