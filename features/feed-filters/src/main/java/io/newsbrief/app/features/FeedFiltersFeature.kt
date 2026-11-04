@@ -11,6 +11,9 @@ class FeedFiltersFeature : AppFeature {
     override fun configure(bindings: FeatureBindings) {
         bindings.controller(FeedFilterUi::class.java, ::FeedFiltersViewModel)
         bindings.filterOptions = FeedFilters::options
+        bindings.feedControls.add { host ->
+            ChannelFilterBar(host.controller(FeedFilterUi::class.java), host.services.store.articleDao(), host.optional(SavedUi::class.java))
+        }
     }
     @Composable override fun Toolbar(host: FeatureHost, navigation: FeaturePageNavigation) {
         FeedFilterControls(host.controller(FeedFilterUi::class.java), host.optional(SavedUi::class.java),

@@ -49,10 +49,12 @@ class ReadStateStorageTest {
             val rows = (1..260).map { n -> ArticleEntity(sourceId = first, sourceName = "First", title = "Post $n", excerpt = "", link = "https://first.example/$n", publishedAt = n.toLong()) } +
                 ArticleEntity(sourceId = second, sourceName = "Second", title = "Other", excerpt = "", link = "https://second.example/1", publishedAt = 1)
             db.articleDao().insertAll(rows)
+            assertEquals(mapOf(first to 260, second to 1), db.articleDao().observeUnreadCountsBySource().first().associate { it.sourceId to it.unreadCount })
             assertEquals(261, db.articleDao().observeUnreadCount(emptyList(), false, false).first())
             assertEquals(260, db.articleDao().observeUnreadCount(listOf(first), true, false).first())
             assertEquals(0, db.articleDao().observeUnreadCount(emptyList(), true, false).first())
             db.articleDao().setReadAt("https://first.example/1", 100)
+            assertEquals(259, db.articleDao().observeUnreadCountsBySource().first().single { it.sourceId == first }.unreadCount)
             assertEquals(259, db.articleDao().observeUnreadCount(listOf(first), true, false).first())
             db.savedArticleDao().insert(SavedArticleEntity("https://second.example/1"))
             db.sourceDao().setEnabled(second, false)
