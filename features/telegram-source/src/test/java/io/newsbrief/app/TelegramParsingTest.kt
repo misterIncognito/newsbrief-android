@@ -91,4 +91,41 @@ class TelegramParsingTest {
         assertEquals(listOf("inline link", "BBC article preview"), ArticleLinks.decode(post.linksJson).map { it.label })
     }
 
+    @Test fun replyUsesActualMessageAndItsLinksRatherThanQuotedPreview() {
+        val source = SourceEntity(1, "Channel", "https://t.me/s/channel", SourceKind.TELEGRAM)
+        val html = """<div class="tgme_widget_message" data-post="channel/42">
+            <a class="tgme_widget_message_reply" href="https://t.me/channel/41">
+                <div class="tgme_widget_message_text js-message_reply_text">Quoted old preview…</div>
+            </a>
+            <div class="tgme_widget_message_text js-message_text">Actual post <a href="https://publisher.example/story">Full story</a></div>
+        </div>"""
+        val post = parser.parse(html, source).single()
+        assertEquals("Actual post Full story", post.content)
+        assertEquals("https://publisher.example/story", ArticleLinks.decode(post.linksJson).single().url)
+    }
+
+    @Test fun missingMessageBodyNeverUsesQuotedPreviewAsThePost() {
+        val source = SourceEntity(1, "Channel", "https://t.me/s/channel", SourceKind.TELEGRAM)
+        val html = """<div class="tgme_widget_message" data-post="channel/42">
+            <a class="tgme_widget_message_reply" href="https://t.me/channel/41">
+                <div class="tgme_widget_message_text js-message_reply_text">Quoted old preview…</div>
+            </a></div>"""
+        assertTrue(parser.parse(html, source).single().content.isEmpty())
+    }
+
+    @Test fun hydrationRepairsCachedQuotedPreviewButPreservesOtherOfflineText() = kotlinx.coroutines.runBlocking {
+        val html = """<div class="tgme_widget_message" data-post="channel/42">
+            <a class="tgme_widget_message_reply" href="https://t.me/channel/41"><div class="tgme_widget_message_text js-message_reply_text">Quoted old preview…</div></a>
+            <div class="tgme_widget_message_text js-message_text">Actual post <a href="https://publisher.example/story">Full story</a></div>
+        </div>"""
+        val post = io.newsbrief.app.data.ArticleEntity(sourceId = 1, sourceName = "Channel", title = "Old", excerpt = "", content = "Quoted old preview…", link = "https://t.me/channel/42", publishedAt = 1)
+        val cached = io.newsbrief.app.network.ReaderArticle("Old", post.content, "", post.link)
+        val loader = io.newsbrief.app.network.TelegramArticleContent(io.newsbrief.app.TestSettings())
+        val repaired = loader.load(post, cached, "https://t.me/s/channel/42") { _, _, _, _ -> html.toByteArray() }
+        assertEquals("Actual post Full story", repaired.text)
+        assertEquals("https://publisher.example/story", repaired.links.single().url)
+        val kept = loader.load(post.copy(content = "My saved text"), cached.copy(text = "My saved text"), "https://t.me/s/channel/42") { _, _, _, _ -> html.toByteArray() }
+        assertEquals("My saved text", kept.text)
+    }
+
 }

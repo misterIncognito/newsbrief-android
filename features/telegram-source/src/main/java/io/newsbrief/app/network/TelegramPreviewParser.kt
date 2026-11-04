@@ -23,7 +23,8 @@ class TelegramPreviewParser {
             val wrapper = message
             val postId = message.attr("data-post")
             if (!postId.matches(Regex("[A-Za-z0-9_]+/[0-9]+"))) return@mapNotNull null
-            val textElement = wrapper.selectFirst(".tgme_widget_message_text")
+            val textElement = wrapper.selectFirst(".tgme_widget_message_text.js-message_text")
+                ?: wrapper.selectFirst(".tgme_widget_message_text:not(.js-message_reply_text):not(.tgme_widget_message_reply .tgme_widget_message_text)")
             // Link cards live outside the message text, so text anchors alone miss them.
             val textLinks = textElement?.let { ArticleLinks.extract(it) }.orEmpty()
             val previewLinks = wrapper.select("a.tgme_widget_message_link_preview[href]").mapNotNull { preview ->
