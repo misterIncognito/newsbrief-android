@@ -33,12 +33,12 @@ class FeedFeature : AppFeature {
         bindings.commands["refresh"] = { it.controller(FeedUi::class.java).refresh() }
     }
     @Composable override fun HeaderSummary(host: FeatureHost) {
-        val articles by host.controller(FeedUi::class.java).feedArticles.collectAsStateWithLifecycle()
-        val description = stringResource(CoreR.string.nb_count_articles, articles.size)
+        val unread by host.controller(FeedUi::class.java).unreadCount.collectAsStateWithLifecycle()
+        val description = stringResource(R.string.nb_count_short, unread)
         BoxWithConstraints(Modifier.fillMaxWidth().testTag("article-count")
             .semantics { contentDescription = description }, contentAlignment = Alignment.CenterEnd) {
-            val label = if (maxWidth < 80.dp) articles.size.toString()
-                else stringResource(R.string.nb_count_short, articles.size)
+            val label = if (maxWidth < 80.dp) unread.toString()
+                else stringResource(R.string.nb_count_short, unread)
             Text(label, maxLines = 1, overflow = TextOverflow.Clip,
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

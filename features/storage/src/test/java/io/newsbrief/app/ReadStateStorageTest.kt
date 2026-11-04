@@ -40,4 +40,25 @@ class ReadStateStorageTest {
             assertFalse(storedSource.historyGap)
         } finally { reopened.close(); context.deleteDatabase(name) }
     }
+    @Test fun unreadCountTracksReadStateFiltersAndAllStoredArticles() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, NewsDatabase::class.java).build()
+        try {
+            val first = db.sourceDao().insert(SourceEntity(name = "First", address = "https://first.example/feed", kind = SourceKind.RSS))
+            val second = db.sourceDao().insert(SourceEntity(name = "Second", address = "https://second.example/feed", kind = SourceKind.RSS))
+            val rows = (1..260).map { n -> ArticleEntity(sourceId = first, sourceName = "First", title = "Post $n", excerpt = "", link = "https://first.example/$n", publishedAt = n.toLong()) } +
+                ArticleEntity(sourceId = second, sourceName = "Second", title = "Other", excerpt = "", link = "https://second.example/1", publishedAt = 1)
+            db.articleDao().insertAll(rows)
+            assertEquals(261, db.articleDao().observeUnreadCount(emptyList(), false, false).first())
+            assertEquals(260, db.articleDao().observeUnreadCount(listOf(first), true, false).first())
+            assertEquals(0, db.articleDao().observeUnreadCount(emptyList(), true, false).first())
+            db.articleDao().setReadAt("https://first.example/1", 100)
+            assertEquals(259, db.articleDao().observeUnreadCount(listOf(first), true, false).first())
+            db.savedArticleDao().insert(SavedArticleEntity("https://second.example/1"))
+            db.sourceDao().setEnabled(second, false)
+            assertEquals(1, db.articleDao().observeUnreadCount(emptyList(), false, true).first())
+            assertEquals(259, db.articleDao().observeUnreadCount(emptyList(), false, false).first())
+        } finally { db.close() }
+    }
+
 }

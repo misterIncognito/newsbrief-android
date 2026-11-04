@@ -62,6 +62,11 @@ class MemoryNewsStore : NewsStore {
         override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean) = state.map {
             it.visible().filter { a -> !filtered || a.sourceId in sourceIds }.take(250)
         }
+        override fun observeUnreadCount(sourceIds: List<Long>, filtered: Boolean, savedOnly: Boolean) = state.map { s ->
+            val available = if (savedOnly) s.saved.mapNotNull { saved -> s.articles.find { it.link == saved.link } }
+                else s.visible().filter { !filtered || it.sourceId in sourceIds }
+            available.count { it.readAt == null }
+        }
         override fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long>) = state.map {
             it.visible().filter { a -> (a.readAt == null || a.id in includeIds) && (!filtered || a.sourceId in sourceIds) }.take(250)
         }

@@ -37,6 +37,8 @@ interface ArticleDao {
     fun observeRecent(from: Long): Flow<List<ArticleEntity>>
 
     fun observeFiltered(sourceIds: List<Long>, filtered: Boolean): Flow<List<ArticleEntity>>
+    fun observeUnreadCount(sourceIds: List<Long>, filtered: Boolean, savedOnly: Boolean): Flow<Int> =
+        (if (savedOnly) observeSaved() else observeFiltered(sourceIds, filtered)).map { articles -> articles.count { it.readAt == null } }
     fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long> = emptyList()): Flow<List<ArticleEntity>> =
         observeFiltered(sourceIds, filtered).map { articles -> articles.filter { it.readAt == null || it.id in includeIds } }
 
