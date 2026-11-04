@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     var url by remember(proxy) { mutableStateOf(proxy) }
     var key by remember { mutableStateOf("") }
     Text(stringResource(R.string.nb_tg_proxy), style = MaterialTheme.typography.titleLarge)
+    Text(stringResource(R.string.nb_tg_setup_help), style = MaterialTheme.typography.bodyMedium)
     OutlinedTextField(url, { url = it }, singleLine = true, label = { Text(stringResource(R.string.nb_tg_url)) })
     Text(if (saved) stringResource(R.string.nb_tg_key_saved) else stringResource(R.string.nb_tg_key_missing))
     OutlinedTextField(key, { key = it }, singleLine = true, visualTransformation = PasswordVisualTransformation(), label = { Text(stringResource(R.string.nb_tg_key)) })
