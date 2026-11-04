@@ -10,8 +10,10 @@ android {
         applicationId = "io.newsbrief.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 16
-        versionName = "0.4.12"
+        val buildNumber = providers.environmentVariable("GITHUB_RUN_NUMBER").orNull?.toIntOrNull() ?: 16
+        require(buildNumber >= 16) { "Build number must be at least 16" }
+        versionCode = buildNumber
+        versionName = "0.0.$buildNumber"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     val ciKeystore = providers.environmentVariable("NEWSBRIEF_SIGNING_KEYSTORE").orNull?.takeIf { it.isNotBlank() }
