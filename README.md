@@ -1,60 +1,61 @@
-# NewsBrief — an AI-assisted Android project
+# NewsBrief
 
-**Type:** Personal Android application<br>
-**Status:** Alpha, under active development<br>
-**Repository:** [github.com/misterIncognito/newsbrief-android](https://github.com/misterIncognito/newsbrief-android)
-
-## The idea
-
-I follow news in several languages and use different channels to do it: mostly Telegram for Russian-language news, and RSS feeds for English- and Polish-language sources. Switching between apps and websites makes it harder to track what I have already read and get an overview of the day.
-
-I wanted one place to follow my chosen sources, read articles in a cleaner format with fewer advertisements and distractions, and eventually generate an AI summary of the day’s news.
-
-## What the application does
-
-- Combines public Telegram channels and RSS/Atom feeds in one news feed.
-- Lets users choose sources from a catalog or add their own. New installations start without preset subscriptions.
-- Shows Telegram posts in the feed and opens linked articles in a readable view designed to reduce advertisements and distractions.
-- Offers an embedded browser for opening the original page.
-- Provides familiar reader features: read and unread tracking, source filters, saved articles, and sharing.
-- Keeps downloaded articles and related information on the device for offline access.
-- Uses a Cloudflare Worker to extract article content and access sources that require a proxy.
-- Supports English and Russian interface localization.
+NewsBrief is an open-source Android news reader that brings RSS/Atom feeds and public Telegram channels into one feed. It is an alpha project: source availability, article extraction, and the interface may change.
 
 ## Screenshots
 
-These emulator captures show an earlier version of the interface; the current alpha may look different. News content changes over time.
+These emulator captures show an earlier version of the interface. News content and controls may differ in current builds.
 
 | News feed | Source filter | Native reader |
 | --- | --- | --- |
-| <img src="docs/screenshots/feed-en-pixel4.png" alt="News feed with articles and save and share actions" width="220"> | <img src="docs/screenshots/source-filter.png" alt="Source filter with a selected technology source" width="220"> | <img src="docs/screenshots/reader.png" alt="Native article reader with an embedded browser action" width="220"> |
+| <img src="docs/screenshots/feed-en-pixel4.png" alt="News feed with article cards and save and share actions" width="220"> | <img src="docs/screenshots/source-filter.png" alt="Source filter panel with a selected technology source" width="220"> | <img src="docs/screenshots/reader.png" alt="Article reader with an option to open the embedded browser" width="220"> |
 
-## Implementation
+## Using the app
 
-- **Android:** Kotlin and Jetpack Compose.
-- **Local storage:** Room and SQLite.
-- **Background synchronization:** WorkManager, with per-source checkpoints where supported.
-- **Networking:** OkHttp and a Cloudflare Worker; no traditional application backend.
-- **Architecture:** Feature modules connected through interfaces, including source providers, article loading, the reader, and synchronization.
-- **Testing and delivery:** Automated tests and GitHub Actions builds, with alpha APKs published through GitHub Releases.
+### Set up sources
 
-## Plans
+A new installation starts with no subscribed sources. The setup wizard welcomes the user, offers the source catalog when that feature is enabled, and provides a form for adding a custom RSS/Atom feed or public Telegram channel. Finishing setup refreshes the feed. Existing installations retain their sources.
 
-- **AI summaries:** Generate a summary of the day’s news. This is not implemented yet.
-- **News badge:** Show a count of new articles on the app icon.
-- **Notifications:** Notify users about new content.
-- **iPhone support:** Adapt NewsBrief for iOS.
-- **Facebook groups:** Add groups as a news source, reflecting their importance as a news and community information channel in Poland.
-- **Telegram account integration:** Move beyond parsing public Telegram pages to a server-side Telegram account engine that reads streams with each user’s permissions. The integration has been implemented but is disabled until it has been fully tested.
+The catalog can be searched for sources; its initial selection emphasizes technology. Users choose which sources to add and can manage them later. Public Telegram channels are read through their web previews; a Telegram account is not required for this mode.
 
-The project is still in alpha. Article extraction and Telegram availability depend on the source, so a clean reading view or complete history cannot be guaranteed for every publication.
+### Read and organize
+
+- The feed combines selected sources and displays article cards and Telegram posts. Pull down to refresh.
+- The source filter narrows the feed to selected sources; an unread filter and saved-article view help organize reading.
+- Posts become read after sufficient on-screen visibility. Swiping a card changes its read/unread state.
+- Open an article in the native reader for extracted text and images, or open its original page in the embedded browser. Save and share actions are available.
+- English and Russian interface translations are included.
+
+The readable view depends on the publisher’s page and may not recover every article or remove every advertisement. Existing screenshots show an older UI and include both interface languages.
+
+## Architecture
+
+NewsBrief is built in Kotlin with Jetpack Compose. It stores articles, sources, read state, and related metadata locally with Room/SQLite. WorkManager schedules background updates, and OkHttp handles network requests.
+
+The app uses feature modules with shared interfaces in `core/api` and runtime infrastructure in `core/runtime`. The assembly in `assembly.features` explicitly selects capabilities, including source discovery, RSS and Telegram providers, feed filters, storage, synchronization, the native reader, browser, and proxy support. Feature descriptors declare prerequisites; optional modules can be selected through the `newsbriefFeatures` Gradle property. See [BRANCHES.md](BRANCHES.md) for the module map.
+
+Article loading supports feed content and extraction from publisher pages, including AMP when available. A Cloudflare Worker provides fetching, extraction, and image proxy endpoints. Sources that require proxying are routed through it; other sources may be requested directly. The Android application does not require a traditional application backend.
+
+Synchronization stores per-source checkpoints where the provider supports paging. Stored articles can be read offline, but a source cannot recover posts it no longer exposes. Public Telegram previews and publisher pages can change or limit access. See [SOURCE-DISCOVERY.md](SOURCE-DISCOVERY.md) and [ARTICLE-PREFETCH.md](ARTICLE-PREFETCH.md) for implementation details.
 
 ## Build and test
 
-Open the project in Android Studio and allow Gradle to synchronize. To run the unit tests and build a debug APK from the command line:
+Requirements: Android Studio, JDK 21, and Android SDK 36. The app supports Android 8.0 (API 26) and newer. The repository includes the Gradle Wrapper.
 
 ```sh
-./gradlew testDebugUnitTest assembleDebug
+./gradlew :app:testDebugUnitTest :app:assembleDebug verifyModuleInterfaces
 ```
 
-Alpha APKs are available on the [Releases page](https://github.com/misterIncognito/newsbrief-android/releases).
+The debug APK is written to `app/build/outputs/apk/debug/`. GitHub Actions runs the tests, interface checks, and debug build; successful integration and release branch builds publish alpha APKs on the [Releases page](https://github.com/misterIncognito/newsbrief-android/releases).
+
+## Roadmap
+
+- Complete AI summaries of the day’s news; experimental AI module code exists, but the feature is not yet finished.
+- Add an app icon badge for new articles and a notification system.
+- Adapt the app for iPhone.
+- Explore Facebook groups as a news source, subject to available access and permissions.
+- Complete testing of the disabled server-side Telegram account integration, intended to read streams using each user’s permissions.
+
+## Limitations
+
+The app is an alpha and its behavior may change. Source uptime, paging, full article extraction, and image availability depend on external services. Offline access covers content already downloaded to the device; it cannot retrieve new content without a connection.
