@@ -2,6 +2,8 @@ package io.newsbrief.app.ui
 import io.newsbrief.app.data.*
 import kotlinx.coroutines.flow.StateFlow
 interface FeedUi {
+    val feedLimit: StateFlow<Int>
+    fun loadMoreFeed()
     val searchQuery: StateFlow<String>
     fun searchNews(query: String)
     val unreadCount: StateFlow<Int>

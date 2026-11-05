@@ -1,0 +1,13 @@
+<resources>
+    <string name="privacy_title">Конфиденциальность</string>
+    <string name="privacy_lock">Блокировать NewsBrief</string>
+    <string name="privacy_description">Используйте блокировку экрана или отпечаток пальца для входа.</string>
+    <string name="privacy_prompt">Подтвердите личность</string>
+    <string name="privacy_subtitle">Разблокируйте NewsBrief с помощью устройства.</string>
+    <string name="privacy_unlock">Разблокировать NewsBrief</string>
+    <string name="privacy_locked">NewsBrief заблокирован</string>
+    <string name="privacy_setup">Сначала настройте блокировку экрана устройства.</string>
+    <string name="privacy_error">Ошибка аутентификации: %1$s</string>
+    <string name="privacy_launch">Блокировать при запуске</string>
+    <string name="privacy_background">Блокировать при выходе из приложения</string>
+</resources>

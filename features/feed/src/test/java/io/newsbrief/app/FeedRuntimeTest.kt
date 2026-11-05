@@ -148,6 +148,9 @@ class FeedRuntimeTest {
             compose.onNodeWithText("Закрыть").performClick()
             compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); feed.feedArticles.value.size == 250 }
             assertEquals("", feed.searchQuery.value)
+            feed.loadMoreFeed()
+            compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); feed.feedArticles.value.size == 251 }
+            assertTrue(feed.feedArticles.value.any { it.title == "Post 1" })
         } finally { vm.closeFeatures(); Dispatchers.resetMain() }
     }
 

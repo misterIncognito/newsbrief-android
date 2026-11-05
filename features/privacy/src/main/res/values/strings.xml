@@ -1,0 +1,13 @@
+<resources>
+    <string name="privacy_title">Privacy</string>
+    <string name="privacy_lock">Lock NewsBrief</string>
+    <string name="privacy_description">Use your device screen lock or fingerprint to open NewsBrief.</string>
+    <string name="privacy_prompt">Confirm your identity</string>
+    <string name="privacy_subtitle">Unlock NewsBrief using your device credentials.</string>
+    <string name="privacy_unlock">Unlock NewsBrief</string>
+    <string name="privacy_locked">NewsBrief is locked</string>
+    <string name="privacy_setup">Set up a device screen lock before enabling this feature.</string>
+    <string name="privacy_error">Authentication failed: %1$s</string>
+    <string name="privacy_launch">Lock on launch</string>
+    <string name="privacy_background">Lock after leaving the app</string>
+</resources>

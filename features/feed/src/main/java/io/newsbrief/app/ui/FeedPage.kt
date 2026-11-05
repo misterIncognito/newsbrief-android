@@ -46,6 +46,7 @@ import io.newsbrief.app.data.FeedCategory
 fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, controls: @Composable () -> Unit = {}, emptyMessage: String? = null, onVisible: (suspend (List<Long>) -> Unit)? = null, onVisibilityChanged: ((List<Long>) -> Unit)? = null, articleContent: @Composable (ArticleEntity) -> Unit) {
     val articles by vm.feedArticles.collectAsStateWithLifecycle()
     val searchQuery by vm.searchQuery.collectAsStateWithLifecycle()
+    val feedLimit by vm.feedLimit.collectAsStateWithLifecycle()
     var searchOpen by rememberSaveable { mutableStateOf(false) }
     val sources by vm.sources.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
@@ -104,6 +105,9 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
                         modifier = Modifier.fillParentMaxHeight().padding(22.dp))
                 }
                 items(articles, key = { it.id }) { article -> articleContent(article) }
+                if (!savedOnly && searchQuery.isBlank() && articles.size >= feedLimit) item {
+                    TextButton(onClick = vm::loadMoreFeed, modifier = Modifier.fillMaxWidth()) { Text(stringResource(FeedR.string.feed_load_more)) }
+                }
             }
         }
     }

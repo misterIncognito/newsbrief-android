@@ -29,6 +29,9 @@ interface RoomSourceDao : SourceDao {
 
 @Dao
 interface RoomArticleDao : ArticleDao {
+    @Query("SELECT COUNT(*) FROM articles")
+    fun observeStoredCount(): Flow<Int>
+
     @Query("SELECT * FROM articles ORDER BY publishedAt DESC, id DESC")
     override fun observeAll(): Flow<List<ArticleEntity>>
 
@@ -41,8 +44,8 @@ interface RoomArticleDao : ArticleDao {
 
     @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
         "WHERE s.enabled = 1 AND (:filtered = 0 OR a.sourceId IN (:sourceIds)) " +
-        "ORDER BY a.publishedAt DESC LIMIT 250")
-    override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean): Flow<List<ArticleEntity>>
+        "ORDER BY a.publishedAt DESC LIMIT :limit")
+    override fun observeFiltered(sourceIds: List<Long>, filtered: Boolean, limit: Int): Flow<List<ArticleEntity>>
 
     @Query("SELECT a.sourceId AS sourceId, COUNT(*) AS unreadCount FROM articles a INNER JOIN sources s ON s.id = a.sourceId WHERE s.enabled = 1 AND a.readAt IS NULL GROUP BY a.sourceId")
     override fun observeUnreadCountsBySource(): Flow<List<UnreadSourceCount>>
@@ -55,8 +58,8 @@ interface RoomArticleDao : ArticleDao {
 
     @Query("SELECT a.* FROM articles a INNER JOIN sources s ON s.id = a.sourceId " +
         "WHERE s.enabled = 1 AND (a.readAt IS NULL OR a.id IN (:includeIds)) AND (:filtered = 0 OR a.sourceId IN (:sourceIds)) " +
-        "ORDER BY a.publishedAt DESC LIMIT 250")
-    override fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long>): Flow<List<ArticleEntity>>
+        "ORDER BY a.publishedAt DESC LIMIT :limit")
+    override fun observeUnreadFiltered(sourceIds: List<Long>, filtered: Boolean, includeIds: List<Long>, limit: Int): Flow<List<ArticleEntity>>
 
     @Query("UPDATE articles SET readAt = :readAt WHERE id IN (:ids) AND readAt IS NULL")
     override suspend fun markVisibleRead(ids: List<Long>, readAt: Long)
@@ -99,6 +102,18 @@ interface RoomArticleDao : ArticleDao {
     @Query("UPDATE articles SET sourceId = :sourceId, sourceName = :sourceName, sourcePluginId = CASE WHEN :sourcePluginId != '' THEN :sourcePluginId ELSE sourcePluginId END WHERE link = :url AND " +
         "NOT EXISTS (SELECT 1 FROM sources WHERE id = articles.sourceId AND enabled = 1)")
     override suspend fun associateEnabledSource(url: String, sourceId: Long, sourceName: String, sourcePluginId: String)
+
+    @Query("DELETE FROM saved_articles WHERE link IN (SELECT link FROM articles WHERE :all = 1 OR publishedAt < :cutoff)")
+    suspend fun deleteSavedBefore(cutoff: Long, all: Boolean)
+
+    @Query("DELETE FROM articles WHERE (:all = 1 OR publishedAt < :cutoff) AND NOT EXISTS (SELECT 1 FROM saved_articles b WHERE b.link = articles.link)")
+    suspend fun deleteUnsavedBefore(cutoff: Long, all: Boolean)
+
+    @Transaction
+    suspend fun cleanArticles(cutoff: Long, all: Boolean, includeSaved: Boolean) {
+        if (includeSaved) deleteSavedBefore(cutoff, all)
+        deleteUnsavedBefore(cutoff, all)
+    }
 
     @Query("DELETE FROM articles WHERE publishedAt < :cutoff AND NOT EXISTS (SELECT 1 FROM saved_articles b WHERE b.link = articles.link)")
     override suspend fun deleteOld(cutoff: Long)

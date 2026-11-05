@@ -71,9 +71,31 @@ class ReadStateStorageTest {
             db.articleDao().insertAll((1..251).map { n -> ArticleEntity(sourceId = active, sourceName = "Active", title = "Post $n", excerpt = "", link = "https://active.example/$n", publishedAt = n.toLong()) } +
                 ArticleEntity(sourceId = disabled, sourceName = "Disabled", title = "Disabled article", excerpt = "", link = "https://disabled.example/1", publishedAt = 0))
             assertEquals(250, db.articleDao().observeFiltered(emptyList(), false).first().size)
+            assertEquals(251, db.articleDao().observeFiltered(emptyList(), false, 500).first().size)
             assertEquals(252, db.articleDao().observeAll().first().size)
             db.sourceDao().delete(disabled)
             assertEquals(252, db.articleDao().observeAll().first().size)
+        } finally { db.close() }
+    }
+
+    @Test fun cleanupProtectsOrDeletesSavedItemsAsChosen() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), NewsDatabase::class.java).build()
+        try {
+            val source = db.sourceDao().insert(SourceEntity(name = "Feed", address = "https://cleanup.example", kind = SourceKind.RSS))
+            val old = ArticleEntity(sourceId = source, sourceName = "Feed", title = "Old", excerpt = "", link = "https://cleanup.example/old", publishedAt = 1)
+            val saved = old.copy(title = "Saved", link = "https://cleanup.example/saved")
+            val recent = old.copy(title = "Recent", link = "https://cleanup.example/recent", publishedAt = 100)
+            db.articleDao().insertAll(listOf(old, saved, recent))
+            db.savedArticleDao().insert(SavedArticleEntity(saved.link))
+            db.articleDao().cleanArticles(50, all = false, includeSaved = false)
+            assertEquals(setOf(saved.link, recent.link), db.articleDao().observeAll().first().map { it.link }.toSet())
+            assertTrue(db.savedArticleDao().contains(saved.link))
+            db.articleDao().cleanArticles(50, all = false, includeSaved = true)
+            assertNull(db.articleDao().findByLink(saved.link))
+            assertFalse(db.savedArticleDao().contains(saved.link))
+            assertNotNull(db.articleDao().findByLink(recent.link))
+            db.articleDao().cleanArticles(0, all = true, includeSaved = true)
+            assertTrue(db.articleDao().observeAll().first().isEmpty())
         } finally { db.close() }
     }
 
