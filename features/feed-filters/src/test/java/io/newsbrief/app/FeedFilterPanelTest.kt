@@ -1,6 +1,19 @@
 package io.newsbrief.app
 
 import android.app.Application
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModel
+import androidx.test.core.app.ApplicationProvider
+import io.newsbrief.app.data.MemoryNewsStore
+import io.newsbrief.app.data.MemorySettings
+import io.newsbrief.app.data.SourceEntity
+import io.newsbrief.app.network.DirectoryProvider
+import io.newsbrief.app.network.DirectorySource
+import io.newsbrief.app.network.SourcePluginInfo
+import io.newsbrief.app.runtime.*
+import io.newsbrief.app.features.FeedFiltersFeature
+import io.newsbrief.app.ui.DirectoryState
+import io.newsbrief.app.ui.DirectoryUi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -25,7 +38,7 @@ import org.robolectric.annotation.GraphicsMode
 class FeedFilterPanelTest {
     @get:Rule val compose = createComposeRule()
 
-    private class FakeFilter : FeedFilterUi {
+    private class FakeFilter : ViewModel(), FeedFilterUi {
         override val feedCategory = MutableStateFlow(FeedCategory.ALL)
         override val availableCategories = MutableStateFlow(listOf(FeedCategory.ALL, FeedCategory.TECH))
         override val feedSources = MutableStateFlow<Set<String>>(emptySet())
@@ -67,4 +80,64 @@ class FeedFilterPanelTest {
         compose.runOnIdle { assertEquals(emptySet<String>(), vm.feedSources.value) }
         compose.onNodeWithText("Показаны все источники").assertExists()
     }
+    @Test fun missingSourceCanBeSearchedOnlineWithTheEnteredQuery() {
+        val vm = FakeFilter()
+        var requested: String? = null
+        compose.setContent { MaterialTheme { FeedFilterControls(vm, searchOnline = { requested = it }) } }
+        compose.onNodeWithTag("open-source-filter").performClick()
+        compose.onNodeWithTag("search-online-sources").assertDoesNotExist()
+        compose.onNodeWithTag("source-filter-search").performTextInput("  Kotlin Daily  ")
+        compose.onNodeWithTag("search-online-sources").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals("Kotlin Daily", requested) }
+        compose.onNodeWithTag("source-filter-panel").assertDoesNotExist()
+    }
+
+    @Test fun onlineButtonIsAbsentWhenDiscoveryIsUnavailable() {
+        val vm = FakeFilter()
+        compose.setContent { MaterialTheme { FeedFilterControls(vm) } }
+        compose.onNodeWithTag("open-source-filter").performClick()
+        compose.onNodeWithTag("source-filter-search").performTextInput("missing")
+        compose.onNodeWithTag("search-online-sources").assertDoesNotExist()
+    }
+
+    @Test fun onlineButtonOpensCatalogWithRequestedSearch() {
+        val filter = FakeFilter()
+        val directory = object : ViewModel(), DirectoryUi {
+            override val sources = MutableStateFlow<List<SourceEntity>>(emptyList())
+            override val sourcePlugins = emptyList<SourcePluginInfo>()
+            override val directoryState = MutableStateFlow(DirectoryState(provider = DirectoryProvider.CURATED))
+            var searches = 0
+            override fun directoryProvider(provider: DirectoryProvider) { directoryState.value = directoryState.value.copy(provider = provider); searchDirectory() }
+            override fun directoryQuery(query: String) { directoryState.value = directoryState.value.copy(query = query) }
+            override fun searchDirectory() { searches++ }
+            override fun hideDirectoryPromotions(value: Boolean) = Unit
+            override fun loadMoreDirectory() = Unit
+            override fun addDirectorySource(source: DirectorySource) = Unit
+        }
+        val bindings = FeatureBindings.create(emptyList())
+        bindings.controller(FeedFilterUi::class.java) { filter }
+        bindings.controller(DirectoryUi::class.java) { directory }
+        val host = FeatureHost(ApplicationProvider.getApplicationContext<Application>(), FeatureServices(MemoryNewsStore(), MemorySettings(), bindings = bindings), object : ShellNavigator {
+            override fun show(id: String, backLabel: String, onBack: () -> Unit, content: @Composable () -> Unit) = Unit
+            override fun dismiss(id: String) = Unit
+        }) { }
+        var opened: String? = null
+        val nav = object : FeaturePageNavigation {
+            override fun hasPage(featureId: String) = featureId == "source-discovery"
+            override fun openPage(featureId: String) { opened = featureId }
+        }
+        try {
+            compose.setContent { MaterialTheme { FeedFiltersFeature().Toolbar(host, nav) } }
+            compose.onNodeWithTag("open-source-filter").performClick()
+            compose.onNodeWithTag("source-filter-search").performTextInput("Kotlin Daily")
+            compose.onNodeWithTag("search-online-sources").performClick()
+            compose.runOnIdle {
+                assertEquals("source-discovery", opened)
+                assertEquals("Kotlin Daily", directory.directoryState.value.query)
+                assertEquals(DirectoryProvider.RSS, directory.directoryState.value.provider)
+                assertEquals(1, directory.searches)
+            }
+        } finally { host.close() }
+    }
+
 }

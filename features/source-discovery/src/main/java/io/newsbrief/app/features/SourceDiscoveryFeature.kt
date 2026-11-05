@@ -24,7 +24,7 @@ class SourceDiscoveryFeature : AppFeature {
     }
     @Composable override fun Screen(host: FeatureHost) {
         val vm = host.controller(DirectoryUi::class.java)
-        androidx.compose.runtime.LaunchedEffect(Unit) { if (vm.directoryState.value.results == null) vm.searchDirectory() }
+        androidx.compose.runtime.LaunchedEffect(Unit) { if (vm.directoryState.value.results == null && !vm.directoryState.value.busy && vm.directoryState.value.error == null) vm.searchDirectory() }
         SourceDirectoryPage(vm)
     }
 }

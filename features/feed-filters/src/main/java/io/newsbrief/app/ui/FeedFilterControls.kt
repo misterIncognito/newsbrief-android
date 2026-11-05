@@ -2,6 +2,7 @@ package io.newsbrief.app.ui
 
 import androidx.compose.ui.res.stringResource
 import io.newsbrief.modules.core.api.R
+import io.newsbrief.modules.features.feed_filters.R as FilterR
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,7 +42,7 @@ private val FilterIcon = ImageVector.Builder(name = "Filter", defaultWidth = 24.
 
 /** Optional feed contribution; all selection and panel state belongs to this feature. */
 @Composable
-fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null, openSources: (() -> Unit)? = null) {
+fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null, openSources: (() -> Unit)? = null, searchOnline: ((String) -> Unit)? = null) {
     val category by vm.feedCategory.collectAsStateWithLifecycle()
     val categories by vm.availableCategories.collectAsStateWithLifecycle()
     val selected by vm.feedSources.collectAsStateWithLifecycle()
@@ -103,8 +104,14 @@ fun FeedFilterControls(vm: FeedFilterUi, saved: SavedUi? = null, openSources: ((
                     val needle = search.trim().lowercase(Locale.ROOT)
                     val visible = options.filter { needle.isEmpty() || it.label.lowercase(Locale.ROOT).contains(needle) }
                     if (visible.isEmpty()) {
-                        Text(if (options.isEmpty()) stringResource(R.string.nb_no_sources) else stringResource(R.string.nb_sources_not_found),
+                        Text(if (needle.isEmpty() && options.isEmpty()) stringResource(R.string.nb_no_sources) else stringResource(R.string.nb_sources_not_found),
                             modifier = Modifier.padding(vertical = 16.dp))
+                        if (needle.isNotEmpty() && searchOnline != null) {
+                            OutlinedButton(onClick = { val query = search.trim(); open = false; searchOnline(query) },
+                                modifier = Modifier.testTag("search-online-sources")) {
+                                Text(stringResource(FilterR.string.search_online_sources))
+                            }
+                        }
                     }
                     LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
                         items(visible, key = { it.key }) { option ->
