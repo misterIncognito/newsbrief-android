@@ -42,6 +42,9 @@ class ReadStatusTest {
             assertEquals(setOf(id), vm.visibleReadIds.value)
             assertEquals(listOf(id), store.articleDao().observeUnreadFiltered(emptyList(), false, vm.visibleReadIds.value.toList()).first().map { it.id })
             vm.retainVisible(emptyList())
+            assertEquals(setOf(id), vm.visibleReadIds.value)
+            assertEquals(listOf(id), store.articleDao().observeUnreadFiltered(emptyList(), false, vm.visibleReadIds.value.toList()).first().map { it.id })
+            vm.clearUnreadSession()
             assertTrue(vm.visibleReadIds.value.isEmpty())
             val read = store.articleDao().findByLink("https://example.org/a")!!
             assertNotNull(read.readAt)
@@ -58,4 +61,27 @@ class ReadStatusTest {
             assertNotNull("The article can be marked read after it leaves and returns", store.articleDao().findByLink(read.link)!!.readAt)
         } finally { host.close(); Dispatchers.resetMain() }
     }
+    @Test fun manuallyReadPostsRemainUntilSessionIsCleared() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val store = MemoryNewsStore()
+        val source = store.sourceDao().insert(SourceEntity(name = "S", address = "https://example.org", kind = "RSS"))
+        val item = ArticleEntity(sourceId = source, sourceName = "S", title = "A", excerpt = "", link = "https://example.org/a", publishedAt = 1)
+        store.articleDao().insertAll(listOf(item))
+        val stored = store.articleDao().findByLink(item.link)!!
+        val host = FeatureHost(ApplicationProvider.getApplicationContext<Application>(), FeatureServices(store, MemorySettings(), bindings = FeatureBindings.create(emptyList())), object : ShellNavigator {
+            override fun show(id: String, backLabel: String, onBack: () -> Unit, content: @Composable () -> Unit) = Unit
+            override fun dismiss(id: String) = Unit
+        }) { }
+        try {
+            val vm = ReadStatusViewModel(host)
+            vm.setUnreadOnly(true)
+            vm.toggleRead(stored).join()
+            vm.retainVisible(emptyList())
+            assertEquals(setOf(stored.id), vm.visibleReadIds.value)
+            assertNotNull(store.articleDao().findByLink(item.link)!!.readAt)
+            vm.clearUnreadSession()
+            assertTrue(vm.visibleReadIds.value.isEmpty())
+        } finally { host.close(); Dispatchers.resetMain() }
+    }
+
 }

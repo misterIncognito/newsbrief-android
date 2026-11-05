@@ -20,7 +20,9 @@ interface FeedFilterUi {
 data class FeedSelection(val category: FeedCategory = FeedCategory.ALL, val keys: Set<String> = emptySet())
 interface ReadStatusUi {
     val unreadOnly: StateFlow<Boolean>
+    /** Read articles retained until the unread feed is refreshed or changed. */
     val visibleReadIds: StateFlow<Set<Long>>
+    fun clearUnreadSession()
     fun setUnreadOnly(value: Boolean)
     fun toggleRead(article: ArticleEntity): Job
     fun retainVisible(ids: List<Long>)
