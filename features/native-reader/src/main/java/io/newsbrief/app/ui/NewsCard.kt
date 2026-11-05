@@ -43,7 +43,7 @@ fun NewsCard(article: ArticleEntity, vm: ReaderUi, host: io.newsbrief.app.runtim
         colors = if (color != null) CardDefaults.cardColors(containerColor = color, contentColor = androidx.compose.ui.graphics.Color(0xFF191919)) else CardDefaults.cardColors()) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             if (article.imageUrl.isNotBlank()) NewsImage(article.imageUrl, article.link, workerUrl, 145, article.proxyRequired, host)
-            Text("${article.sourceName} · ${formatDate(article.publishedAt)}",
+            Text("${article.sourceName} · ${formatDate(article.publishedAt)}", modifier = LocalFeedHeaderModifier.current,
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             Text(article.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             if (article.excerpt.isNotBlank()) Text(article.excerpt, maxLines = 4, overflow = TextOverflow.Ellipsis,

@@ -19,7 +19,7 @@ import io.newsbrief.app.network.ArticleLinks
     Card(Modifier.fillMaxWidth().clickable { host.openArticle(article) },
         colors = if (color != null) CardDefaults.cardColors(containerColor = color, contentColor = androidx.compose.ui.graphics.Color(0xFF191919)) else CardDefaults.cardColors()) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(article.sourceName + " · " + formatDate(article.publishedAt), style = MaterialTheme.typography.labelSmall)
+            Text(article.sourceName + " · " + formatDate(article.publishedAt), modifier = LocalFeedHeaderModifier.current, style = MaterialTheme.typography.labelSmall)
             Text(article.title, style = MaterialTheme.typography.titleMedium)
             Text(article.excerpt, maxLines = 4)
             ArticleActionRow(article, host)
