@@ -11,6 +11,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
@@ -33,6 +38,14 @@ class FeedFeature : AppFeature {
     override fun configure(bindings: FeatureBindings) {
         bindings.controller(FeedUi::class.java, ::FeedViewModel)
         bindings.commands["refresh"] = { it.controller(FeedUi::class.java).refresh() }
+    }
+    @Composable override fun Toolbar(host: FeatureHost) {
+        val vm = host.controller(FeedUi::class.java)
+        val open by vm.searchOpen.collectAsStateWithLifecycle()
+        IconButton(onClick = vm::toggleNewsSearch, modifier = Modifier.testTag("open-news-search")) {
+            Icon(if (open) Icons.Default.Close else Icons.Default.Search,
+                contentDescription = stringResource(if (open) R.string.search_close else R.string.search_open))
+        }
     }
     @Composable override fun HeaderSummary(host: FeatureHost) {
         val unread by host.controller(FeedUi::class.java).unreadCount.collectAsStateWithLifecycle()

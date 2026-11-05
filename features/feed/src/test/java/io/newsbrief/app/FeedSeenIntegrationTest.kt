@@ -42,6 +42,8 @@ class FeedSeenIntegrationTest {
         val fake = object : FeedUi {
             override val feedLimit = MutableStateFlow(250)
             override fun loadMoreFeed() { feedLimit.value += 250 }
+            override val searchOpen = MutableStateFlow(false)
+            override fun toggleNewsSearch() { searchOpen.value = !searchOpen.value }
             override val searchQuery = MutableStateFlow("")
             override fun searchNews(query: String) { searchQuery.value = query }
             override val unreadCount = MutableStateFlow(articles.size)
@@ -76,6 +78,8 @@ class FeedSeenIntegrationTest {
         val fake = object : FeedUi {
             override val feedLimit = MutableStateFlow(250)
             override fun loadMoreFeed() = Unit
+            override val searchOpen = MutableStateFlow(false)
+            override fun toggleNewsSearch() { searchOpen.value = !searchOpen.value }
             override val searchQuery = MutableStateFlow("")
             override fun searchNews(query: String) = Unit
             override val unreadCount = MutableStateFlow(0)
@@ -108,6 +112,8 @@ class FeedSeenIntegrationTest {
         val fake = object : FeedUi {
             override val feedLimit = MutableStateFlow(250)
             override fun loadMoreFeed() = Unit
+            override val searchOpen = MutableStateFlow(false)
+            override fun toggleNewsSearch() { searchOpen.value = !searchOpen.value }
             override val searchQuery = MutableStateFlow("")
             override fun searchNews(query: String) = Unit
             override val unreadCount = MutableStateFlow(1)

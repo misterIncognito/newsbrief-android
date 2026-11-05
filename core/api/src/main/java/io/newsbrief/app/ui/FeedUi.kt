@@ -4,6 +4,8 @@ import kotlinx.coroutines.flow.StateFlow
 interface FeedUi {
     val feedLimit: StateFlow<Int>
     fun loadMoreFeed()
+    val searchOpen: StateFlow<Boolean>
+    fun toggleNewsSearch()
     val searchQuery: StateFlow<String>
     fun searchNews(query: String)
     val unreadCount: StateFlow<Int>

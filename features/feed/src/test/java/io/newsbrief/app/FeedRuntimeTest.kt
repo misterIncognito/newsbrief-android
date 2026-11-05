@@ -141,11 +141,11 @@ class FeedRuntimeTest {
             compose.setContent { MaterialTheme { NewsBriefScreen(vm) } }
             val feed = vm.host.controller(FeedUi::class.java)
             compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); feed.feedArticles.value.size == 250 }
-            compose.onNodeWithText("Поиск новостей").performClick()
+            compose.onNodeWithTag("open-news-search").performClick()
             compose.onNodeWithTag("news-search").performTextInput("космос")
             compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); feed.feedArticles.value.size == 2 }
             assertEquals(setOf("Post 1", "Archived match"), feed.feedArticles.value.map { it.title }.toSet())
-            compose.onNodeWithText("Закрыть").performClick()
+            compose.onNodeWithTag("open-news-search").performClick()
             compose.waitUntil(5000) { dispatcher.scheduler.runCurrent(); feed.feedArticles.value.size == 250 }
             assertEquals("", feed.searchQuery.value)
             feed.loadMoreFeed()
