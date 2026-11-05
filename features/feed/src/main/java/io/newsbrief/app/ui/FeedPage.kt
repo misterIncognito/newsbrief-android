@@ -54,7 +54,7 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
     val articles by vm.feedArticles.collectAsStateWithLifecycle()
     val searchQuery by vm.searchQuery.collectAsStateWithLifecycle()
     val feedLimit by vm.feedLimit.collectAsStateWithLifecycle()
-    var searchOpen by rememberSaveable { mutableStateOf(false) }
+    val searchOpen by vm.searchOpen.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
@@ -95,15 +95,10 @@ fun FeedPage(vm: FeedUi, feedScroll: LazyListState, savedScroll: LazyListState, 
     }
     Column(Modifier.fillMaxSize()) {
         controls()
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (searchOpen) {
-                OutlinedTextField(value = searchQuery, onValueChange = vm::searchNews, singleLine = true,
-                    label = { Text(stringResource(FeedR.string.search_loaded_news)) },
-                    modifier = Modifier.weight(1f).testTag("news-search"))
-            }
-            TextButton(onClick = { searchOpen = !searchOpen; if (!searchOpen) vm.searchNews("") }) {
-                Text(stringResource(if (searchOpen) FeedR.string.search_close else FeedR.string.search_open))
-            }
+        if (searchOpen) {
+            OutlinedTextField(value = searchQuery, onValueChange = vm::searchNews, singleLine = true,
+                label = { Text(stringResource(FeedR.string.search_loaded_news)) },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).testTag("news-search"))
         }
         if (searchOpen && searchQuery.isNotBlank()) Text(stringResource(FeedR.string.search_all_notice),
             style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))

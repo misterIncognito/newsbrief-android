@@ -18,6 +18,12 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
     private val _feedLimit = MutableStateFlow(250)
     override val feedLimit = _feedLimit.asStateFlow()
     override fun loadMoreFeed() { _feedLimit.value = (_feedLimit.value + 250).coerceAtMost(1_000_000) }
+    private val _searchOpen = MutableStateFlow(false)
+    override val searchOpen = _searchOpen.asStateFlow()
+    override fun toggleNewsSearch() {
+        _searchOpen.value = !_searchOpen.value
+        if (!_searchOpen.value) _searchQuery.value = ""
+    }
     private val _searchQuery = MutableStateFlow("")
     override val searchQuery = _searchQuery.asStateFlow()
     override fun searchNews(query: String) { _searchQuery.value = query }
