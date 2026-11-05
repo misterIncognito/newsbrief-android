@@ -38,13 +38,20 @@ class ChannelFilterBarTest {
             override val selection = MutableStateFlow(FeedSelection())
             override fun filterCategory(category: FeedCategory) { feedCategory.value = category; feedSources.value = emptySet() }
             override fun filterSource(key: String?) { feedSources.value = key?.let(::setOf).orEmpty() }
-            override fun toggleFeedSource(key: String) { filterSource(key) }
+            override fun toggleFeedSource(key: String) { feedSources.value = if (key in feedSources.value) feedSources.value - key else feedSources.value + key }
             override fun clearFeedFilter() { filterCategory(FeedCategory.ALL) }
         }
         compose.setContent { MaterialTheme { ChannelFilterBar(filter, store.articleDao()) } }
         compose.waitUntil(5000) { compose.onAllNodesWithText("All channels · 1").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Alpha · 1").assertExists().performClick()
         compose.runOnIdle { assertEquals(setOf("a"), filter.feedSources.value) }
+        compose.onNodeWithTag("channel-all").performTouchInput { longClick() }
+        compose.onNodeWithTag("channel-multiselect").assertExists()
+        compose.onNodeWithTag("channel-menu-b").performClick()
+        compose.runOnIdle { assertEquals(setOf("a", "b"), filter.feedSources.value) }
+        compose.onNodeWithTag("channel-menu-a").performClick()
+        compose.runOnIdle { assertEquals(setOf("b"), filter.feedSources.value) }
+        compose.onNodeWithText("Done").performClick()
         compose.onNodeWithTag("channel-all").performClick()
         compose.runOnIdle { assertEquals(emptySet<String>(), filter.feedSources.value) }
         runBlocking { store.articleDao().setReadAt("https://a.example/1", 100) }

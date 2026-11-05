@@ -4,6 +4,8 @@ import android.content.Context
 import io.newsbrief.modules.features.feed.R
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -47,8 +49,12 @@ class FeedFeature : AppFeature {
         val vm = host.controller(FeedUi::class.java)
         val savedOnly by vm.savedOnly.collectAsStateWithLifecycle()
         val readStatus = host.optional(ReadStatusUi::class.java)
+        val selection by (host.optional(FeedFilterUi::class.java)?.selection
+            ?: remember { kotlinx.coroutines.flow.MutableStateFlow(FeedSelection()) }).collectAsStateWithLifecycle()
+        val unreadOnly by (readStatus?.unreadOnly
+            ?: remember { kotlinx.coroutines.flow.MutableStateFlow(false) }).collectAsStateWithLifecycle()
         FeedAutoRefresh(true) { vm.feedBecameVisible() }
-        FeedPage(vm, rememberLazyListState(), rememberLazyListState(), controls = { host.bindings.feedControls.forEach { it(host) } }, emptyMessage = if (savedOnly) host.bindings.feedEmptyMessage(host) else null,
+        FeedPage(vm, rememberLazyListState(), rememberLazyListState(), feedIdentity = Triple(selection, unreadOnly, savedOnly), controls = { host.bindings.feedControls.forEach { it(host) } }, emptyMessage = if (savedOnly) host.bindings.feedEmptyMessage(host) else null,
             onVisible = readStatus?.let { status -> { ids -> status.markVisible(ids) } },
             onVisibilityChanged = readStatus?.let { status -> { ids -> status.retainVisible(ids) } }) { article ->
             val presentation = host.bindings.presentation

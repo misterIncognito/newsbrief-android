@@ -18,21 +18,21 @@ class ReadStatusViewModel(private val host: FeatureHost) : ViewModel(), ReadStat
         if (_unreadOnly.value != value) _visibleReadIds.value = emptySet()
         _unreadOnly.value = value
     }
+    override fun clearUnreadSession() { _visibleReadIds.value = emptySet() }
     override fun toggleRead(article: ArticleEntity): kotlinx.coroutines.Job {
         manuallyChangedVisible = manuallyChangedVisible + article.id
+        if (_unreadOnly.value && article.readAt == null) _visibleReadIds.value = _visibleReadIds.value + article.id
         return viewModelScope.launch {
             host.services.store.articleDao().setReadAt(article.link, if (article.readAt == null) System.currentTimeMillis() else null)
         }
     }
     override fun retainVisible(ids: List<Long>) {
         manuallyChangedVisible = manuallyChangedVisible.intersect(ids.toSet())
-        if (_unreadOnly.value) _visibleReadIds.value = _visibleReadIds.value.intersect(ids.toSet())
     }
     override suspend fun markVisible(ids: List<Long>) {
         val automaticIds = ids.filterNot { it in manuallyChangedVisible }
         if (automaticIds.isNotEmpty()) {
-            // Keep seen items while they remain visible; otherwise the unread list would
-            // continuously replace them and mark unseen items as read.
+            // Keep read items in this feed session even after they leave the viewport.
             if (_unreadOnly.value) _visibleReadIds.value = _visibleReadIds.value + automaticIds
             host.services.store.articleDao().markVisibleRead(automaticIds, System.currentTimeMillis())
         }

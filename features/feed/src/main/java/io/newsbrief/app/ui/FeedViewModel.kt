@@ -62,13 +62,20 @@ class FeedViewModel(private val host: FeatureHost) : ViewModel(), FeedUi {
     private val _refreshing = MutableStateFlow(false)
     override val refreshing = _refreshing.asStateFlow()
     private var refreshRequested = false
-    init { refresh() }
+    init {
+        viewModelScope.launch {
+            combine(query, savedOnly) { selection, saved -> selection to saved }
+                .distinctUntilChanged().drop(1).collect { readStatus?.clearUnreadSession() }
+        }
+        refresh()
+    }
 
     override fun feedBecameVisible() {
         if (!_refreshing.value) refresh(quiet = true)
     }
 
     override fun refresh(quiet: Boolean) {
+        if (!quiet) readStatus?.clearUnreadSession()
         // Source changes during a refresh require another pass with the current source list.
         refreshRequested = true
         if (_refreshing.value) return

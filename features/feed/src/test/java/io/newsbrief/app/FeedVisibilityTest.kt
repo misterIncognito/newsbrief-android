@@ -1,20 +1,22 @@
 package io.newsbrief.app
 
-import io.newsbrief.app.ui.isVisibleEnough
+import androidx.compose.ui.geometry.Rect
+import io.newsbrief.app.ui.isHeaderVisible
 import org.junit.Assert.*
 import org.junit.Test
 
 class FeedVisibilityTest {
-    @Test fun marksOnlySubstantiallyVisibleItems() {
-        assertTrue(isVisibleEnough(0, 200, 0, 400))
-        assertTrue(isVisibleEnough(-100, 200, 0, 400))
-        assertFalse(isVisibleEnough(-101, 200, 0, 400))
-        assertFalse(isVisibleEnough(400, 200, 0, 400))
-        assertFalse(isVisibleEnough(0, 0, 0, 400))
+    private val viewport = Rect(0f, 0f, 400f, 400f)
+    @Test fun requiresHalfOfTheActualHeader() {
+        assertTrue(isHeaderVisible(Rect(0f, 10f, 300f, 30f), viewport))
+        assertTrue(isHeaderVisible(Rect(0f, -10f, 300f, 10f), viewport))
+        assertFalse(isHeaderVisible(Rect(0f, -11f, 300f, 9f), viewport))
+        assertFalse(isHeaderVisible(Rect(0f, -100f, 300f, -80f), viewport))
+        assertFalse(isHeaderVisible(Rect.Zero, viewport))
     }
-    @Test fun longPostsCanBeReadWithoutFittingInTheViewport() {
-        assertTrue(isVisibleEnough(-500, 1200, 0, 400))
-        assertTrue(isVisibleEnough(200, 1200, 0, 400))
-        assertFalse(isVisibleEnough(201, 1200, 0, 400))
+    @Test fun partiallyVisibleBodyDoesNotMakeAnOffscreenHeaderSeen() {
+        assertFalse(isHeaderVisible(Rect(10f, -500f, 300f, -480f), viewport))
+        assertFalse(isHeaderVisible(Rect(10f, 401f, 300f, 421f), viewport))
+        assertTrue(isHeaderVisible(Rect(10f, 380f, 300f, 400f), viewport))
     }
 }
